@@ -1,1 +1,105 @@
-empty
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>qjv's Tools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+        }
+        .tool-card {
+            background-color: #1f2937; /* bg-gray-800 */
+            border: 1px solid #374151; /* border-gray-700 */
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .tool-card svg {
+            transition: transform 0.2s ease-in-out;
+        }
+        .tool-card:hover svg {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="text-gray-300">
+
+    <div class="container mx-auto px-4 py-16 max-w-4xl">
+
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold text-white">qjv tools</h1>
+            <p class="text-lg text-gray-400 mt-2">A collection of specialized utilities (mostly for myself).</p>
+        </header>
+
+        <main>
+            <!-- General Tools Section -->
+            <section id="general-tools">
+                <h2 class="text-2xl font-semibold text-white border-b-2 border-gray-700 pb-2 mb-6">General Tools</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- Python Array Extractor -->
+                    <a href="/extractor" class="tool-card rounded-lg p-6 block">
+                        <div class="flex items-center mb-3">
+                            <svg class="w-8 h-8 text-blue-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                            <h3 class="text-xl font-bold text-white">Python Array Extractor</h3>
+                        </div>
+                        <p class="text-gray-400">Converts raw text or table data into a clean, NumPy-ready array format.</p>
+                    </a>
+
+                    <!-- Image Cropper -->
+                    <a href="/crop" class="tool-card rounded-lg p-6 block">
+                        <div class="flex items-center mb-3">
+                            <svg class="w-8 h-8 text-green-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19M4.879 4.879L9.757 9.757M19 4.879L14.121 9.757M4.879 19L9.757 14.121M12 21a9 9 0 110-18 9 9 0 010 18z"></path></svg>
+                            <h3 class="text-xl font-bold text-white">Image Cropper</h3>
+                        </div>
+                        <p class="text-gray-400">Crops images with advanced controls for size and anchor points.</p>
+                    </a>
+
+                </div>
+            </section>
+
+            <!-- GW2 Tools Section -->
+            <section id="gw2-tools" class="mt-12">
+                <h2 class="text-2xl font-semibold text-white border-b-2 border-gray-700 pb-2 mb-6">Guild Wars 2 Tools</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <!-- Squad Formatter -->
+                    <a href="/format" class="tool-card rounded-lg p-6 block">
+                        <div class="flex items-center mb-3">
+                            <!-- GW2 Commander Icon -->
+                            <svg class="w-8 h-8 text-yellow-400 mr-4" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                <polygon points="50,5 62,38 98,38 70,58 78,95 50,72 22,95 30,58 2,38 38,38" fill="currentColor"/>
+                            </svg>
+                            <h3 class="text-xl font-bold text-white">Squad Formatter</h3>
+                        </div>
+                        <p class="text-gray-400">Formats in-game messages with custom tags for colors and line breaks.</p>
+                    </a>
+
+                    <!-- Logs Formatter -->
+                    <a href="/logs" class="tool-card rounded-lg p-6 block">
+                        <div class="flex items-center mb-3">
+                            <svg class="w-8 h-8 text-red-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <h3 class="text-xl font-bold text-white">Logs Formatter</h3>
+                        </div>
+                        <p class="text-gray-400">Extracts and formats dps.report logs with advanced filtering options.</p>
+                    </a>
+                    
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-16 text-gray-500">
+            <p>&copy; 2025 qjv</p>
+        </footer>
+
+    </div>
+
+</body>
+</html>

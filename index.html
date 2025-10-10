@@ -9,135 +9,197 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* bg-gray-900 */
+            background-color: #0f172a;
         }
         .tool-card {
-            background-color: #1f2937; /* bg-gray-800 */
-            border: 1px solid #374151; /* border-gray-700 */
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
         }
         .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+            border-color: #475569;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
         }
-        .tool-card svg {
-            transition: transform 0.2s ease-in-out;
+        .hidden-section {
+            display: none;
         }
-        .tool-card:hover svg {
-            transform: scale(1.1);
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .secret-trigger {
+            cursor: help;
+            transition: all 0.3s ease;
+        }
+        .secret-trigger:hover {
+            color: #60a5fa;
         }
     </style>
 </head>
-<body class="text-gray-300">
+<body class="text-gray-300 min-h-screen">
 
-    <div class="container mx-auto px-4 py-16 max-w-4xl">
+    <div class="container mx-auto px-6 py-20 max-w-5xl">
 
-        <!-- Header -->
-        <header class="text-center mb-12">
-            <h1 class="text-5xl font-bold text-white">qjv tools</h1>
-            <p class="text-lg text-gray-400 mt-2">A collection of specialized utilities (mostly for myself).</p>
+        <header class="text-center mb-16">
+            <h1 class="text-6xl font-bold text-white mb-4">qjv tools</h1>
+            <p class="text-xl text-gray-400">Professional utilities for data processing and analysis</p>
         </header>
 
         <main>
-            <!-- General Tools Section -->
             <section id="general-tools">
-                <h2 class="text-2xl font-semibold text-white border-b-2 border-gray-700 pb-2 mb-6">General Tools</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     
-                    <!-- Python Array Extractor -->
-                    <a href="/extractor" class="tool-card rounded-lg p-6 block">
-                        <div class="flex items-center mb-3">
-                            <svg class="w-8 h-8 text-blue-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                            <h3 class="text-xl font-bold text-white">Python Array Extractor</h3>
+                    <a href="/extractor" class="tool-card rounded-xl p-8 block">
+                        <div class="flex items-start mb-4">
+                            <svg class="w-10 h-10 text-blue-400 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-2">Python Array Extractor</h3>
+                                <p class="text-gray-400">Converts raw text or table data into clean, NumPy-ready array format.</p>
+                            </div>
                         </div>
-                        <p class="text-gray-400">Converts raw text or table data into a clean, NumPy-ready array format.</p>
                     </a>
 
-                    <!-- Image Cropper -->
-                    <a href="/crop" class="tool-card rounded-lg p-6 block">
-                        <div class="flex items-center mb-3">
-                            <svg class="w-8 h-8 text-green-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19M4.879 4.879L9.757 9.757M19 4.879L14.121 9.757M4.879 19L9.757 14.121M12 21a9 9 0 110-18 9 9 0 010 18z"></path></svg>
-                            <h3 class="text-xl font-bold text-white">Image Cropper</h3>
+                    <a href="/crop" class="tool-card rounded-xl p-8 block">
+                        <div class="flex items-start mb-4">
+                            <svg class="w-10 h-10 text-green-400 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-2">Image Cropper</h3>
+                                <p class="text-gray-400">Advanced image cropping with precise controls for size and anchor points.</p>
+                            </div>
                         </div>
-                        <p class="text-gray-400">Crops images with advanced controls for size and anchor points.</p>
                     </a>
 
                 </div>
             </section>
 
-            <!-- GW2 Tools Section -->
-            <section id="gw2-tools" class="mt-12">
-                <h2 class="text-2xl font-semibold text-white border-b-2 border-gray-700 pb-2 mb-6">Guild Wars 2 Tools</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section id="gw2-tools" class="hidden-section mt-16">
+                <h2 class="text-3xl font-bold text-white mb-8 border-b border-gray-700 pb-4">Guild Wars 2 Tools</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                    <!-- GW2 Rune Finder -->
-                    <a href="/runes" class="tool-card rounded-lg p-6 block">
-                        <div class="flex items-center mb-3">
-                            <!-- GW2 Rune Icon -->
-                             <svg class="w-8 h-8 text-sky-400 mr-4" fill="currentColor" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                 <path d="M50 5 L95 27.5 L95 72.5 L50 95 L5 72.5 L5 27.5 Z M50 15 L15 32.5 v35 L50 85 l35 -17.5 v-35 Z M50 25 l25 12.5 v25 L50 75 l-25 -12.5 v-25 Z"></path>
-                             </svg>
-                            <h3 class="text-xl font-bold text-white">Rune Finder</h3>
-                        </div>
-                        <p class="text-gray-400">An advanced search and filtering tool for all Superior Runes in the game.</p>
-                    </a>
-
-                    <!-- Squad Formatter -->
-                    <a href="/format" class="tool-card rounded-lg p-6 block">
-                        <div class="flex items-center mb-3">
-                            <!-- GW2 Commander Icon -->
-                            <svg class="w-8 h-8 text-yellow-400 mr-4" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                 <polygon points="50,5 62,38 98,38 70,58 78,95 50,72 22,95 30,58 2,38 38,38" fill="currentColor"/>
+                    <a href="/runes" class="tool-card rounded-xl p-8 block">
+                        <div class="flex items-start mb-4">
+                            <svg class="w-10 h-10 text-cyan-400 mr-4 flex-shrink-0" fill="currentColor" viewBox="0 0 100 100">
+                                <path d="M50 5 L95 27.5 L95 72.5 L50 95 L5 72.5 L5 27.5 Z M50 15 L15 32.5 v35 L50 85 l35 -17.5 v-35 Z M50 25 l25 12.5 v25 L50 75 l-25 -12.5 v-25 Z"></path>
                             </svg>
-                            <h3 class="text-xl font-bold text-white">Squad Formatter</h3>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-2">Rune Finder</h3>
+                                <p class="text-gray-400">Advanced search and filtering for all Superior Runes in the game.</p>
+                            </div>
                         </div>
-                        <p class="text-gray-400">Formats in-game messages with custom tags for colors and line breaks.</p>
                     </a>
 
-                    <!-- Logs Formatter -->
-                    <a href="/logs" class="tool-card rounded-lg p-6 block">
-                        <div class="flex items-center mb-3">
-                            <svg class="w-8 h-8 text-red-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            <h3 class="text-xl font-bold text-white">Logs Formatter</h3>
+                    <a href="/format" class="tool-card rounded-xl p-8 block">
+                        <div class="flex items-start mb-4">
+                            <svg class="w-10 h-10 text-yellow-400 mr-4 flex-shrink-0" viewBox="0 0 100 100">
+                                <polygon points="50,5 62,38 98,38 70,58 78,95 50,72 22,95 30,58 2,38 38,38" fill="currentColor"/>
+                            </svg>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-2">Squad Formatter</h3>
+                                <p class="text-gray-400">Format in-game messages with custom color tags and line breaks.</p>
+                            </div>
                         </div>
-                        <p class="text-gray-400">Extracts and formats dps.report logs with advanced filtering options.</p>
+                    </a>
+
+                    <a href="/logs" class="tool-card rounded-xl p-8 block">
+                        <div class="flex items-start mb-4">
+                            <svg class="w-10 h-10 text-red-400 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-2">Logs Formatter</h3>
+                                <p class="text-gray-400">Extract and format dps.report logs with advanced filtering options.</p>
+                            </div>
+                        </div>
                     </a>
                     
-                    <!-- GW2 Batch Chat Code Generator -->
-                    <a href="/chatcode" class="tool-card rounded-lg p-6 block">
-                        <div class="flex items-center mb-3">
-                            <svg class="w-8 h-8 text-purple-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                            <h3 class="text-xl font-bold text-white">Batch Chat Code Generator</h3>
+                    <a href="/chatcode" class="tool-card rounded-xl p-8 block">
+                        <div class="flex items-start mb-4">
+                            <svg class="w-10 h-10 text-purple-400 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-2">Batch Chat Code Generator</h3>
+                                <p class="text-gray-400">Generate large ranges of in-game item chat codes for testing.</p>
+                            </div>
                         </div>
-                        <p class="text-gray-400">Generates a large range of in-game item chat codes for testing or archival.</p>
+                    </a>
+
+                    <a href="/roster" class="tool-card rounded-xl p-8 block">
+                        <div class="flex items-start mb-4">
+                            <svg class="w-10 h-10 text-indigo-400 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-2">Roster Manager</h3>
+                                <p class="text-gray-400">Raid roster manager with shareable links for complete rosters and assignments.</p>
+                            </div>
+                        </div>
                     </a>
                     
                 </div>
             </section>
             
-            <!-- Other Game Tools Section -->
-            <section id="other-game-tools" class="mt-12">
-                <h2 class="text-2xl font-semibold text-white border-b-2 border-gray-700 pb-2 mb-6">Other Game Tools</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section id="other-game-tools" class="hidden-section mt-16">
+                <h2 class="text-3xl font-bold text-white mb-8 border-b border-gray-700 pb-4">Other Game Tools</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                     <!-- Terraria NPC Happiness -->
-                     <a href="/terraria" class="tool-card rounded-lg p-6 block">
-                         <div class="flex items-center mb-3">
-                             <!-- Terraria House Icon -->
-                             <svg class="w-8 h-8 text-green-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                             <h3 class="text-xl font-bold text-white">Terraria NPC Happiness</h3>
-                         </div>
-                         <p class="text-gray-400">Finds the optimal biome and neighbor placement for maximum NPC happiness.</p>
-                     </a>
+                    <a href="/terraria" class="tool-card rounded-xl p-8 block">
+                        <div class="flex items-start mb-4">
+                            <svg class="w-10 h-10 text-green-500 mr-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-2">Terraria NPC Happiness</h3>
+                                <p class="text-gray-400">Find optimal biome and neighbor placement for maximum NPC happiness.</p>
+                            </div>
+                        </div>
+                    </a>
                 </div>
             </section>
         </main>
 
-        <footer class="text-center mt-16 text-gray-500">
-            <p>&copy; 2025 qjv</p>
+        <footer class="text-center mt-20 text-gray-500">
+            <p>&copy; 2025 <span class="secret-trigger" onclick="revealGameTools()" title="Click me">qjv</span></p>
         </footer>
 
     </div>
+
+    <script>
+        let clickCount = 0;
+        
+        function revealGameTools() {
+            clickCount++;
+            
+            if (clickCount === 3) {
+                const gw2Section = document.getElementById('gw2-tools');
+                const otherSection = document.getElementById('other-game-tools');
+                
+                gw2Section.classList.remove('hidden-section');
+                gw2Section.classList.add('fade-in');
+                
+                setTimeout(() => {
+                    otherSection.classList.remove('hidden-section');
+                    otherSection.classList.add('fade-in');
+                }, 300);
+                
+                clickCount = 0;
+            }
+        }
+    </script>
 
 </body>
 </html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GW2 Squad Formatter</title>
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-white">GW2 Squad Formatter</h1>
+            <p class="text-gray-400 mt-1">Create formatted messages with a live preview.</p>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="flex justify-center items-center bg-gray-900 rounded-lg p-1 mb-6 max-w-sm mx-auto">
+            <button id="mode-tag" class="w-1/2 py-2 px-4 rounded-md text-sm font-semibold transition-colors duration-200 btn-active">Tag Format</button>
+            <button id="mode-squad" class="w-1/2 py-2 px-4 rounded-md text-sm font-semibold transition-colors duration-200">Squad Message</button>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6" style="height: 550px;">
+            <!-- Left Panel: Editor -->
+            <div class="bg-gray-900 p-4 rounded-lg flex flex-col">
+                <div id="character-name-section" class="mb-4 flex-shrink-0">
+                    <label for="character-name" class="block text-sm font-medium text-white mb-2">Character Name</label>
+                    <input type="text" id="character-name" class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Your character name...">
+                </div>
+
+                <div class="flex justify-between items-center mb-2 flex-shrink-0">
+                    <h2 class="font-bold text-white">Editor</h2>
+                    <button id="copy-button" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 rounded-lg transition text-xs">Copy</button>
+                </div>
+                <div class="relative flex-grow">
+                    <textarea id="text-input" class="w-full h-full bg-gray-800 border border-gray-700 rounded-md p-3 text-base resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Type your message here..."></textarea>
+                    <div id="char-counter" class="absolute bottom-3 right-3 text-sm font-medium text-gray-400">0 / 116</div>
+                </div>
+
+                <div class="mt-4 space-y-3 flex-shrink-0">
+                    <div id="formatting-buttons-wrapper">
+                        <div id="tag-buttons">
+                            <button class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition w-full">Blue/Underline</button>
+                        </div>
+                        <div id="squad-buttons" class="hidden grid grid-cols-3 gap-3">
+                            <button class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Blue/Underline</button>
+                            <button class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Line Break</button>
+                            <button class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">Large Break</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm font-medium text-white mb-2">Apply Color:</p>
+                        <div class="flex justify-center mb-3">
+                            <div id="color-palette" class="flex flex-wrap gap-2 justify-center"></div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div id="color-picker-wrapper" class="flex-grow"></div>
+                            <div id="color-preview" class="w-10 h-10 rounded border-2 border-gray-600 flex-shrink-0"></div>
+                            <button id="apply-picker-color" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition self-stretch">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Preview -->
+            <div class="bg-gray-900 p-4 rounded-lg flex flex-col h-full">
+                <h2 class="font-bold mb-2 text-white flex-shrink-0">Live Preview</h2>
+                <div id="preview-output" class="w-full flex-grow bg-gray-800 border border-gray-700 rounded-md p-3 overflow-y-auto break-words"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Script -->
+    <script src="script.js"></script>
+</body>
+</html>

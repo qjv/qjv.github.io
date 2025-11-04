@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Cropper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-6xl bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-white">Advanced Image Cropper</h1>
+            <p class="text-gray-400 mt-1">Upload an image and set custom crop values and anchor points.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-gray-900 p-4 rounded-lg">
+                <h3 class="font-bold text-lg mb-3 text-white">1. Load Image</h3>
+                <input type="file" id="image-upload" accept="image/*" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition cursor-pointer mb-2">
+                <input type="text" id="image-url" placeholder="Or paste image URL..." class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                 <button id="process-btn" class="mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition">Load Image</button>
+            </div>
+            <div class="bg-gray-900 p-4 rounded-lg">
+                <h3 class="font-bold text-lg mb-3 text-white">2. Crop Settings</h3>
+                <div class="flex items-center gap-4 mb-3">
+                    <label for="crop-x" class="text-sm font-medium whitespace-nowrap">Horizontal Crop (px)</label>
+                    <input type="number" id="crop-x" value="26" class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+                <div class="flex items-center gap-4">
+                    <label for="crop-y" class="text-sm font-medium whitespace-nowrap">Vertical Crop (px)</label>
+                    <input type="number" id="crop-y" value="26" class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+            </div>
+            <div class="bg-gray-900 p-4 rounded-lg">
+                 <h3 class="font-bold text-lg mb-3 text-white">3. Anchor Point</h3>
+                <div class="flex items-center gap-4 mb-3">
+                    <label for="anchor-x" class="text-sm font-medium whitespace-nowrap">Horizontal Anchor</label>
+                    <select id="anchor-x" class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <option value="middle">Middle</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+                 <div class="flex items-center gap-4">
+                    <label for="anchor-y" class="text-sm font-medium whitespace-nowrap">Vertical Anchor</label>
+                    <select id="anchor-y" class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                        <option value="middle">Middle</option>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="error-message" class="text-red-400 text-center mb-4 hidden"></div>
+        <div id="loader" class="text-center mb-4 hidden">
+            <div class="spinner w-8 h-8 border-4 border-gray-600 rounded-full inline-block"></div>
+            <p>Loading image...</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-gray-900 p-4 rounded-lg">
+                <h2 class="font-bold mb-2 text-white text-center">Original</h2>
+                <div class="image-container w-full h-80 flex items-center justify-center rounded-lg">
+                    <img id="original-img" src="" alt="Original Image" class="max-w-full max-h-full hidden">
+                    <p id="original-placeholder" class="text-gray-500">Load an image to begin</p>
+                </div>
+                <a id="download-original" href="#" download="original.png" class="block w-full text-center mt-4 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition hidden">Download Original</a>
+            </div>
+
+            <div class="bg-gray-900 p-4 rounded-lg">
+                <h2 class="font-bold mb-2 text-white text-center">Cropped</h2>
+                <div class="image-container w-full h-80 flex items-center justify-center rounded-lg">
+                    <img id="cropped-img" src="" alt="Cropped Image" class="max-w-full max-h-full hidden">
+                    <p id="cropped-placeholder" class="text-gray-500">Cropped image will appear here</p>
+                </div>
+                <a id="download-cropped" href="#" download="cropped.png" class="block w-full text-center mt-4 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition hidden">Download Cropped</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

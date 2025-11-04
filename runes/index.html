@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guild Wars 2 Rune Finder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>Guild Wars 2 <span>Rune Finder</span></h1></div>
+        <h2>Filters</h2>
+        <div id="filter-bar"></div>
+        <h2>Controls & Results</h2>
+        <div id="controls-container">
+            <div class="control-group">
+                <label>Sort By</label>
+                <div style="display: flex; gap: 5px;">
+                    <div id="sort-menu-container" class="menu-container"></div>
+                    <button id="sort-direction-btn"></button>
+                </div>
+            </div>
+            <div class="control-group"><label>Actions</label>
+                <div style="display: flex; gap: 5px;">
+                    <button id="clear-btn">Clear</button>
+                    <button id="expand-toggle-btn">Expand</button>
+                </div>
+            </div>
+        </div>
+        <div id="results-summary">Select one or more stats to find matching runes.</div>
+        <div id="results-list" class="results-list collapsed"></div>
+    </div>
+    <div id="copy-notification">Copied to clipboard!</div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image Cropper for Snow Crows Pets!</title>
+  <style>
+    body { font-family: sans-serif; }
+    .images-container { display: flex; justify-content: space-around; margin-top: 20px; }
+    .image-box { text-align: center; }
+    img { max-width: 300px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Drag & Drop or Upload an Image, or Provide a URL</h1>
+  <form id="uploadForm" method="POST" enctype="multipart/form-data">
+    <label for="fileInput">Upload Image:</label>
+    <input type="file" id="fileInput" name="image" accept="image/*"><br><br>
+    
+    <label for="imageUrl">Or provide an image URL:</label>
+    <input type="text" id="imageUrl" name="image_url" placeholder="Enter image URL"><br><br>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  {% if original_filename %}
+    <h2>Comparison of Original and Cropped Image</h2>
+    <div class="images-container">
+      <div class="image-box">
+        <h3>Original Image</h3>
+        <img src="{{ url_for('static', filename='output/' + original_filename) }}" alt="Original Image">
+        <p><a href="{{ url_for('download', filename=original_filename) }}">Download Original</a></p>
+      </div>
+      <div class="image-box">
+        <h3>Cropped Image</h3>
+        <img src="{{ url_for('static', filename='output/' + cropped_filename) }}" alt="Cropped Image">
+        <p><a href="{{ url_for('download', filename=cropped_filename) }}">Download Cropped</a></p>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if error %}
+    <p style="color: red;">{{ error }}</p>
+  {% endif %}
+</body>
+</html>

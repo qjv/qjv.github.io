@@ -1,0 +1,4 @@
+flask
+pillow
+schedule
+requests

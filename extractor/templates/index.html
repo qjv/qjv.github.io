@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Table to NumPy Array Converter</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+            padding: 40px;
+            max-width: 800px;
+            margin: auto;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+
+        textarea {
+            font-family: monospace;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #343a40;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #495057;
+        }
+
+        pre {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+
+        .notice {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Table to NumPy Array Converter</h2>
+
+    <label for="arrayName">Array name:</label>
+    <input id="arrayName" placeholder="e.g. my_array" />
+
+    <label for="rawData">Paste your table:</label>
+    <textarea id="rawData" rows="8" placeholder="Paste tabular values here..."></textarea>
+
+    <button onclick="convert()">Convert & Copy</button>
+    <div class="notice" id="status"></div>
+
+    <h3>Output:</h3>
+    <pre id="output"></pre>
+
+    <script>
+        async function convert() {
+            const arrayName = document.getElementById("arrayName").value || "array_name";
+            const rawData = document.getElementById("rawData").value;
+
+            const status = document.getElementById("status");
+            status.textContent = "Converting and copying...";
+
+            try {
+                const response = await fetch("/convert", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ arrayName, rawData })
+                });
+
+                const result = await response.json();
+                const outputBox = document.getElementById("output");
+                outputBox.textContent = result.converted;
+
+                await navigator.clipboard.writeText(result.converted);
+                status.textContent = "Array copied to clipboard!";
+            } catch (err) {
+                status.textContent = "Something went wrong. Check your input.";
+            }
+        }
+    </script>
+</body>
+</html>

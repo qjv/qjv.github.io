@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raw Text to NumPy Array Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-white">Raw Text to NumPy Array</h1>
+            <p class="text-gray-400 mt-1">Paste your raw data to convert it into a NumPy array format.</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-gray-900 p-4 rounded-lg">
+                <label for="array-name" class="block text-sm font-medium text-white mb-2">Array Name</label>
+                <input type="text" id="array-name" class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition mb-4">
+                
+                <div class="flex items-center mb-4">
+                    <input id="transpose-checkbox" type="checkbox" class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500">
+                    <label for="transpose-checkbox" class="ml-2 block text-sm text-gray-300">Transpose Matrix</label>
+                </div>
+
+                <label for="raw-data" class="block text-sm font-medium text-white mb-2">Raw Data</label>
+                <textarea id="raw-data" class="w-full h-64 bg-gray-800 border border-gray-700 rounded-md p-3 text-base resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Paste your table or numeric data here..."></textarea>
+            </div>
+
+            <div class="bg-gray-900 p-4 rounded-lg flex flex-col h-full">
+                <h2 class="font-bold mb-2 text-white flex-shrink-0">Converted NumPy Array</h2>
+                <div class="relative flex-grow">
+                    <pre id="output" class="w-full h-full bg-gray-800 border border-gray-700 rounded-md p-3 overflow-auto whitespace-pre-wrap break-words text-sm"></pre>
+                    <button id="copy-button" class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 rounded-lg transition text-xs">
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GW2 Mechanics Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                Temple of Febe Analyzer
+            </h1>
+            <p class="text-gray-400">Analyze fight mechanics from dps.report logs</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="bg-gray-800/50 rounded-lg p-6 mb-6 backdrop-blur-sm border border-gray-700">
+            <h2 class="text-xl font-semibold mb-4">Log URLs</h2>
+            <div class="mb-3">
+                <textarea 
+                    id="log-url-input" 
+                    placeholder="Paste dps.report URLs here (multiple URLs supported, nonsense text will be ignored)"
+                    rows="4"
+                    class="w-full px-4 py-2 bg-gray-900 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500 text-white resize-y"
+                ></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button 
+                    id="analyze-button"
+                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors duration-200"
+                >
+                    Analyze
+                </button>
+                <div id="url-count" class="flex items-center text-sm text-gray-400"></div>
+            </div>
+            <div id="loader" class="hidden mt-4 text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <p class="mt-2 text-gray-400">Fetching log data...</p>
+                <p id="fetch-progress" class="mt-1 text-gray-500 text-sm"></p>
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <div id="summary-section" class="hidden bg-gray-800/50 rounded-lg p-6 mb-6 backdrop-blur-sm border border-gray-700">
+            <h2 class="text-xl font-semibold mb-4">Fight Summary</h2>
+            <div id="fight-info" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"></div>
+        </div>
+
+        <!-- Discord Report -->
+        <div id="discord-section" class="hidden bg-gray-800/50 rounded-lg p-6 mb-6 backdrop-blur-sm border border-gray-700">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Discord Report</h2>
+                <button 
+                    id="copy-discord-button"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors duration-200 text-sm"
+                >
+                    Copy to Clipboard
+                </button>
+            </div>
+            <pre id="discord-output" class="bg-gray-900 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700"></pre>
+        </div>
+
+        <!-- Charts Section -->
+        <div id="charts-section" class="hidden space-y-6">
+            <h2 class="text-2xl font-semibold mb-4">Mechanics Overview</h2>
+            <div id="charts-container" class="grid grid-cols-1 gap-6"></div>
+        </div>
+
+        <!-- Error Section -->
+        <div id="error-section" class="hidden bg-red-900/20 border border-red-500/50 rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-red-400 mb-2">Error</h2>
+            <p id="error-message" class="text-gray-300"></p>
+        </div>
+    </div>
+
+    <script>
+        const logUrlInput = document.getElementById('log-url-input');
+        const analyzeButton = document.getElementById('analyze-button');
+        const urlCount = document.getElementById('url-count');
+        const loader = document.getElementById('loader');
+        const fetchProgress = document.getElementById('fetch-progress');
+        const summarySection = document.getElementById('summary-section');
+        const fightInfo = document.getElementById('fight-info');
+        const discordSection = document.getElementById('discord-section');
+        const discordOutput = document.getElementById('discord-output');
+        const copyDiscordButton = document.getElementById('copy-discord-button');
+        const chartsSection = document.getElementById('charts-section');
+        const chartsContainer = document.getElementById('charts-container');
+        const errorSection = document.getElementById('error-section');
+        const errorMessage = document.getElementById('error-message');
+
+        const TRACKED_MECHANICS = [
+            { key: 'Downed', name: 'Downed (excl. last 15s)' },
+            { key: 'Exposed', name: 'Exposed' },
+            { key: 'Ins.A', name: 'Insatiable' },
+            { key: 'WailDesp.H', name: 'Wail of Despair' },
+            { key: 'Emp.WailDesp.H', name: 'Emp. Wail of Despair' },
+            { key: 'PoolDesp.H', name: 'Pool of Despair' },
+            { key: 'Emp.PoolDesp.H', name: 'Emp. Pool of Despair' },
+            { key: 'EnvGaz.H', name: 'Envious Gaze' },
+            { key: 'Emp.EnvGaz.H', name: 'Emp. Envious Gaze' },
+            { key: 'Emp.CryRage.H', name: 'Emp. Cry of Rage' }
+        ];
+
+        let chartInstances = [];
+        let extractedUrls = [];
+
+        function extractUrls(text) {
+            const urlPattern = /https?:\/\/(?:www\.)?[^\s;,]*?(?=https?:\/\/|$|\s|,|;)/g;
+            const matches = text.match(urlPattern) || [];
+            return matches.filter(url => url.includes('dps.report'));
+        }
+
+        function updateUrlCount() {
+            extractedUrls = extractUrls(logUrlInput.value);
+            if (extractedUrls.length > 0) {
+                urlCount.textContent = `${extractedUrls.length} URL${extractedUrls.length > 1 ? 's' : ''} detected`;
+            } else {
+                urlCount.textContent = '';
+            }
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorSection.classList.remove('hidden');
+            loader.classList.add('hidden');
+        }
+
+        function hideError() {
+            errorSection.classList.add('hidden');
+        }
+
+        function formatTime(ms) {
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+        async function fetchLogData(url) {
+            const response = await fetch(`https://dps.report/getJson?permalink=${encodeURIComponent(url)}`, {
+                method: 'GET',
+                mode: 'cors'
+            });
+            if (!response.ok) return null;
+            const data = await response.json();
+            if (!data) return null;
+            data.permalink = url;
+            return data;
+        }
+
+        function processMechanics(logsData) {
+            const mechanicsData = {};
+            const accountMap = {}; // Map character names to account names
+            const allAccounts = new Set(); // Track all unique accounts
+            
+            // Initialize mechanics data structure
+            TRACKED_MECHANICS.forEach(mech => {
+                mechanicsData[mech.key] = {};
+            });
+            
+            // Process all logs
+            logsData.forEach(logData => {
+                const fightDuration = logData.durationMS || 0;
+                const downtimeThreshold = fightDuration - 15000; // 15 seconds before end
+                
+                // Build character name to account name mapping
+                if (logData.players) {
+                    logData.players.forEach(player => {
+                        const accountName = player.account || 'Unknown';
+                        accountMap[player.name] = accountName;
+                        allAccounts.add(accountName);
+                    });
+                }
+
+                // Process mechanics
+                if (logData.mechanics) {
+                    logData.mechanics.forEach(mechanic => {
+                        const mechanicKey = mechanic.name;
+                        if (TRACKED_MECHANICS.some(m => m.key === mechanicKey) && mechanic.mechanicsData) {
+                            mechanic.mechanicsData.forEach(event => {
+                                // Skip Downed if it happens within 15 seconds of fight end
+                                if (mechanicKey === 'Downed' && event.time >= downtimeThreshold) {
+                                    return;
+                                }
+                                
+                                // Get account name from character name
+                                const accountName = accountMap[event.actor] || 'Unknown';
+                                
+                                if (!mechanicsData[mechanicKey][accountName]) {
+                                    mechanicsData[mechanicKey][accountName] = 0;
+                                }
+                                mechanicsData[mechanicKey][accountName]++;
+                            });
+                        }
+                    });
+                }
+            });
+
+            // Initialize all accounts with 0 for all mechanics
+            allAccounts.forEach(account => {
+                TRACKED_MECHANICS.forEach(mech => {
+                    if (!mechanicsData[mech.key][account]) {
+                        mechanicsData[mech.key][account] = 0;
+                    }
+                });
+            });
+
+            return { mechanicsData, accountMap, allAccounts };
+        }
+
+        function generateDiscordReport(logsData, mechanicsData, allAccounts) {
+            let report = '```\n';
+            
+            if (logsData.length === 1) {
+                const logData = logsData[0];
+                report += `=== ${logData.fightName || 'Unknown Fight'} ===\n`;
+                report += `Duration: ${formatTime(logData.durationMS || 0)} | `;
+                report += `Success: ${logData.success ? 'Yes' : 'No'}\n\n`;
+            } else {
+                report += `=== Multiple Fights (${logsData.length} logs) ===\n`;
+                const successCount = logsData.filter(l => l.success).length;
+                report += `Logs: ${logsData.length} | Success: ${successCount}/${logsData.length}\n\n`;
+            }
+            
+            report += 'Mechanics Summary:\n';
+            report += '-'.repeat(50) + '\n';
+
+            TRACKED_MECHANICS.forEach(mech => {
+                const mechData = mechanicsData[mech.key];
+                const total = Object.values(mechData).reduce((a, b) => a + b, 0);
+                
+                report += `\n${mech.name} (Total: ${total}):\n`;
+                
+                // Sort accounts by count (descending), then alphabetically
+                const sortedAccounts = Array.from(allAccounts).sort((a, b) => {
+                    const countA = mechData[a] || 0;
+                    const countB = mechData[b] || 0;
+                    if (countB !== countA) {
+                        return countB - countA; // Higher counts first
+                    }
+                    return a.localeCompare(b); // Alphabetical if counts are equal
+                });
+                
+                sortedAccounts.forEach(accountName => {
+                    const count = mechData[accountName] || 0;
+                    report += `  ${accountName}: ${count}\n`;
+                });
+            });
+
+            report += '```';
+            return report;
+        }
+
+        function createMechanicChart(mechanic, mechData, allAccounts) {
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'bg-gray-800/50 rounded-lg p-6 backdrop-blur-sm border border-gray-700';
+            
+            const total = Object.values(mechData).reduce((a, b) => a + b, 0);
+            
+            chartDiv.innerHTML = `
+                <h3 class="text-lg font-semibold mb-2">${mechanic.name}</h3>
+                <p class="text-sm text-gray-400 mb-4">Total: ${total}</p>
+                <canvas id="chart-${mechanic.key.replace(/\./g, '-')}"></canvas>
+            `;
+            
+            chartsContainer.appendChild(chartDiv);
+
+            const canvas = chartDiv.querySelector('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const labels = [];
+            const data = [];
+            const backgroundColors = [];
+            
+            // Sort accounts alphabetically for charts
+            const sortedAccounts = Array.from(allAccounts).sort();
+
+            const accountColors = {};
+            const colorPalette = [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(199, 199, 199, 0.8)',
+                'rgba(83, 102, 255, 0.8)',
+                'rgba(255, 99, 255, 0.8)',
+                'rgba(99, 255, 132, 0.8)'
+            ];
+
+            sortedAccounts.forEach((accountName, index) => {
+                labels.push(accountName);
+                const count = mechData[accountName] || 0;
+                data.push(count);
+                if (!accountColors[accountName]) {
+                    accountColors[accountName] = colorPalette[Object.keys(accountColors).length % colorPalette.length];
+                }
+                backgroundColors.push(accountColors[accountName]);
+            });
+
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Count',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: backgroundColors.map(c => c.replace('0.8', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                color: 'rgba(75, 85, 99, 0.3)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#9ca3af',
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                color: 'rgba(75, 85, 99, 0.3)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            chartInstances.push(chart);
+            return chartDiv;
+        }
+
+        async function analyzeLog() {
+            hideError();
+            
+            if (extractedUrls.length === 0) {
+                showError('Please enter at least one valid dps.report URL');
+                return;
+            }
+
+            // Clear previous results
+            chartInstances.forEach(chart => chart.destroy());
+            chartInstances = [];
+            chartsContainer.innerHTML = '';
+            summarySection.classList.add('hidden');
+            discordSection.classList.add('hidden');
+            chartsSection.classList.add('hidden');
+
+            loader.classList.remove('hidden');
+            fetchProgress.textContent = `Fetching 0/${extractedUrls.length} logs...`;
+
+            try {
+                const validLogs = [];
+                
+                // Fetch logs sequentially to avoid the counting issue
+                for (let i = 0; i < extractedUrls.length; i++) {
+                    fetchProgress.textContent = `Fetching ${i + 1}/${extractedUrls.length} logs...`;
+                    const logData = await fetchLogData(extractedUrls[i]);
+                    if (logData !== null) {
+                        validLogs.push(logData);
+                    }
+                }
+
+                if (validLogs.length === 0) {
+                    showError('No valid logs could be fetched. Please check your URLs.');
+                    return;
+                }
+
+                // Sort logs by time
+                validLogs.sort((a, b) => new Date(a.timeStartStd) - new Date(b.timeStartStd));
+
+                const { mechanicsData, accountMap, allAccounts } = processMechanics(validLogs);
+
+                // Display fight info
+                if (validLogs.length === 1) {
+                    const logData = validLogs[0];
+                    fightInfo.innerHTML = `
+                        <div><p class="text-sm text-gray-400">Fight</p><p class="text-xl font-semibold">${logData.fightName || 'Unknown'}</p></div>
+                        <div><p class="text-sm text-gray-400">Duration</p><p class="text-xl font-semibold">${formatTime(logData.durationMS || 0)}</p></div>
+                        <div><p class="text-sm text-gray-400">Success</p><p class="text-xl font-semibold ${logData.success ? 'text-green-400' : 'text-red-400'}">${logData.success ? 'Yes' : 'No'}</p></div>
+                        <div><p class="text-sm text-gray-400">Players</p><p class="text-xl font-semibold">${allAccounts.size}</p></div>
+                    `;
+                } else {
+                    const successCount = validLogs.filter(l => l.success).length;
+                    const totalDuration = validLogs.reduce((sum, log) => sum + (log.durationMS || 0), 0);
+                    fightInfo.innerHTML = `
+                        <div><p class="text-sm text-gray-400">Logs</p><p class="text-xl font-semibold">${validLogs.length}</p></div>
+                        <div><p class="text-sm text-gray-400">Success Rate</p><p class="text-xl font-semibold ${successCount === validLogs.length ? 'text-green-400' : 'text-yellow-400'}">${successCount}/${validLogs.length}</p></div>
+                        <div><p class="text-sm text-gray-400">Total Duration</p><p class="text-xl font-semibold">${formatTime(totalDuration)}</p></div>
+                        <div><p class="text-sm text-gray-400">Players</p><p class="text-xl font-semibold">${allAccounts.size}</p></div>
+                    `;
+                }
+                summarySection.classList.remove('hidden');
+
+                // Generate Discord report
+                const report = generateDiscordReport(validLogs, mechanicsData, allAccounts);
+                discordOutput.textContent = report;
+                discordSection.classList.remove('hidden');
+
+                // Create charts for each mechanic
+                TRACKED_MECHANICS.forEach(mechanic => {
+                    createMechanicChart(mechanic, mechanicsData[mechanic.key], allAccounts);
+                });
+                chartsSection.classList.remove('hidden');
+
+            } catch (error) {
+                showError(`Error analyzing logs: ${error.message}`);
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function copyDiscordReport() {
+            navigator.clipboard.writeText(discordOutput.textContent).then(() => {
+                const originalText = copyDiscordButton.textContent;
+                copyDiscordButton.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyDiscordButton.textContent = originalText;
+                }, 1500);
+            });
+        }
+
+        logUrlInput.addEventListener('input', updateUrlCount);
+        analyzeButton.addEventListener('click', analyzeLog);
+        copyDiscordButton.addEventListener('click', copyDiscordReport);
+        logUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) analyzeLog();
+        });
+
+        // Initial update
+        updateUrlCount();
+    </script>
+</body>
+</html>

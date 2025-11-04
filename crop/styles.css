@@ -1,0 +1,24 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #111827; /* bg-gray-900 */
+}
+.image-container {
+    background-color: #1f2937; /* bg-gray-800 */
+    border: 2px dashed #4b5563; /* border-gray-600 */
+}
+.spinner {
+    border-top-color: #3b82f6; /* blue-500 */
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+/* Custom styles for number input */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}

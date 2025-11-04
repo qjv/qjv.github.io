@@ -1,0 +1,29 @@
+body {
+    font-family: 'Press Start 2P', cursive;
+    background-color: #1a1a2a; /* Solid dark background */
+    -ms-interpolation-mode: nearest-neighbor;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -o-pixelated;
+    image-rendering: pixelated;
+}
+.font-terraria {
+    font-family: 'Press Start 2P', cursive;
+}
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: #2a2a3a; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #6a6a8b; border-radius: 10px; border: 2px solid #2a2a3a; }
+::-webkit-scrollbar-thumb:hover { background: #8c8caf; }
+
+/* Checkbox styling */
+.npc-checkbox:checked + label, .biome-checkbox:checked + label {
+    border-color: #f7b233; /* Amber */
+    background-color: rgba(163, 62, 62, 0.5);
+}
+.npc-checkbox + label, .biome-checkbox + label {
+    transition: all 0.2s ease-in-out;
+}
+.npc-checkbox + label:hover, .biome-checkbox + label:hover {
+    border-color: #fcd34d; /* Amber-300 */
+}

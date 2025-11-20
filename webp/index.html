@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebP Image Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        
+        .header {
+            background: white;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            font-size: 1.875rem;
+            font-weight: 600;
+            color: #1a202c;
+        }
+        .header p { color: #718096; margin-top: 0.25rem; }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .setting-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+        
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e0;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider { background-color: #4299e1; }
+        input:checked + .toggle-slider:before { transform: translateX(24px); }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+        }
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f7fafc;
+            margin-bottom: 1.5rem;
+        }
+        .drop-zone:hover { border-color: #4299e1; background: #edf2f7; }
+        .drop-zone.drag-over { border-color: #4299e1; background: #e6fffa; }
+        .drop-zone svg { width: 64px; height: 64px; margin: 0 auto 1rem; color: #a0aec0; }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: #4299e1; color: white; }
+        .btn-primary:hover:not(:disabled) { background: #3182ce; }
+        .btn-success { background: #48bb78; color: white; }
+        .btn-success:hover:not(:disabled) { background: #38a169; }
+        .btn-danger { background: #f56565; color: white; }
+        .btn-danger:hover:not(:disabled) { background: #e53e3e; }
+        
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            justify-content: center;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            text-align: center;
+        }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #2d3748; }
+        .stat-label { color: #718096; font-size: 0.875rem; }
+        
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .image-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .image-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #f7fafc;
+        }
+        
+        .image-info {
+            padding: 1rem;
+        }
+        .image-name {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .image-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #718096;
+            margin-bottom: 0.75rem;
+        }
+        
+        .size-preview {
+            background: #edf2f7;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+        }
+        .size-preview-label { color: #718096; margin-bottom: 0.25rem; }
+        .size-preview-value { font-weight: 600; color: #2d3748; }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        .badge-success { background: #c6f6d5; color: #22543d; }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-group .btn {
+            flex: 1;
+        }
+        
+        .hidden { display: none; }
+        
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .image-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>WebP Image Converter</h1>
+            <p>Convert images to WebP format to save space.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="settings">
+                <div class="setting-group">
+                    <label>
+                        Preserve Alpha Channel
+                        <label class="toggle" style="margin-left: 1rem;">
+                            <input type="checkbox" id="preserveAlpha" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </label>
+                </div>
+                
+                <div class="setting-group">
+                    <label>Quality: <strong id="qualityValue">92</strong>%</label>
+                    <input type="range" id="quality" min="1" max="100" value="92" class="slider">
+                </div>
+            </div>
+
+            <div id="dropZone" class="drop-zone">
+                <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p style="font-weight: 500; margin-bottom: 0.5rem;">Drop images here or click to browse</p>
+                <p style="color: #718096; font-size: 0.875rem;">Supports: JPG, PNG, BMP, TIFF, GIF</p>
+            </div>
+
+            <div class="actions">
+                <button id="convertBtn" class="btn btn-primary" disabled>Convert All</button>
+                <button id="downloadAllBtn" class="btn btn-success" disabled>Download All (ZIP)</button>
+                <button id="clearBtn" class="btn btn-danger" disabled>Clear All</button>
+            </div>
+
+            <div id="stats" class="card hidden">
+                <div class="stats">
+                    <div>
+                        <div class="stat-value" id="totalFiles">0</div>
+                        <div class="stat-label">Total Files</div>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="convertedFiles">0</div>
+                        <div class="stat-label">Converted</div>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="savedSpace">0%</div>
+                        <div class="stat-label">Space Saved</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="imageGrid" class="image-grid"></div>
+    </div>
+
+    <script>
+        let files = [];
+        let convertedFiles = [];
+        let sizePreviewCache = {};
+        
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const qualitySlider = document.getElementById('quality');
+        const qualityValue = document.getElementById('qualityValue');
+        const preserveAlphaCheckbox = document.getElementById('preserveAlpha');
+        const imageGrid = document.getElementById('imageGrid');
+        const stats = document.getElementById('stats');
+
+        qualitySlider.addEventListener('input', (e) => {
+            qualityValue.textContent = e.target.value;
+            updateAllSizePreviews();
+        });
+
+        preserveAlphaCheckbox.addEventListener('change', () => {
+            updateAllSizePreviews();
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(newFiles) {
+            const validFiles = Array.from(newFiles).filter(file => 
+                file.type.startsWith('image/')
+            );
+            
+            files = [...files, ...validFiles];
+            convertedFiles = [...convertedFiles, ...Array(validFiles.length).fill(null)];
+            
+            updateUI();
+            renderImages();
+        }
+
+        function updateUI() {
+            const hasFiles = files.length > 0;
+            const allConverted = convertedFiles.every(f => f !== null);
+            
+            convertBtn.disabled = !hasFiles;
+            clearBtn.disabled = !hasFiles;
+            downloadAllBtn.disabled = !allConverted || !hasFiles;
+            
+            if (hasFiles) {
+                stats.classList.remove('hidden');
+                updateStats();
+            } else {
+                stats.classList.add('hidden');
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalFiles').textContent = files.length;
+            const converted = convertedFiles.filter(f => f !== null).length;
+            document.getElementById('convertedFiles').textContent = converted;
+            
+            if (converted > 0) {
+                const originalSize = files.reduce((acc, f) => acc + f.size, 0);
+                const convertedSize = convertedFiles.filter(f => f !== null).reduce((acc, f) => acc + f.size, 0);
+                const savedPercent = Math.round((1 - convertedSize / originalSize) * 100);
+                document.getElementById('savedSpace').textContent = savedPercent + '%';
+            }
+        }
+
+        async function getSizePreview(file, quality, preserveAlpha) {
+            const cacheKey = `${file.name}-${quality}-${preserveAlpha}`;
+            if (sizePreviewCache[cacheKey]) {
+                return sizePreviewCache[cacheKey];
+            }
+
+            const converted = await convertImage(file, quality, preserveAlpha);
+            sizePreviewCache[cacheKey] = converted.size;
+            return converted.size;
+        }
+
+        async function updateAllSizePreviews() {
+            const quality = parseInt(qualitySlider.value);
+            const preserveAlpha = preserveAlphaCheckbox.checked;
+
+            for (let i = 0; i < files.length; i++) {
+                if (convertedFiles[i] === null) {
+                    const previewSize = await getSizePreview(files[i], quality, preserveAlpha);
+                    const previewElement = document.getElementById(`size-preview-${i}`);
+                    if (previewElement) {
+                        const originalSize = (files[i].size / 1024).toFixed(1);
+                        const newSize = (previewSize / 1024).toFixed(1);
+                        const savings = Math.round((1 - previewSize / files[i].size) * 100);
+                        previewElement.innerHTML = `
+                            <div class="size-preview-label">Estimated Size</div>
+                            <div class="size-preview-value">${originalSize} KB → ${newSize} KB (${savings}% saved)</div>
+                        `;
+                    }
+                }
+            }
+        }
+
+        function renderImages() {
+            imageGrid.innerHTML = '';
+            
+            files.forEach((file, index) => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const isConverted = convertedFiles[index] !== null;
+                    const size = isConverted ? convertedFiles[index].size : file.size;
+                    const sizeText = (size / 1024).toFixed(1) + ' KB';
+                    
+                    let sizePreviewHTML = '';
+                    if (!isConverted) {
+                        const quality = parseInt(qualitySlider.value);
+                        const preserveAlpha = preserveAlphaCheckbox.checked;
+                        const previewSize = await getSizePreview(file, quality, preserveAlpha);
+                        const originalSize = (file.size / 1024).toFixed(1);
+                        const newSize = (previewSize / 1024).toFixed(1);
+                        const savings = Math.round((1 - previewSize / file.size) * 100);
+                        sizePreviewHTML = `
+                            <div id="size-preview-${index}" class="size-preview">
+                                <div class="size-preview-label">Estimated Size</div>
+                                <div class="size-preview-value">${originalSize} KB → ${newSize} KB (${savings}% saved)</div>
+                            </div>
+                        `;
+                    }
+                    
+                    card.innerHTML = `
+                        <img src="${e.target.result}" class="image-preview" alt="${file.name}">
+                        <div class="image-info">
+                            <div class="image-name">${file.name}</div>
+                            <div class="image-meta">
+                                <span>${sizeText}</span>
+                                <span>${isConverted ? 'WebP' : file.type.split('/')[1].toUpperCase()}</span>
+                            </div>
+                            ${isConverted ? '<span class="badge badge-success">✓ Converted</span>' : sizePreviewHTML}
+                            ${isConverted ? `
+                                <div class="btn-group">
+                                    <button onclick="downloadSingle(${index})" class="btn btn-success">
+                                        Download
+                                    </button>
+                                    <button onclick="downloadSingleAs(${index})" class="btn btn-success">
+                                        Save As
+                                    </button>
+                                </div>
+                            ` : `
+                                <button onclick="convertSingle(${index})" class="btn btn-primary" style="width: 100%;">
+                                    Convert
+                                </button>
+                            `}
+                        </div>
+                    `;
+                    imageGrid.appendChild(card);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function convertImage(file, quality, preserveAlpha) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        
+                        if (!preserveAlpha) {
+                            ctx.fillStyle = '#FFFFFF';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        }
+                        
+                        ctx.drawImage(img, 0, 0);
+                        
+                        canvas.toBlob((blob) => {
+                            resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), { type: 'image/webp' }));
+                        }, 'image/webp', quality / 100);
+                    };
+                    img.src = e.target.result;
+                };
+                
+                reader.readAsDataURL(file);
+            });
+        }
+
+        window.convertSingle = async function(index) {
+            const quality = parseInt(qualitySlider.value);
+            const preserveAlpha = preserveAlphaCheckbox.checked;
+            
+            const converted = await convertImage(files[index], quality, preserveAlpha);
+            convertedFiles[index] = converted;
+            
+            updateUI();
+            renderImages();
+        };
+
+        window.downloadSingle = function(index) {
+            const file = convertedFiles[index];
+            const url = URL.createObjectURL(file);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        window.downloadSingleAs = async function(index) {
+            const file = convertedFiles[index];
+            
+            // Try to use File System Access API for "Save As" dialog
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: file.name,
+                        types: [{
+                            description: 'WebP Image',
+                            accept: { 'image/webp': ['.webp'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(file);
+                    await writable.close();
+                } catch (err) {
+                    // User cancelled or error occurred
+                    if (err.name !== 'AbortError') {
+                        console.error('Error saving file:', err);
+                        alert('Error saving file. Using standard download instead.');
+                        downloadSingle(index);
+                    }
+                }
+            } else {
+                // Fallback to standard download
+                downloadSingle(index);
+            }
+        };
+
+        convertBtn.addEventListener('click', async () => {
+            convertBtn.disabled = true;
+            const originalText = convertBtn.textContent;
+            convertBtn.textContent = 'Converting...';
+            
+            const quality = parseInt(qualitySlider.value);
+            const preserveAlpha = preserveAlphaCheckbox.checked;
+            
+            for (let i = 0; i < files.length; i++) {
+                if (convertedFiles[i] === null) {
+                    convertedFiles[i] = await convertImage(files[i], quality, preserveAlpha);
+                }
+            }
+            
+            convertBtn.textContent = originalText;
+            updateUI();
+            renderImages();
+        });
+
+        downloadAllBtn.addEventListener('click', async () => {
+            const zip = new JSZip();
+            
+            convertedFiles.forEach((file) => {
+                if (file) {
+                    zip.file(file.name, file);
+                }
+            });
+            
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'converted-images.zip';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Clear all images?')) {
+                files = [];
+                convertedFiles = [];
+                sizePreviewCache = {};
+                fileInput.value = '';
+                imageGrid.innerHTML = '';
+                updateUI();
+            }
+        });
+    </script>
+</body>
+</html>

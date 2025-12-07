@@ -152,12 +152,12 @@
             background: #fff5f5;
         }
         
-        .marker-type-btn.waypoint.active {
+        .marker-type-btn.Marker.active {
             border-color: #4299e1;
             background: #ebf8ff;
         }
         
-        .marker-type-btn.warp.active {
+        .marker-type-btn.Waypoint.active {
             border-color: #9f7aea;
             background: #faf5ff;
         }
@@ -170,7 +170,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
         
-        .marker-icon.warp {
+        .marker-icon.Waypoint {
             border-style: dashed;
         }
         
@@ -311,11 +311,11 @@
             background: #f56565;
         }
         
-        .marker.waypoint {
+        .marker.Marker {
             background: #4299e1;
         }
         
-        .marker.warp {
+        .marker.Waypoint {
             background: #9f7aea;
             border-style: dashed;
         }
@@ -345,7 +345,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
         
-        .legend-marker.warp {
+        .legend-marker.Waypoint {
             border-style: dashed;
         }
         
@@ -518,20 +518,20 @@
                 <div class="marker-icon" style="background: #f56565;"></div>
                 <span>End Points</span>
             </div>
-            <div class="marker-type-btn waypoint" onclick="selectMarkerType('waypoint')">
+            <div class="marker-type-btn Marker" onclick="selectMarkerType('Marker')">
                 <div class="marker-icon" style="background: #4299e1;"></div>
-                <span>Waypoints</span>
+                <span>Markers</span>
             </div>
-            <div class="marker-type-btn warp" onclick="selectMarkerType('warp')">
-                <div class="marker-icon warp" style="background: #9f7aea;"></div>
-                <span>Warp Points</span>
+            <div class="marker-type-btn Waypoint" onclick="selectMarkerType('Waypoint')">
+                <div class="marker-icon Waypoint" style="background: #9f7aea;"></div>
+                <span>Waypoint Points</span>
             </div>
         </div>
         
         <div class="options-panel">
             <div class="option-group">
-                <input type="checkbox" id="warpDiscovery" onchange="toggleWarpDiscovery()">
-                <label for="warpDiscovery">Warp Discovery Mode</label>
+                <input type="checkbox" id="WaypointDiscovery" onchange="toggleWaypointDiscovery()">
+                <label for="WaypointDiscovery">Waypoint Discovery Mode</label>
             </div>
             <div class="option-group" id="discoveryRangeGroup" style="display: none;">
                 <label for="discoveryRange">Discovery Range:</label>
@@ -567,11 +567,11 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-marker" style="background: #4299e1;"></div>
-                        <span>Waypoints</span>
+                        <span>Markers</span>
                     </div>
                     <div class="legend-item">
-                        <div class="legend-marker warp" style="background: #9f7aea;"></div>
-                        <span>Warps (teleport: free)</span>
+                        <div class="legend-marker Waypoint" style="background: #9f7aea;"></div>
+                        <span>Waypoints (teleport: free)</span>
                     </div>
                     <div class="legend-item" style="margin-left: auto; font-style: italic; color: #666;">
                         <span>💡 Hover over results to preview routes</span>
@@ -595,8 +595,8 @@
         let markers = {
             start: null,
             ends: [],
-            waypoints: [],
-            warps: []
+            Markers: [],
+            Waypoints: []
         };
         let optimalRoute = [];
         let previewRoute = [];
@@ -604,16 +604,16 @@
         let markerElements = [];
         let selectedMarkerType = 'start';
         let endpointMode = 'or';
-        let warpDiscoveryMode = false;
+        let WaypointDiscoveryMode = false;
         let discoveryRange = 50;
-        const TELEPORT_COST = 0; // Free teleportation TO warps (not FROM)
+        const TELEPORT_COST = 0; // Free teleportation TO Waypoints (not FROM)
         
         /**
-         * WARP MECHANICS:
-         * - You can teleport FROM any location TO a discovered warp (cost = 0)
-         * - You CANNOT chain teleports (warp → warp requires walking)
-         * - After teleporting TO a warp, you walk FROM it normally
-         * - In discovery mode: warps must be within range to be "discovered" first
+         * Waypoint MECHANICS:
+         * - You can teleport FROM any location TO a discovered Waypoint (cost = 0)
+         * - You CANNOT chain teleports (Waypoint → Waypoint requires walking)
+         * - After teleporting TO a Waypoint, you walk FROM it normally
+         * - In discovery mode: Waypoints must be within range to be "discovered" first
          */
         
         function selectMarkerType(type) {
@@ -625,10 +625,10 @@
             document.querySelector(`.marker-type-btn.${type}`).classList.add('active');
         }
         
-        function toggleWarpDiscovery() {
-            warpDiscoveryMode = document.getElementById('warpDiscovery').checked;
+        function toggleWaypointDiscovery() {
+            WaypointDiscoveryMode = document.getElementById('WaypointDiscovery').checked;
             const rangeGroup = document.getElementById('discoveryRangeGroup');
-            rangeGroup.style.display = warpDiscoveryMode ? 'flex' : 'none';
+            rangeGroup.style.display = WaypointDiscoveryMode ? 'flex' : 'none';
             
             optimalRoute = [];
             previewRoute = [];
@@ -649,7 +649,7 @@
             if (mode === 'or') {
                 description.textContent = 'Choose best endpoint to finish';
             } else {
-                description.textContent = 'Visit all endpoints (requires warps between them)';
+                description.textContent = 'Visit all endpoints (requires Waypoints between them)';
             }
         }
         
@@ -709,8 +709,8 @@
             markers = {
                 start: null,
                 ends: [],
-                waypoints: [],
-                warps: []
+                Markers: [],
+                Waypoints: []
             };
             optimalRoute = [];
             previewRoute = [];
@@ -758,17 +758,17 @@
             const routeToDraw = previewRoute.length > 0 ? previewRoute : optimalRoute;
             const isPreview = previewRoute.length > 0;
             
-            if (warpDiscoveryMode && routeToDraw.length > 0) {
+            if (WaypointDiscoveryMode && routeToDraw.length > 0) {
                 discoveryRange = parseInt(document.getElementById('discoveryRange').value);
-                const discoveredWarps = new Set();
+                const discoveredWaypoints = new Set();
                 
                 for (let i = 0; i < routeToDraw.length; i++) {
                     const point = routeToDraw[i];
                     
-                    for (const warp of markers.warps) {
-                        const dist = euclideanDistance(point, warp);
+                    for (const Waypoint of markers.Waypoints) {
+                        const dist = euclideanDistance(point, Waypoint);
                         if (dist <= discoveryRange) {
-                            if (!discoveredWarps.has(warp)) {
+                            if (!discoveredWaypoints.has(Waypoint)) {
                                 ctx.strokeStyle = '#9f7aea';
                                 ctx.lineWidth = 2;
                                 ctx.setLineDash([5, 5]);
@@ -779,7 +779,7 @@
                                 ctx.globalAlpha = 1.0;
                                 ctx.setLineDash([]);
                                 
-                                discoveredWarps.add(warp);
+                                discoveredWaypoints.add(Waypoint);
                             }
                         }
                     }
@@ -796,7 +796,7 @@
                     const current = routeToDraw[i];
                     const next = routeToDraw[i + 1];
                     
-                    if (next.type === 'warp') {
+                    if (next.type === 'Waypoint') {
                         continue;
                     }
                     
@@ -809,18 +809,16 @@
                 ctx.globalAlpha = 1.0;
                 ctx.setLineDash([]);
                 
+                // Draw teleport indicators with smart positioning
                 for (let i = 0; i < routeToDraw.length - 1; i++) {
                     const current = routeToDraw[i];
                     const next = routeToDraw[i + 1];
                     
-                    if (next.type === 'warp') {
-                        const dx = next.x - current.x;
-                        const dy = next.y - current.y;
-                        const angle = Math.atan2(dy, dx);
+                    if (next.type === 'Waypoint') {
+                        const text = `⚡ W${next.id + 1}`;
                         
-                        const textOffset = 35;
-                        const textX = current.x + Math.cos(angle) * textOffset;
-                        const textY = current.y + Math.sin(angle) * textOffset;
+                        // Find best position for text to avoid markers
+                        const textPos = findBestTextPosition(current, next, text, routeToDraw);
                         
                         ctx.save();
                         ctx.font = 'bold 14px Arial';
@@ -828,15 +826,77 @@
                         ctx.strokeStyle = 'white';
                         ctx.lineWidth = 3;
                         
-                        const text = `⚡ W${next.id + 1}`;
-                        
-                        ctx.strokeText(text, textX, textY);
-                        ctx.fillText(text, textX, textY);
+                        ctx.strokeText(text, textPos.x, textPos.y);
+                        ctx.fillText(text, textPos.x, textPos.y);
                         
                         ctx.restore();
                     }
                 }
             }
+        }
+        
+        function findBestTextPosition(origin, Waypoint, text, route) {
+            const dx = Waypoint.x - origin.x;
+            const dy = Waypoint.y - origin.y;
+            const angle = Math.atan2(dy, dx);
+            
+            // Try different positions around the origin point
+            const positions = [
+                { offset: 35, angleOffset: 0, label: 'along direction' },      // Along the teleport direction
+                { offset: 35, angleOffset: Math.PI / 2, label: 'perpendicular up' },  // Perpendicular (up)
+                { offset: 35, angleOffset: -Math.PI / 2, label: 'perpendicular down' }, // Perpendicular (down)
+                { offset: 35, angleOffset: Math.PI, label: 'opposite' },       // Opposite direction
+                { offset: 50, angleOffset: Math.PI / 4, label: 'diagonal 1' },       // Diagonal positions
+                { offset: 50, angleOffset: -Math.PI / 4, label: 'diagonal 2' },
+                { offset: 50, angleOffset: 3 * Math.PI / 4, label: 'diagonal 3' },
+                { offset: 50, angleOffset: -3 * Math.PI / 4, label: 'diagonal 4' },
+            ];
+            
+            ctx.font = 'bold 14px Arial';
+            const textMetrics = ctx.measureText(text);
+            const textWidth = textMetrics.width;
+            const textHeight = 16; // Approximate height
+            
+            // Get all marker positions to check for collisions
+            const allMarkers = [
+                markers.start,
+                ...markers.ends,
+                ...markers.Markers,
+                ...markers.Waypoints,
+                ...route
+            ].filter(m => m); // Remove nulls
+            
+            for (const pos of positions) {
+                const testAngle = angle + pos.angleOffset;
+                const testX = origin.x + Math.cos(testAngle) * pos.offset;
+                const testY = origin.y + Math.sin(testAngle) * pos.offset;
+                
+                // Check if this position collides with any markers
+                let hasCollision = false;
+                const markerRadius = 20; // Buffer zone around markers
+                
+                for (const marker of allMarkers) {
+                    const dist = Math.sqrt(
+                        Math.pow(testX - marker.x, 2) + 
+                        Math.pow(testY - marker.y, 2)
+                    );
+                    
+                    if (dist < markerRadius + textWidth / 2) {
+                        hasCollision = true;
+                        break;
+                    }
+                }
+                
+                if (!hasCollision) {
+                    return { x: testX, y: testY };
+                }
+            }
+            
+            // Fallback: use original position with larger offset
+            return {
+                x: origin.x + Math.cos(angle) * 60,
+                y: origin.y + Math.sin(angle) * 60
+            };
         }
         
         function handleCanvasClick(e) {
@@ -856,16 +916,16 @@
                 markers.ends.push(end);
                 createMarkerElement('end', x, y, id);
                 updateEndpointModeVisibility();
-            } else if (selectedMarkerType === 'waypoint') {
-                const id = markers.waypoints.length;
-                const waypoint = { x, y, id, type: 'waypoint' };
-                markers.waypoints.push(waypoint);
-                createMarkerElement('waypoint', x, y, id);
-            } else if (selectedMarkerType === 'warp') {
-                const id = markers.warps.length;
-                const warp = { x, y, id, type: 'warp' };
-                markers.warps.push(warp);
-                createMarkerElement('warp', x, y, id);
+            } else if (selectedMarkerType === 'Marker') {
+                const id = markers.Markers.length;
+                const Marker = { x, y, id, type: 'Marker' };
+                markers.Markers.push(Marker);
+                createMarkerElement('Marker', x, y, id);
+            } else if (selectedMarkerType === 'Waypoint') {
+                const id = markers.Waypoints.length;
+                const Waypoint = { x, y, id, type: 'Waypoint' };
+                markers.Waypoints.push(Waypoint);
+                createMarkerElement('Waypoint', x, y, id);
             }
         }
         
@@ -879,10 +939,10 @@
             marker.style.top = (rect.top - container.getBoundingClientRect().top + y) + 'px';
             marker.dataset.type = type;
             
-            if (type === 'waypoint') {
+            if (type === 'Marker') {
                 marker.dataset.id = id;
                 marker.textContent = id + 1;
-            } else if (type === 'warp') {
+            } else if (type === 'Waypoint') {
                 marker.dataset.id = id;
                 marker.textContent = 'W' + (id + 1);
             } else if (type === 'end') {
@@ -918,26 +978,26 @@
                     });
                 }
                 updateEndpointModeVisibility();
-            } else if (type === 'waypoint') {
-                const idx = markers.waypoints.findIndex(w => w.id === id);
+            } else if (type === 'Marker') {
+                const idx = markers.Markers.findIndex(w => w.id === id);
                 if (idx !== -1) {
-                    markers.waypoints.splice(idx, 1);
-                    const waypointElements = container.querySelectorAll('.marker.waypoint');
-                    waypointElements.forEach(el => el.remove());
-                    markers.waypoints.forEach((w, i) => {
+                    markers.Markers.splice(idx, 1);
+                    const MarkerElements = container.querySelectorAll('.marker.Marker');
+                    MarkerElements.forEach(el => el.remove());
+                    markers.Markers.forEach((w, i) => {
                         w.id = i;
-                        createMarkerElement('waypoint', w.x, w.y, i);
+                        createMarkerElement('Marker', w.x, w.y, i);
                     });
                 }
-            } else if (type === 'warp') {
-                const idx = markers.warps.findIndex(w => w.id === id);
+            } else if (type === 'Waypoint') {
+                const idx = markers.Waypoints.findIndex(w => w.id === id);
                 if (idx !== -1) {
-                    markers.warps.splice(idx, 1);
-                    const warpElements = container.querySelectorAll('.marker.warp');
-                    warpElements.forEach(el => el.remove());
-                    markers.warps.forEach((w, i) => {
+                    markers.Waypoints.splice(idx, 1);
+                    const WaypointElements = container.querySelectorAll('.marker.Waypoint');
+                    WaypointElements.forEach(el => el.remove());
+                    markers.Waypoints.forEach((w, i) => {
                         w.id = i;
-                        createMarkerElement('warp', w.x, w.y, i);
+                        createMarkerElement('Waypoint', w.x, w.y, i);
                     });
                 }
             }
@@ -957,8 +1017,8 @@
             markers = {
                 start: null,
                 ends: [],
-                waypoints: [],
-                warps: []
+                Markers: [],
+                Waypoints: []
             };
             
             markerElements = [];
@@ -979,12 +1039,12 @@
             distanceCache.clear();
         }
         
-        function getCachedDistance(p1, p2, discoveredWarps) {
+        function getCachedDistance(p1, p2, discoveredWaypoints) {
             const key = `${p1.x},${p1.y}-${p2.x},${p2.y}`;
             if (distanceCache.has(key)) {
                 return distanceCache.get(key);
             }
-            const dist = distanceWithDiscovery(p1, p2, discoveredWarps);
+            const dist = distanceWithDiscovery(p1, p2, discoveredWaypoints);
             distanceCache.set(key, dist);
             return dist;
         }
@@ -995,13 +1055,13 @@
                 return;
             }
             
-            if (endpointMode === 'and' && markers.ends.length > 1 && markers.warps.length === 0) {
-                alert('AND mode with multiple endpoints requires at least one warp point!');
+            if (endpointMode === 'and' && markers.ends.length > 1 && markers.Waypoints.length === 0) {
+                alert('AND mode with multiple endpoints requires at least one Waypoint point!');
                 return;
             }
             
-            if (markers.waypoints.length > 25) {
-                if (!confirm(`You have ${markers.waypoints.length} waypoints. This may take a while to compute. Continue?`)) {
+            if (markers.Markers.length > 25) {
+                if (!confirm(`You have ${markers.Markers.length} Markers. This may take a while to compute. Continue?`)) {
                     return;
                 }
             }
@@ -1025,7 +1085,7 @@
                     }
                 } catch (error) {
                     console.error('Error computing routes:', error);
-                    resultsContent.innerHTML = '<div class="computing"><p style="color: #f56565;">Error computing routes. Try with fewer waypoints.</p></div>';
+                    resultsContent.innerHTML = '<div class="computing"><p style="color: #f56565;">Error computing routes. Try with fewer Markers.</p></div>';
                 }
             }, 100);
         }
@@ -1034,14 +1094,14 @@
             console.log('=== Starting Algorithm Calculations ===');
             const start = markers.start;
             const ends = markers.ends;
-            const waypoints = markers.waypoints;
+            const Markers = markers.Markers;
             const finalEnd = ends.length > 0 ? ends[0] : null;
             
-            console.log(`Points: ${waypoints.length} waypoints, ${markers.warps.length} warps`);
+            console.log(`Points: ${Markers.length} Markers, ${markers.Waypoints.length} Waypoints`);
             
             const results = [];
             
-            if (!finalEnd && waypoints.length === 0) {
+            if (!finalEnd && Markers.length === 0) {
                 console.log('No destination, returning empty path');
                 return [{
                     name: 'No destination',
@@ -1050,18 +1110,19 @@
                 }];
             }
             
-            const allPoints = [...waypoints];
+            const allPoints = [...Markers];
             console.log(`Total points to visit: ${allPoints.length}`);
             
             if (allPoints.length <= 7) {
                 console.log('Running Brute Force...');
                 const startTime = performance.now();
                 const brutePath = bruteForceAllPoints(start, finalEnd, allPoints);
+                const brutePathWithWaypoints = insertWaypointsInPath(brutePath);
                 console.log(`Brute Force completed in ${(performance.now() - startTime).toFixed(2)}ms`);
                 results.push({
                     name: 'Brute Force (Optimal)',
-                    path: brutePath,
-                    distance: calculatePathDistance(brutePath)
+                    path: brutePathWithWaypoints,
+                    distance: calculatePathDistance(brutePathWithWaypoints)
                 });
             } else {
                 console.log('Skipping Brute Force (too many points)');
@@ -1070,22 +1131,24 @@
             console.log('Running Nearest Neighbor...');
             let startTime = performance.now();
             const nnPath = nearestNeighborAllPoints(start, finalEnd, allPoints);
+            const nnPathWithWaypoints = insertWaypointsInPath(nnPath);
             console.log(`Nearest Neighbor completed in ${(performance.now() - startTime).toFixed(2)}ms`);
             results.push({
                 name: 'Nearest Neighbor',
-                path: nnPath,
-                distance: calculatePathDistance(nnPath)
+                path: nnPathWithWaypoints,
+                distance: calculatePathDistance(nnPathWithWaypoints)
             });
             
             if (allPoints.length <= 20) {
                 console.log('Running Nearest Neighbor + 2-Opt...');
                 startTime = performance.now();
                 const nn2opt = twoOptImprove([...nnPath]);
+                const nn2optWithWaypoints = insertWaypointsInPath(nn2opt);
                 console.log(`NN + 2-Opt completed in ${(performance.now() - startTime).toFixed(2)}ms`);
                 results.push({
                     name: 'Nearest Neighbor + 2-Opt',
-                    path: nn2opt,
-                    distance: calculatePathDistance(nn2opt)
+                    path: nn2optWithWaypoints,
+                    distance: calculatePathDistance(nn2optWithWaypoints)
                 });
             } else {
                 console.log('Skipping 2-Opt (too many points)');
@@ -1094,22 +1157,24 @@
             console.log('Running Greedy Insertion...');
             startTime = performance.now();
             const greedyPath = greedyInsertion(start, finalEnd, allPoints);
+            const greedyPathWithWaypoints = insertWaypointsInPath(greedyPath);
             console.log(`Greedy Insertion completed in ${(performance.now() - startTime).toFixed(2)}ms`);
             results.push({
                 name: 'Greedy Insertion',
-                path: greedyPath,
-                distance: calculatePathDistance(greedyPath)
+                path: greedyPathWithWaypoints,
+                distance: calculatePathDistance(greedyPathWithWaypoints)
             });
             
             const attempts = allPoints.length <= 10 ? 15 : allPoints.length <= 15 ? 10 : 5;
             console.log(`Running Random Restart (${attempts} attempts)...`);
             startTime = performance.now();
             const randomPath = randomRestart(start, finalEnd, allPoints, attempts);
+            const randomPathWithWaypoints = insertWaypointsInPath(randomPath);
             console.log(`Random Restart completed in ${(performance.now() - startTime).toFixed(2)}ms`);
             results.push({
                 name: `Random Restart (${attempts}x)`,
-                path: randomPath,
-                distance: calculatePathDistance(randomPath)
+                path: randomPathWithWaypoints,
+                distance: calculatePathDistance(randomPathWithWaypoints)
             });
             
             console.log('=== All Algorithms Complete ===');
@@ -1159,9 +1224,9 @@
             const path = [start];
             let current = start;
             const remaining = [...points];
-            const discoveredWarps = new Set();
+            const discoveredWaypoints = new Set();
             
-            updateDiscoveredWarps(current, discoveredWarps);
+            updateDiscoveredWaypoints(current, discoveredWaypoints);
             
             let iterations = 0;
             while (remaining.length > 0) {
@@ -1175,7 +1240,7 @@
                 let nearestIdx = -1;
                 
                 for (let i = 0; i < remaining.length; i++) {
-                    const dist = distanceWithDiscovery(current, remaining[i], discoveredWarps);
+                    const dist = distanceWithDiscovery(current, remaining[i], discoveredWaypoints);
                     if (dist < minDist) {
                         minDist = dist;
                         nearest = remaining[i];
@@ -1186,7 +1251,7 @@
                 if (nearest) {
                     path.push(nearest);
                     current = nearest;
-                    updateDiscoveredWarps(current, discoveredWarps);
+                    updateDiscoveredWaypoints(current, discoveredWaypoints);
                     remaining.splice(nearestIdx, 1);
                 }
             }
@@ -1242,10 +1307,10 @@
             if (end) path.push(end);
             
             const remaining = points.slice(1);
-            const discoveredWarps = new Set();
+            const discoveredWaypoints = new Set();
             
-            updateDiscoveredWarps(start, discoveredWarps);
-            updateDiscoveredWarps(points[0], discoveredWarps);
+            updateDiscoveredWaypoints(start, discoveredWaypoints);
+            updateDiscoveredWaypoints(points[0], discoveredWaypoints);
             
             let insertions = 1;
             let totalChecks = 0;
@@ -1289,7 +1354,7 @@
                 
                 if (bestPoint) {
                     path.splice(bestPosition, 0, bestPoint);
-                    updateDiscoveredWarps(bestPoint, discoveredWarps);
+                    updateDiscoveredWaypoints(bestPoint, discoveredWaypoints);
                     const idx = remaining.indexOf(bestPoint);
                     remaining.splice(idx, 1);
                 } else {
@@ -1357,37 +1422,37 @@
         
         let suppressDiscoveryLogs = false;
         
-        function updateDiscoveredWarps(point, discoveredWarps) {
-            if (!warpDiscoveryMode) {
-                markers.warps.forEach(w => discoveredWarps.add(w));
+        function updateDiscoveredWaypoints(point, discoveredWaypoints) {
+            if (!WaypointDiscoveryMode) {
+                markers.Waypoints.forEach(w => discoveredWaypoints.add(w));
                 return;
             }
             
-            for (const warp of markers.warps) {
-                const dist = euclideanDistance(point, warp);
+            for (const Waypoint of markers.Waypoints) {
+                const dist = euclideanDistance(point, Waypoint);
                 if (dist <= discoveryRange) {
-                    if (!discoveredWarps.has(warp)) {
+                    if (!discoveredWaypoints.has(Waypoint)) {
                         if (!suppressDiscoveryLogs) {
-                            console.log(`    Discovered warp W${warp.id + 1} from point at (${point.x.toFixed(0)}, ${point.y.toFixed(0)})`);
+                            console.log(`    Discovered Waypoint W${Waypoint.id + 1} from point at (${point.x.toFixed(0)}, ${point.y.toFixed(0)})`);
                         }
-                        discoveredWarps.add(warp);
+                        discoveredWaypoints.add(Waypoint);
                     }
                 }
             }
         }
         
-        function isWarpDiscovered(warp, discoveredWarps) {
-            if (!warpDiscoveryMode) return true;
-            return discoveredWarps.has(warp);
+        function isWaypointDiscovered(Waypoint, discoveredWaypoints) {
+            if (!WaypointDiscoveryMode) return true;
+            return discoveredWaypoints.has(Waypoint);
         }
         
-        function distanceWithDiscovery(p1, p2, discoveredWarps) {
-            if (p1.type === 'warp') {
+        function distanceWithDiscovery(p1, p2, discoveredWaypoints) {
+            if (p1.type === 'Waypoint') {
                 return euclideanDistance(p1, p2);
             }
             
-            if (p2.type === 'warp') {
-                if (isWarpDiscovered(p2, discoveredWarps)) {
+            if (p2.type === 'Waypoint') {
+                if (isWaypointDiscovered(p2, discoveredWaypoints)) {
                     return TELEPORT_COST;
                 } else {
                     return 9999;
@@ -1396,20 +1461,85 @@
             
             const directDist = euclideanDistance(p1, p2);
             
-            if (markers.warps.length === 0 || directDist < 20) {
+            if (markers.Waypoints.length === 0 || directDist < 20) {
                 return directDist;
             }
             
             let bestDist = directDist;
-            for (const warp of markers.warps) {
-                if (!isWarpDiscovered(warp, discoveredWarps)) continue;
-                const warpPath = TELEPORT_COST + euclideanDistance(warp, p2);
-                if (warpPath < bestDist) {
-                    bestDist = warpPath;
+            for (const Waypoint of markers.Waypoints) {
+                if (!isWaypointDiscovered(Waypoint, discoveredWaypoints)) continue;
+                const WaypointPath = TELEPORT_COST + euclideanDistance(Waypoint, p2);
+                if (WaypointPath < bestDist) {
+                    bestDist = WaypointPath;
                 }
             }
             
             return bestDist;
+        }
+        
+        function findBestWaypoint(p1, p2, discoveredWaypoints) {
+            if (p1.type === 'Waypoint' || p2.type === 'Waypoint') {
+                return null;
+            }
+            
+            const directDist = euclideanDistance(p1, p2);
+            let bestWaypoint = null;
+            let bestDist = directDist;
+            
+            for (const Waypoint of markers.Waypoints) {
+                if (!isWaypointDiscovered(Waypoint, discoveredWaypoints)) continue;
+                const WaypointPath = TELEPORT_COST + euclideanDistance(Waypoint, p2);
+                if (WaypointPath < bestDist) {
+                    bestDist = WaypointPath;
+                    bestWaypoint = Waypoint;
+                }
+            }
+            
+            return bestWaypoint;
+        }
+        
+        function insertWaypointsInPath(path) {
+            const discoveredWaypoints = new Set();
+            if (!WaypointDiscoveryMode) {
+                markers.Waypoints.forEach(w => discoveredWaypoints.add(w));
+            }
+            
+            const newPath = [path[0]];
+            updateDiscoveredWaypoints(path[0], discoveredWaypoints);
+            let WaypointsInserted = 0;
+            
+            for (let i = 1; i < path.length; i++) {
+                const prev = path[i - 1];
+                const current = path[i];
+                
+                const Waypoint = findBestWaypoint(prev, current, discoveredWaypoints);
+                
+                if (Waypoint) {
+                    newPath.push(Waypoint);
+                    updateDiscoveredWaypoints(Waypoint, discoveredWaypoints);
+                    WaypointsInserted++;
+                    
+                    const prevLabel = prev.type === 'start' ? 'Start' : 
+                                     prev.type === 'Marker' ? `P${prev.id + 1}` :
+                                     prev.type === 'Waypoint' ? `W${prev.id + 1}` :
+                                     prev.type === 'end' ? `E${prev.id + 1}` : 'point';
+                    const currLabel = current.type === 'start' ? 'Start' : 
+                                     current.type === 'Marker' ? `P${current.id + 1}` :
+                                     current.type === 'Waypoint' ? `W${current.id + 1}` :
+                                     current.type === 'end' ? `E${current.id + 1}` : 'point';
+                    
+                    console.log(`  📍 Inserted W${Waypoint.id + 1} between ${prevLabel} and ${currLabel}`);
+                }
+                
+                newPath.push(current);
+                updateDiscoveredWaypoints(current, discoveredWaypoints);
+            }
+            
+            if (WaypointsInserted > 0) {
+                console.log(`  ⚡ Total Waypoints inserted: ${WaypointsInserted}`);
+            }
+            
+            return newPath;
         }
         
         function euclideanDistance(p1, p2) {
@@ -1468,7 +1598,7 @@
             return path.map(point => {
                 if (point.type === 'start') return 'Start';
                 if (point.type === 'end') return `E${point.id + 1}`;
-                if (point.type === 'warp') return `W${point.id + 1}`;
+                if (point.type === 'Waypoint') return `W${point.id + 1}`;
                 return `P${point.id + 1}`;
             }).join(' → ');
         }
@@ -1478,20 +1608,20 @@
             
             suppressDiscoveryLogs = true;
             let total = 0;
-            const discoveredWarps = new Set();
+            const discoveredWaypoints = new Set();
             
-            if (!warpDiscoveryMode) {
-                markers.warps.forEach(w => discoveredWarps.add(w));
+            if (!WaypointDiscoveryMode) {
+                markers.Waypoints.forEach(w => discoveredWaypoints.add(w));
             }
             
             for (let i = 0; i < path.length - 1; i++) {
                 const current = path[i];
                 const next = path[i + 1];
                 
-                updateDiscoveredWarps(current, discoveredWarps);
+                updateDiscoveredWaypoints(current, discoveredWaypoints);
                 
-                if (next.type === 'warp') {
-                    if (isWarpDiscovered(next, discoveredWarps)) {
+                if (next.type === 'Waypoint') {
+                    if (isWaypointDiscovered(next, discoveredWaypoints)) {
                         total += TELEPORT_COST;
                     } else {
                         total += 10000;

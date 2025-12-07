@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP Path Finder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        input[type="text"] {
+            width: 300px;
+        }
+        
+        input[type="number"] {
+            width: 80px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.secondary {
+            background: #48bb78;
+        }
+        
+        button.secondary:hover {
+            background: #38a169;
+        }
+        
+        button.danger {
+            background: #f56565;
+        }
+        
+        button.danger:hover {
+            background: #e53e3e;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .marker-type-selector {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .marker-type-btn {
+            padding: 12px 20px;
+            background: white;
+            border: 3px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .marker-type-btn:hover {
+            border-color: #cbd5e0;
+            transform: translateY(-2px);
+        }
+        
+        .marker-type-btn.active {
+            border-width: 4px;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .marker-type-btn.start.active {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .marker-type-btn.end.active {
+            border-color: #f56565;
+            background: #fff5f5;
+        }
+        
+        .marker-type-btn.waypoint.active {
+            border-color: #4299e1;
+            background: #ebf8ff;
+        }
+        
+        .marker-type-btn.warp.active {
+            border-color: #9f7aea;
+            background: #faf5ff;
+        }
+        
+        .marker-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .marker-icon.warp {
+            border-style: dashed;
+        }
+        
+        .options-panel {
+            display: flex;
+            gap: 15px;
+            padding: 12px 15px;
+            background: #faf5ff;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            border: 2px solid #d6bcfa;
+        }
+        
+        .option-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .option-group label {
+            font-weight: 600;
+            color: #553c9a;
+            font-size: 14px;
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .endpoint-mode-selector {
+            display: flex;
+            gap: 10px;
+            padding: 12px 15px;
+            background: #fff5f5;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            align-items: center;
+            border: 2px solid #feb2b2;
+        }
+        
+        .endpoint-mode-selector label {
+            font-weight: 600;
+            color: #742a2a;
+            margin-right: 10px;
+        }
+        
+        .mode-option {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        
+        .mode-option:hover {
+            border-color: #cbd5e0;
+        }
+        
+        .mode-option.active {
+            border-color: #f56565;
+            background: #fff5f5;
+            color: #c53030;
+        }
+        
+        .mode-description {
+            font-size: 12px;
+            color: #744210;
+            margin-left: auto;
+            font-style: italic;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 450px;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .canvas-container {
+            position: relative;
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f7f7f7;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        .marker {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 3px solid white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        
+        .marker:hover {
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        
+        .marker.start {
+            background: #48bb78;
+        }
+        
+        .marker.end {
+            background: #f56565;
+        }
+        
+        .marker.waypoint {
+            background: #4299e1;
+        }
+        
+        .marker.warp {
+            background: #9f7aea;
+            border-style: dashed;
+        }
+        
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 6px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        .legend-marker {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .legend-marker.warp {
+            border-style: dashed;
+        }
+        
+        .results-panel {
+            display: none;
+        }
+        
+        .results-panel.active {
+            display: block;
+        }
+        
+        .results-header {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        
+        .results-header:hover {
+            background: #5568d3;
+        }
+        
+        .toggle-icon {
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .toggle-icon.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .results-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .results-content.expanded {
+            max-height: 2000px;
+        }
+        
+        .method-result {
+            border: 2px solid #e2e8f0;
+            border-top: none;
+            padding: 15px;
+            background: white;
+            transition: all 0.2s;
+        }
+        
+        .method-result:hover {
+            background: #f7fafc;
+        }
+        
+        .method-result:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .method-result.best {
+            background: #f0fff4;
+            border-color: #48bb78;
+            border-width: 3px;
+        }
+        
+        .method-name {
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .method-name .badge {
+            background: #48bb78;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .method-distance {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        
+        .method-route {
+            color: #4a5568;
+            font-size: 13px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        
+        .placeholder {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+        
+        .placeholder-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+        
+        .computing {
+            text-align: center;
+            padding: 30px;
+            color: #667eea;
+        }
+        
+        .computing-spinner {
+            font-size: 32px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Traveling Salesman Path Finder</h1>
+        <p class="subtitle">Upload an image and place markers to find the shortest path using multiple algorithms</p>
+        
+        <div class="controls">
+            <div class="input-group">
+                <input type="text" id="imageUrl" placeholder="Enter image URL...">
+                <button onclick="loadImageFromUrl()">Load URL</button>
+            </div>
+            <label for="imageFile">
+                <button onclick="document.getElementById('imageFile').click()">Upload Image</button>
+            </label>
+            <input type="file" id="imageFile" accept="image/*" onchange="loadImageFromFile(event)">
+            <button class="secondary" onclick="calculatePath()">Find Shortest Path</button>
+            <button class="danger" onclick="clearAll()">Clear All</button>
+        </div>
+        
+        <div class="marker-type-selector">
+            <div class="marker-type-btn start active" onclick="selectMarkerType('start')">
+                <div class="marker-icon" style="background: #48bb78;"></div>
+                <span>Start Point</span>
+            </div>
+            <div class="marker-type-btn end" onclick="selectMarkerType('end')">
+                <div class="marker-icon" style="background: #f56565;"></div>
+                <span>End Points</span>
+            </div>
+            <div class="marker-type-btn waypoint" onclick="selectMarkerType('waypoint')">
+                <div class="marker-icon" style="background: #4299e1;"></div>
+                <span>Waypoints (optional)</span>
+            </div>
+            <div class="marker-type-btn warp" onclick="selectMarkerType('warp')">
+                <div class="marker-icon warp" style="background: #9f7aea;"></div>
+                <span>Warp Points</span>
+            </div>
+        </div>
+        
+        <div class="options-panel">
+            <div class="option-group">
+                <input type="checkbox" id="warpDiscovery" onchange="toggleWarpDiscovery()">
+                <label for="warpDiscovery">Warp Discovery Mode</label>
+            </div>
+            <div class="option-group" id="discoveryRangeGroup" style="display: none;">
+                <label for="discoveryRange">Discovery Range:</label>
+                <input type="number" id="discoveryRange" value="50" min="10" max="500" step="10">
+                <span style="font-size: 12px; color: #666;">pixels</span>
+            </div>
+        </div>
+        
+        <div class="endpoint-mode-selector" id="endpointModeSelector" style="display: none;">
+            <label>Multiple Endpoints Mode:</label>
+            <div class="mode-option active" onclick="selectEndpointMode('or')">OR (any)</div>
+            <div class="mode-option" onclick="selectEndpointMode('and')">AND (all)</div>
+            <div class="mode-description" id="modeDescription">Choose best endpoint to finish</div>
+        </div>
+        
+        <div class="main-content">
+            <div>
+                <div class="canvas-container" id="canvasContainer">
+                    <div class="placeholder">
+                        <div class="placeholder-icon">📍</div>
+                        <p>Load an image to get started</p>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-marker" style="background: #48bb78;"></div>
+                        <span>Start (required)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-marker" style="background: #f56565;"></div>
+                        <span>End (optional, multiple)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-marker" style="background: #4299e1;"></div>
+                        <span>Waypoints (optional stops)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-marker warp" style="background: #9f7aea;"></div>
+                        <span>Warps (teleport: 10px)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="results-panel" id="resultsPanel">
+                <div class="results-header" onclick="toggleResults()">
+                    <span>📊 Algorithm Comparison</span>
+                    <span class="toggle-icon" id="toggleIcon">▼</span>
+                </div>
+                <div class="results-content" id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let canvas, ctx;
+        let img = null;
+        let markers = {
+            start: null,
+            ends: [],
+            waypoints: [],
+            warps: []
+        };
+        let optimalRoute = [];
+        let markerElements = [];
+        let selectedMarkerType = 'start';
+        let endpointMode = 'or';
+        let warpDiscoveryMode = false;
+        let discoveryRange = 50;
+        const TELEPORT_COST = 10;
+        
+        function selectMarkerType(type) {
+            selectedMarkerType = type;
+            
+            document.querySelectorAll('.marker-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.marker-type-btn.${type}`).classList.add('active');
+        }
+        
+        function toggleWarpDiscovery() {
+            warpDiscoveryMode = document.getElementById('warpDiscovery').checked;
+            const rangeGroup = document.getElementById('discoveryRangeGroup');
+            rangeGroup.style.display = warpDiscoveryMode ? 'flex' : 'none';
+            
+            // Clear results when toggling
+            optimalRoute = [];
+            document.getElementById('resultsPanel').classList.remove('active');
+            drawCanvas();
+        }
+        
+        function selectEndpointMode(mode) {
+            endpointMode = mode;
+            
+            document.querySelectorAll('.mode-option').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            const description = document.getElementById('modeDescription');
+            if (mode === 'or') {
+                description.textContent = 'Choose best endpoint to finish';
+            } else {
+                description.textContent = 'Visit all endpoints (requires warps between them)';
+            }
+        }
+        
+        function updateEndpointModeVisibility() {
+            const selector = document.getElementById('endpointModeSelector');
+            if (markers.ends.length > 1) {
+                selector.style.display = 'flex';
+            } else {
+                selector.style.display = 'none';
+            }
+        }
+        
+        function toggleResults() {
+            const content = document.getElementById('resultsContent');
+            const icon = document.getElementById('toggleIcon');
+            
+            content.classList.toggle('expanded');
+            icon.classList.toggle('expanded');
+        }
+        
+        function loadImageFromUrl() {
+            const url = document.getElementById('imageUrl').value.trim();
+            if (!url) {
+                alert('Please enter an image URL');
+                return;
+            }
+            
+            const image = new Image();
+            image.crossOrigin = "anonymous";
+            image.onload = () => {
+                img = image;
+                initCanvas();
+            };
+            image.onerror = () => {
+                alert('Failed to load image. Please check the URL.');
+            };
+            image.src = url;
+        }
+        
+        function loadImageFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const image = new Image();
+                image.onload = () => {
+                    img = image;
+                    initCanvas();
+                };
+                image.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function initCanvas() {
+            markers = {
+                start: null,
+                ends: [],
+                waypoints: [],
+                warps: []
+            };
+            optimalRoute = [];
+            document.getElementById('resultsPanel').classList.remove('active');
+            updateEndpointModeVisibility();
+            
+            const container = document.getElementById('canvasContainer');
+            container.innerHTML = '';
+            markerElements = [];
+            
+            canvas = document.createElement('canvas');
+            const maxWidth = container.clientWidth - 20;
+            const maxHeight = 600;
+            
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > maxWidth) {
+                height = (maxWidth / width) * height;
+                width = maxWidth;
+            }
+            
+            if (height > maxHeight) {
+                width = (maxHeight / height) * width;
+                height = maxHeight;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx = canvas.getContext('2d');
+            
+            container.appendChild(canvas);
+            drawCanvas();
+            
+            canvas.addEventListener('click', handleCanvasClick);
+        }
+        
+        function drawCanvas() {
+            if (!ctx || !img) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            // Draw discovery ranges if in warp discovery mode
+            if (warpDiscoveryMode && optimalRoute.length > 0) {
+                discoveryRange = parseInt(document.getElementById('discoveryRange').value);
+                const discoveredWarps = new Set();
+                
+                // Simulate path to show discovery ranges
+                for (let i = 0; i < optimalRoute.length; i++) {
+                    const point = optimalRoute[i];
+                    
+                    // Check which warps can be discovered from this point
+                    for (const warp of markers.warps) {
+                        const dist = euclideanDistance(point, warp);
+                        if (dist <= discoveryRange) {
+                            if (!discoveredWarps.has(warp)) {
+                                // Draw discovery circle
+                                ctx.strokeStyle = '#9f7aea';
+                                ctx.lineWidth = 2;
+                                ctx.setLineDash([5, 5]);
+                                ctx.globalAlpha = 0.3;
+                                ctx.beginPath();
+                                ctx.arc(point.x, point.y, discoveryRange, 0, Math.PI * 2);
+                                ctx.stroke();
+                                ctx.globalAlpha = 1.0;
+                                ctx.setLineDash([]);
+                                
+                                discoveredWarps.add(warp);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (optimalRoute.length > 0) {
+                ctx.strokeStyle = '#f56565';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([8, 8]);
+                ctx.globalAlpha = 0.8;
+                
+                for (let i = 0; i < optimalRoute.length - 1; i++) {
+                    const current = optimalRoute[i];
+                    const next = optimalRoute[i + 1];
+                    
+                    // Skip drawing line if going TO a warp (teleporting)
+                    if (next.type === 'warp') {
+                        continue;
+                    }
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(current.x, current.y);
+                    ctx.lineTo(next.x, next.y);
+                    ctx.stroke();
+                }
+                
+                ctx.globalAlpha = 1.0;
+                ctx.setLineDash([]);
+                
+                // Draw teleport indicators
+                for (let i = 0; i < optimalRoute.length - 1; i++) {
+                    const current = optimalRoute[i];
+                    const next = optimalRoute[i + 1];
+                    
+                    if (next.type === 'warp') {
+                        const dx = next.x - current.x;
+                        const dy = next.y - current.y;
+                        const angle = Math.atan2(dy, dx);
+                        
+                        const textOffset = 35;
+                        const textX = current.x + Math.cos(angle) * textOffset;
+                        const textY = current.y + Math.sin(angle) * textOffset;
+                        
+                        ctx.save();
+                        ctx.font = 'bold 14px Arial';
+                        ctx.fillStyle = '#9f7aea';
+                        ctx.strokeStyle = 'white';
+                        ctx.lineWidth = 3;
+                        
+                        const text = `⚡ W${next.id + 1}`;
+                        
+                        ctx.strokeText(text, textX, textY);
+                        ctx.fillText(text, textX, textY);
+                        
+                        ctx.restore();
+                    }
+                }
+            }
+        }
+        
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (selectedMarkerType === 'start') {
+                if (markers.start) {
+                    removeMarker('start', null);
+                }
+                markers.start = { x, y, type: 'start' };
+                createMarkerElement('start', x, y);
+            } else if (selectedMarkerType === 'end') {
+                const id = markers.ends.length;
+                const end = { x, y, id, type: 'end' };
+                markers.ends.push(end);
+                createMarkerElement('end', x, y, id);
+                updateEndpointModeVisibility();
+            } else if (selectedMarkerType === 'waypoint') {
+                const id = markers.waypoints.length;
+                const waypoint = { x, y, id, type: 'waypoint' };
+                markers.waypoints.push(waypoint);
+                createMarkerElement('waypoint', x, y, id);
+            } else if (selectedMarkerType === 'warp') {
+                const id = markers.warps.length;
+                const warp = { x, y, id, type: 'warp' };
+                markers.warps.push(warp);
+                createMarkerElement('warp', x, y, id);
+            }
+        }
+        
+        function createMarkerElement(type, x, y, id = null) {
+            const container = document.getElementById('canvasContainer');
+            const rect = canvas.getBoundingClientRect();
+            
+            const marker = document.createElement('div');
+            marker.className = `marker ${type}`;
+            marker.style.left = (rect.left - container.getBoundingClientRect().left + x) + 'px';
+            marker.style.top = (rect.top - container.getBoundingClientRect().top + y) + 'px';
+            marker.dataset.type = type;
+            
+            if (type === 'waypoint') {
+                marker.dataset.id = id;
+                marker.textContent = id + 1;
+            } else if (type === 'warp') {
+                marker.dataset.id = id;
+                marker.textContent = 'W' + (id + 1);
+            } else if (type === 'end') {
+                marker.dataset.id = id;
+                marker.textContent = 'E' + (id + 1);
+            }
+            
+            marker.addEventListener('click', function(e) {
+                e.stopPropagation();
+                removeMarker(type, id);
+            });
+            
+            container.appendChild(marker);
+            markerElements.push(marker);
+        }
+        
+        function removeMarker(type, id = null) {
+            const container = document.getElementById('canvasContainer');
+            
+            if (type === 'start') {
+                markers.start = null;
+                const element = container.querySelector('.marker.start');
+                if (element) element.remove();
+            } else if (type === 'end') {
+                const idx = markers.ends.findIndex(e => e.id === id);
+                if (idx !== -1) {
+                    markers.ends.splice(idx, 1);
+                    const endElements = container.querySelectorAll('.marker.end');
+                    endElements.forEach(el => el.remove());
+                    markers.ends.forEach((e, i) => {
+                        e.id = i;
+                        createMarkerElement('end', e.x, e.y, i);
+                    });
+                }
+                updateEndpointModeVisibility();
+            } else if (type === 'waypoint') {
+                const idx = markers.waypoints.findIndex(w => w.id === id);
+                if (idx !== -1) {
+                    markers.waypoints.splice(idx, 1);
+                    const waypointElements = container.querySelectorAll('.marker.waypoint');
+                    waypointElements.forEach(el => el.remove());
+                    markers.waypoints.forEach((w, i) => {
+                        w.id = i;
+                        createMarkerElement('waypoint', w.x, w.y, i);
+                    });
+                }
+            } else if (type === 'warp') {
+                const idx = markers.warps.findIndex(w => w.id === id);
+                if (idx !== -1) {
+                    markers.warps.splice(idx, 1);
+                    const warpElements = container.querySelectorAll('.marker.warp');
+                    warpElements.forEach(el => el.remove());
+                    markers.warps.forEach((w, i) => {
+                        w.id = i;
+                        createMarkerElement('warp', w.x, w.y, i);
+                    });
+                }
+            }
+            
+            optimalRoute = [];
+            document.getElementById('resultsPanel').classList.remove('active');
+            drawCanvas();
+        }
+        
+        function clearAll() {
+            const container = document.getElementById('canvasContainer');
+            const markersToRemove = container.querySelectorAll('.marker');
+            markersToRemove.forEach(m => m.remove());
+            
+            markers = {
+                start: null,
+                ends: [],
+                waypoints: [],
+                warps: []
+            };
+            
+            markerElements = [];
+            optimalRoute = [];
+            document.getElementById('resultsPanel').classList.remove('active');
+            updateEndpointModeVisibility();
+            
+            if (img) {
+                drawCanvas();
+            }
+        }
+        
+        let distanceCache = new Map();
+        
+        function clearDistanceCache() {
+            distanceCache.clear();
+        }
+        
+        function getCachedDistance(p1, p2, discoveredWarps) {
+            const key = `${p1.x},${p1.y}-${p2.x},${p2.y}`;
+            if (distanceCache.has(key)) {
+                return distanceCache.get(key);
+            }
+            const dist = distanceWithDiscovery(p1, p2, discoveredWarps);
+            distanceCache.set(key, dist);
+            return dist;
+        }
+        
+        function calculatePath() {
+            if (!markers.start) {
+                alert('Please set a start point');
+                return;
+            }
+            
+            if (endpointMode === 'and' && markers.ends.length > 1 && markers.warps.length === 0) {
+                alert('AND mode with multiple endpoints requires at least one warp point!');
+                return;
+            }
+            
+            // Check for too many waypoints
+            if (markers.waypoints.length > 25) {
+                if (!confirm(`You have ${markers.waypoints.length} waypoints. This may take a while to compute. Continue?`)) {
+                    return;
+                }
+            }
+            
+            clearDistanceCache();
+            discoveryRange = parseInt(document.getElementById('discoveryRange').value);
+            
+            const resultsPanel = document.getElementById('resultsPanel');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            resultsPanel.classList.add('active');
+            resultsContent.innerHTML = '<div class="computing"><div class="computing-spinner">⚙️</div><p>Computing routes...</p></div>';
+            
+            setTimeout(() => {
+                try {
+                    const results = runAllAlgorithms();
+                    displayResults(results);
+                    
+                    if (!resultsContent.classList.contains('expanded')) {
+                        toggleResults();
+                    }
+                } catch (error) {
+                    console.error('Error computing routes:', error);
+                    resultsContent.innerHTML = '<div class="computing"><p style="color: #f56565;">Error computing routes. Try with fewer waypoints.</p></div>';
+                }
+            }, 100);
+        }
+        
+        function runAllAlgorithms() {
+            console.log('=== Starting Algorithm Calculations ===');
+            const start = markers.start;
+            const ends = markers.ends;
+            const waypoints = markers.waypoints;
+            const finalEnd = ends.length > 0 ? ends[0] : null;
+            
+            console.log(`Points: ${waypoints.length} waypoints, ${markers.warps.length} warps`);
+            
+            const results = [];
+            
+            if (!finalEnd && waypoints.length === 0) {
+                console.log('No destination, returning empty path');
+                return [{
+                    name: 'No destination',
+                    path: [start],
+                    distance: 0
+                }];
+            }
+            
+            const allPoints = [...waypoints];
+            console.log(`Total points to visit: ${allPoints.length}`);
+            
+            // Brute force (only for very small sets)
+            if (allPoints.length <= 7) {
+                console.log('Running Brute Force...');
+                const startTime = performance.now();
+                const brutePath = bruteForceAllPoints(start, finalEnd, allPoints);
+                console.log(`Brute Force completed in ${(performance.now() - startTime).toFixed(2)}ms`);
+                results.push({
+                    name: 'Brute Force (Optimal)',
+                    path: brutePath,
+                    distance: calculatePathDistance(brutePath)
+                });
+            } else {
+                console.log('Skipping Brute Force (too many points)');
+            }
+            
+            // Nearest Neighbor
+            console.log('Running Nearest Neighbor...');
+            let startTime = performance.now();
+            const nnPath = nearestNeighborAllPoints(start, finalEnd, allPoints);
+            console.log(`Nearest Neighbor completed in ${(performance.now() - startTime).toFixed(2)}ms`);
+            results.push({
+                name: 'Nearest Neighbor',
+                path: nnPath,
+                distance: calculatePathDistance(nnPath)
+            });
+            
+            // Nearest Neighbor + 2-Opt (only if not too many points)
+            if (allPoints.length <= 20) {
+                console.log('Running Nearest Neighbor + 2-Opt...');
+                startTime = performance.now();
+                const nn2opt = twoOptImprove([...nnPath]);
+                console.log(`NN + 2-Opt completed in ${(performance.now() - startTime).toFixed(2)}ms`);
+                results.push({
+                    name: 'Nearest Neighbor + 2-Opt',
+                    path: nn2opt,
+                    distance: calculatePathDistance(nn2opt)
+                });
+            } else {
+                console.log('Skipping 2-Opt (too many points)');
+            }
+            
+            // Greedy insertion
+            console.log('Running Greedy Insertion...');
+            startTime = performance.now();
+            const greedyPath = greedyInsertion(start, finalEnd, allPoints);
+            console.log(`Greedy Insertion completed in ${(performance.now() - startTime).toFixed(2)}ms`);
+            results.push({
+                name: 'Greedy Insertion',
+                path: greedyPath,
+                distance: calculatePathDistance(greedyPath)
+            });
+            
+            // Random restart (fewer attempts for larger sets)
+            const attempts = allPoints.length <= 10 ? 15 : allPoints.length <= 15 ? 10 : 5;
+            console.log(`Running Random Restart (${attempts} attempts)...`);
+            startTime = performance.now();
+            const randomPath = randomRestart(start, finalEnd, allPoints, attempts);
+            console.log(`Random Restart completed in ${(performance.now() - startTime).toFixed(2)}ms`);
+            results.push({
+                name: `Random Restart (${attempts}x)`,
+                path: randomPath,
+                distance: calculatePathDistance(randomPath)
+            });
+            
+            console.log('=== All Algorithms Complete ===');
+            return results;
+        }
+        
+        function bruteForceAllPoints(start, end, points) {
+            if (points.length === 0) {
+                return end ? [start, end] : [start];
+            }
+            
+            let bestPath = null;
+            let bestDist = Infinity;
+            let permCount = 0;
+            const maxPerms = 50000; // Bail out if too many
+            
+            function permute(remaining, currentPath) {
+                if (++permCount > maxPerms) return; // Safety limit
+                
+                if (remaining.length === 0) {
+                    const fullPath = end ? [...currentPath, end] : currentPath;
+                    const dist = calculatePathDistance(fullPath);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        bestPath = fullPath;
+                    }
+                    return;
+                }
+                
+                for (let i = 0; i < remaining.length; i++) {
+                    const next = remaining[i];
+                    const newRemaining = remaining.filter((_, idx) => idx !== i);
+                    permute(newRemaining, [...currentPath, next]);
+                }
+            }
+            
+            permute(points, [start]);
+            return bestPath || [start, ...(end ? [end] : [])];
+        }
+        
+        function nearestNeighborAllPoints(start, end, points) {
+            console.log(`  NN: Processing ${points.length} points`);
+            if (points.length === 0) {
+                return end ? [start, end] : [start];
+            }
+            
+            const path = [start];
+            let current = start;
+            const remaining = [...points];
+            const discoveredWarps = new Set();
+            
+            updateDiscoveredWarps(current, discoveredWarps);
+            
+            let iterations = 0;
+            while (remaining.length > 0) {
+                iterations++;
+                if (iterations % 5 === 0) {
+                    console.log(`  NN: Iteration ${iterations}, ${remaining.length} points remaining`);
+                }
+                
+                let nearest = null;
+                let minDist = Infinity;
+                let nearestIdx = -1;
+                
+                for (let i = 0; i < remaining.length; i++) {
+                    const dist = distanceWithDiscovery(current, remaining[i], discoveredWarps);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearest = remaining[i];
+                        nearestIdx = i;
+                    }
+                }
+                
+                if (nearest) {
+                    path.push(nearest);
+                    current = nearest;
+                    updateDiscoveredWarps(current, discoveredWarps);
+                    remaining.splice(nearestIdx, 1);
+                }
+            }
+            
+            if (end) {
+                path.push(end);
+            }
+            
+            console.log(`  NN: Completed ${iterations} iterations`);
+            return path;
+        }
+        
+        function twoOptImprove(path) {
+            if (path.length < 4) return path;
+            
+            let improved = true;
+            let bestPath = [...path];
+            let iterations = 0;
+            const maxIterations = Math.min(50, path.length * 2); // Limit iterations
+            
+            while (improved && iterations < maxIterations) {
+                improved = false;
+                iterations++;
+                
+                for (let i = 1; i < bestPath.length - 2; i++) {
+                    for (let j = i + 1; j < bestPath.length - 1; j++) {
+                        // Quick distance check before copying array
+                        const beforeDist = euclideanDistance(bestPath[i-1], bestPath[i]) +
+                                         euclideanDistance(bestPath[j], bestPath[j+1]);
+                        const afterDist = euclideanDistance(bestPath[i-1], bestPath[j]) +
+                                        euclideanDistance(bestPath[i], bestPath[j+1]);
+                        
+                        if (afterDist < beforeDist) {
+                            // Actually do the swap
+                            const newPath = [...bestPath];
+                            const segment = newPath.slice(i, j + 1).reverse();
+                            newPath.splice(i, j - i + 1, ...segment);
+                            bestPath = newPath;
+                            improved = true;
+                        }
+                    }
+                }
+            }
+            
+            return bestPath;
+        }
+        
+        function greedyInsertion(start, end, points) {
+            console.log(`  Greedy: Processing ${points.length} points`);
+            if (points.length === 0) {
+                return end ? [start, end] : [start];
+            }
+            
+            // Start with first point to create an edge
+            const path = [start, points[0]];
+            if (end) path.push(end);
+            
+            const remaining = points.slice(1);
+            const discoveredWarps = new Set();
+            
+            updateDiscoveredWarps(start, discoveredWarps);
+            updateDiscoveredWarps(points[0], discoveredWarps);
+            
+            let insertions = 1;
+            let totalChecks = 0;
+            const MAX_CHECKS = 10000;
+            
+            while (remaining.length > 0) {
+                insertions++;
+                console.log(`  Greedy: Insertion ${insertions}/${points.length}, path length ${path.length}, ${remaining.length} remaining`);
+                
+                let bestPoint = null;
+                let bestPosition = -1;
+                let bestIncrease = Infinity;
+                
+                for (const point of remaining) {
+                    // Check each edge in the path
+                    const maxPos = end ? path.length - 1 : path.length;
+                    for (let i = 1; i < maxPos; i++) {
+                        totalChecks++;
+                        
+                        if (totalChecks > MAX_CHECKS) {
+                            console.error(`  Greedy: Hit safety limit! Inserting remaining at end.`);
+                            const insertPos = end ? path.length - 1 : path.length;
+                            remaining.forEach(p => path.splice(insertPos, 0, p));
+                            console.log(`  Greedy: Emergency exit - final path length ${path.length}`);
+                            return path;
+                        }
+                        
+                        const before = path[i - 1];
+                        const after = path[i];
+                        
+                        const currentDist = euclideanDistance(before, after);
+                        const newDist = euclideanDistance(before, point) + euclideanDistance(point, after);
+                        const increase = newDist - currentDist;
+                        
+                        if (increase < bestIncrease) {
+                            bestIncrease = increase;
+                            bestPoint = point;
+                            bestPosition = i;
+                        }
+                    }
+                }
+                
+                if (bestPoint) {
+                    path.splice(bestPosition, 0, bestPoint);
+                    updateDiscoveredWarps(bestPoint, discoveredWarps);
+                    const idx = remaining.indexOf(bestPoint);
+                    remaining.splice(idx, 1);
+                } else {
+                    console.error(`  Greedy: No best point found! Inserting remaining.`);
+                    const insertPos = end ? path.length - 1 : path.length;
+                    remaining.forEach(p => path.splice(insertPos, 0, p));
+                    break;
+                }
+            }
+            
+            console.log(`  Greedy: Completed ${insertions} insertions with ${totalChecks} checks`);
+            return path;
+        }
+        
+        function randomRestart(start, end, points, attempts) {
+            console.log(`  Random Restart: ${attempts} attempts with ${points.length} points`);
+            if (points.length === 0) {
+                return end ? [start, end] : [start];
+            }
+            
+            let bestPath = null;
+            let bestDist = Infinity;
+            
+            for (let attempt = 0; attempt < attempts; attempt++) {
+                console.log(`  Random Restart: Attempt ${attempt + 1}/${attempts}`);
+                
+                // Random shuffle of points
+                const shuffled = [...points].sort(() => Math.random() - 0.5);
+                const path = end ? [start, ...shuffled, end] : [start, ...shuffled];
+                
+                // Improve with 2-opt
+                const improved = twoOptImprove(path);
+                const dist = calculatePathDistance(improved);
+                
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestPath = improved;
+                    console.log(`  Random Restart: New best distance ${bestDist.toFixed(2)}`);
+                }
+            }
+            
+            console.log(`  Random Restart: Final best distance ${bestDist.toFixed(2)}`);
+            return bestPath || [start, ...(end ? [end] : [])];
+        }
+        
+        function getAllSubsets(arr) {
+            const subsets = [[]];
+            for (const item of arr) {
+                const len = subsets.length;
+                for (let i = 0; i < len; i++) {
+                    subsets.push([...subsets[i], item]);
+                }
+            }
+            return subsets;
+        }
+        
+        let suppressDiscoveryLogs = false;
+        
+        function updateDiscoveredWarps(point, discoveredWarps) {
+            if (!warpDiscoveryMode) {
+                markers.warps.forEach(w => discoveredWarps.add(w));
+                return;
+            }
+            
+            for (const warp of markers.warps) {
+                const dist = euclideanDistance(point, warp);
+                if (dist <= discoveryRange) {
+                    if (!discoveredWarps.has(warp)) {
+                        if (!suppressDiscoveryLogs) {
+                            console.log(`    Discovered warp W${warp.id + 1} from point at (${point.x.toFixed(0)}, ${point.y.toFixed(0)})`);
+                        }
+                        discoveredWarps.add(warp);
+                    }
+                }
+            }
+        }
+        
+        function isWarpDiscovered(warp, discoveredWarps) {
+            if (!warpDiscoveryMode) return true;
+            return discoveredWarps.has(warp);
+        }
+        
+        function distanceWithDiscovery(p1, p2, discoveredWarps) {
+            // Can teleport TO warps if discovered
+            if (p2.type === 'warp') {
+                if (isWarpDiscovered(p2, discoveredWarps)) {
+                    return TELEPORT_COST;
+                } else {
+                    return 9999; // Can't use undiscovered warp
+                }
+            }
+            
+            // Direct walking distance
+            const directDist = euclideanDistance(p1, p2);
+            
+            // Don't check warps if we have very few or if direct is already short
+            if (markers.warps.length === 0 || directDist < TELEPORT_COST * 2) {
+                return directDist;
+            }
+            
+            // Check if using a warp would be better (quick check only)
+            let bestDist = directDist;
+            for (const warp of markers.warps) {
+                if (!isWarpDiscovered(warp, discoveredWarps)) continue;
+                const warpPath = TELEPORT_COST + euclideanDistance(warp, p2);
+                if (warpPath < bestDist) {
+                    bestDist = warpPath;
+                }
+            }
+            
+            return bestDist;
+        }
+        
+        function euclideanDistance(p1, p2) {
+            return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+        }
+        
+        function displayResults(results) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            const bestResult = results.reduce((best, current) => 
+                current.distance < best.distance ? current : best
+            );
+            
+            optimalRoute = bestResult.path;
+            drawCanvas();
+            
+            let html = '';
+            results.forEach(result => {
+                const isBest = result === bestResult;
+                const routeStr = formatRoute(result.path);
+                
+                html += `
+                    <div class="method-result ${isBest ? 'best' : ''}">
+                        <div class="method-name">
+                            <span>${result.name}</span>
+                            ${isBest ? '<span class="badge">BEST</span>' : ''}
+                        </div>
+                        <div class="method-distance">${result.distance.toFixed(2)} pixels</div>
+                        <div class="method-route">${routeStr}</div>
+                    </div>
+                `;
+            });
+            
+            resultsContent.innerHTML = html;
+        }
+        
+        function formatRoute(path) {
+            return path.map(point => {
+                if (point.type === 'start') return 'Start';
+                if (point.type === 'end') return `E${point.id + 1}`;
+                if (point.type === 'warp') return `W${point.id + 1}`;
+                return `P${point.id + 1}`;
+            }).join(' → ');
+        }
+        
+        function calculatePathDistance(path) {
+            if (!path || path.length < 2) return 0;
+            
+            suppressDiscoveryLogs = true; // Don't spam logs during distance calculation
+            let total = 0;
+            const discoveredWarps = new Set();
+            
+            if (!warpDiscoveryMode) {
+                markers.warps.forEach(w => discoveredWarps.add(w));
+            }
+            
+            for (let i = 0; i < path.length - 1; i++) {
+                const current = path[i];
+                const next = path[i + 1];
+                
+                updateDiscoveredWarps(current, discoveredWarps);
+                
+                if (next.type === 'warp') {
+                    if (isWarpDiscovered(next, discoveredWarps)) {
+                        total += TELEPORT_COST;
+                    } else {
+                        total += 10000;
+                    }
+                } else {
+                    total += euclideanDistance(current, next);
+                }
+            }
+            
+            suppressDiscoveryLogs = false;
+            return total;
+        }
+    </script>
+</body>
+</html>

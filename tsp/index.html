@@ -400,10 +400,25 @@
             padding: 15px;
             background: white;
             transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
         }
         
         .method-result:hover {
-            background: #f7fafc;
+            background: #ebf8ff;
+            border-color: #4299e1;
+            transform: translateX(5px);
+            box-shadow: -3px 0 0 #4299e1;
+        }
+        
+        .method-result:hover::before {
+            content: '👁️ Previewing route';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 11px;
+            color: #4299e1;
+            font-weight: 600;
         }
         
         .method-result:last-child {
@@ -556,7 +571,10 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-marker warp" style="background: #9f7aea;"></div>
-                        <span>Warps (teleport: 10px)</span>
+                        <span>Warps (teleport: free)</span>
+                    </div>
+                    <div class="legend-item" style="margin-left: auto; font-style: italic; color: #666;">
+                        <span>💡 Hover over results to preview routes</span>
                     </div>
                 </div>
             </div>
@@ -581,12 +599,22 @@
             warps: []
         };
         let optimalRoute = [];
+        let previewRoute = [];
+        let allResults = [];
         let markerElements = [];
         let selectedMarkerType = 'start';
         let endpointMode = 'or';
         let warpDiscoveryMode = false;
         let discoveryRange = 50;
-        const TELEPORT_COST = 0;
+        const TELEPORT_COST = 0; // Free teleportation TO warps (not FROM)
+        
+        /**
+         * WARP MECHANICS:
+         * - You can teleport FROM any location TO a discovered warp (cost = 0)
+         * - You CANNOT chain teleports (warp → warp requires walking)
+         * - After teleporting TO a warp, you walk FROM it normally
+         * - In discovery mode: warps must be within range to be "discovered" first
+         */
         
         function selectMarkerType(type) {
             selectedMarkerType = type;
@@ -602,8 +630,9 @@
             const rangeGroup = document.getElementById('discoveryRangeGroup');
             rangeGroup.style.display = warpDiscoveryMode ? 'flex' : 'none';
             
-            // Clear results when toggling
             optimalRoute = [];
+            previewRoute = [];
+            allResults = [];
             document.getElementById('resultsPanel').classList.remove('active');
             drawCanvas();
         }
@@ -684,6 +713,8 @@
                 warps: []
             };
             optimalRoute = [];
+            previewRoute = [];
+            allResults = [];
             document.getElementById('resultsPanel').classList.remove('active');
             updateEndpointModeVisibility();
             
@@ -724,21 +755,20 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // Draw discovery ranges if in warp discovery mode
-            if (warpDiscoveryMode && optimalRoute.length > 0) {
+            const routeToDraw = previewRoute.length > 0 ? previewRoute : optimalRoute;
+            const isPreview = previewRoute.length > 0;
+            
+            if (warpDiscoveryMode && routeToDraw.length > 0) {
                 discoveryRange = parseInt(document.getElementById('discoveryRange').value);
                 const discoveredWarps = new Set();
                 
-                // Simulate path to show discovery ranges
-                for (let i = 0; i < optimalRoute.length; i++) {
-                    const point = optimalRoute[i];
+                for (let i = 0; i < routeToDraw.length; i++) {
+                    const point = routeToDraw[i];
                     
-                    // Check which warps can be discovered from this point
                     for (const warp of markers.warps) {
                         const dist = euclideanDistance(point, warp);
                         if (dist <= discoveryRange) {
                             if (!discoveredWarps.has(warp)) {
-                                // Draw discovery circle
                                 ctx.strokeStyle = '#9f7aea';
                                 ctx.lineWidth = 2;
                                 ctx.setLineDash([5, 5]);
@@ -756,17 +786,16 @@
                 }
             }
             
-            if (optimalRoute.length > 0) {
-                ctx.strokeStyle = '#f56565';
-                ctx.lineWidth = 4;
-                ctx.setLineDash([8, 8]);
-                ctx.globalAlpha = 0.8;
+            if (routeToDraw.length > 0) {
+                ctx.strokeStyle = isPreview ? '#4299e1' : '#f56565';
+                ctx.lineWidth = isPreview ? 3 : 4;
+                ctx.setLineDash(isPreview ? [4, 4] : [8, 8]);
+                ctx.globalAlpha = isPreview ? 0.7 : 0.8;
                 
-                for (let i = 0; i < optimalRoute.length - 1; i++) {
-                    const current = optimalRoute[i];
-                    const next = optimalRoute[i + 1];
+                for (let i = 0; i < routeToDraw.length - 1; i++) {
+                    const current = routeToDraw[i];
+                    const next = routeToDraw[i + 1];
                     
-                    // Skip drawing line if going TO a warp (teleporting)
                     if (next.type === 'warp') {
                         continue;
                     }
@@ -780,10 +809,9 @@
                 ctx.globalAlpha = 1.0;
                 ctx.setLineDash([]);
                 
-                // Draw teleport indicators
-                for (let i = 0; i < optimalRoute.length - 1; i++) {
-                    const current = optimalRoute[i];
-                    const next = optimalRoute[i + 1];
+                for (let i = 0; i < routeToDraw.length - 1; i++) {
+                    const current = routeToDraw[i];
+                    const next = routeToDraw[i + 1];
                     
                     if (next.type === 'warp') {
                         const dx = next.x - current.x;
@@ -796,7 +824,7 @@
                         
                         ctx.save();
                         ctx.font = 'bold 14px Arial';
-                        ctx.fillStyle = '#9f7aea';
+                        ctx.fillStyle = isPreview ? '#4299e1' : '#9f7aea';
                         ctx.strokeStyle = 'white';
                         ctx.lineWidth = 3;
                         
@@ -915,6 +943,8 @@
             }
             
             optimalRoute = [];
+            previewRoute = [];
+            allResults = [];
             document.getElementById('resultsPanel').classList.remove('active');
             drawCanvas();
         }
@@ -933,6 +963,8 @@
             
             markerElements = [];
             optimalRoute = [];
+            previewRoute = [];
+            allResults = [];
             document.getElementById('resultsPanel').classList.remove('active');
             updateEndpointModeVisibility();
             
@@ -968,7 +1000,6 @@
                 return;
             }
             
-            // Check for too many waypoints
             if (markers.waypoints.length > 25) {
                 if (!confirm(`You have ${markers.waypoints.length} waypoints. This may take a while to compute. Continue?`)) {
                     return;
@@ -1022,7 +1053,6 @@
             const allPoints = [...waypoints];
             console.log(`Total points to visit: ${allPoints.length}`);
             
-            // Brute force (only for very small sets)
             if (allPoints.length <= 7) {
                 console.log('Running Brute Force...');
                 const startTime = performance.now();
@@ -1037,7 +1067,6 @@
                 console.log('Skipping Brute Force (too many points)');
             }
             
-            // Nearest Neighbor
             console.log('Running Nearest Neighbor...');
             let startTime = performance.now();
             const nnPath = nearestNeighborAllPoints(start, finalEnd, allPoints);
@@ -1048,7 +1077,6 @@
                 distance: calculatePathDistance(nnPath)
             });
             
-            // Nearest Neighbor + 2-Opt (only if not too many points)
             if (allPoints.length <= 20) {
                 console.log('Running Nearest Neighbor + 2-Opt...');
                 startTime = performance.now();
@@ -1063,7 +1091,6 @@
                 console.log('Skipping 2-Opt (too many points)');
             }
             
-            // Greedy insertion
             console.log('Running Greedy Insertion...');
             startTime = performance.now();
             const greedyPath = greedyInsertion(start, finalEnd, allPoints);
@@ -1074,7 +1101,6 @@
                 distance: calculatePathDistance(greedyPath)
             });
             
-            // Random restart (fewer attempts for larger sets)
             const attempts = allPoints.length <= 10 ? 15 : allPoints.length <= 15 ? 10 : 5;
             console.log(`Running Random Restart (${attempts} attempts)...`);
             startTime = performance.now();
@@ -1098,10 +1124,10 @@
             let bestPath = null;
             let bestDist = Infinity;
             let permCount = 0;
-            const maxPerms = 50000; // Bail out if too many
+            const maxPerms = 50000;
             
             function permute(remaining, currentPath) {
-                if (++permCount > maxPerms) return; // Safety limit
+                if (++permCount > maxPerms) return;
                 
                 if (remaining.length === 0) {
                     const fullPath = end ? [...currentPath, end] : currentPath;
@@ -1179,7 +1205,7 @@
             let improved = true;
             let bestPath = [...path];
             let iterations = 0;
-            const maxIterations = Math.min(50, path.length * 2); // Limit iterations
+            const maxIterations = Math.min(50, path.length * 2);
             
             while (improved && iterations < maxIterations) {
                 improved = false;
@@ -1187,14 +1213,12 @@
                 
                 for (let i = 1; i < bestPath.length - 2; i++) {
                     for (let j = i + 1; j < bestPath.length - 1; j++) {
-                        // Quick distance check before copying array
                         const beforeDist = euclideanDistance(bestPath[i-1], bestPath[i]) +
                                          euclideanDistance(bestPath[j], bestPath[j+1]);
                         const afterDist = euclideanDistance(bestPath[i-1], bestPath[j]) +
                                         euclideanDistance(bestPath[i], bestPath[j+1]);
                         
                         if (afterDist < beforeDist) {
-                            // Actually do the swap
                             const newPath = [...bestPath];
                             const segment = newPath.slice(i, j + 1).reverse();
                             newPath.splice(i, j - i + 1, ...segment);
@@ -1214,7 +1238,6 @@
                 return end ? [start, end] : [start];
             }
             
-            // Start with first point to create an edge
             const path = [start, points[0]];
             if (end) path.push(end);
             
@@ -1237,7 +1260,6 @@
                 let bestIncrease = Infinity;
                 
                 for (const point of remaining) {
-                    // Check each edge in the path
                     const maxPos = end ? path.length - 1 : path.length;
                     for (let i = 1; i < maxPos; i++) {
                         totalChecks++;
@@ -1290,22 +1312,31 @@
             
             let bestPath = null;
             let bestDist = Infinity;
+            const RUNS_PER_ATTEMPT = 3;
             
             for (let attempt = 0; attempt < attempts; attempt++) {
-                console.log(`  Random Restart: Attempt ${attempt + 1}/${attempts}`);
+                let attemptBestPath = null;
+                let attemptBestDist = Infinity;
                 
-                // Random shuffle of points
                 const shuffled = [...points].sort(() => Math.random() - 0.5);
-                const path = end ? [start, ...shuffled, end] : [start, ...shuffled];
                 
-                // Improve with 2-opt
-                const improved = twoOptImprove(path);
-                const dist = calculatePathDistance(improved);
+                for (let run = 0; run < RUNS_PER_ATTEMPT; run++) {
+                    const path = end ? [start, ...shuffled, end] : [start, ...shuffled];
+                    const improved = twoOptImprove(path);
+                    const dist = calculatePathDistance(improved);
+                    
+                    if (dist < attemptBestDist) {
+                        attemptBestDist = dist;
+                        attemptBestPath = improved;
+                    }
+                }
                 
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    bestPath = improved;
-                    console.log(`  Random Restart: New best distance ${bestDist.toFixed(2)}`);
+                console.log(`  Random Restart: Attempt ${attempt + 1}/${attempts} - best: ${attemptBestDist.toFixed(2)}`);
+                
+                if (attemptBestDist < bestDist) {
+                    bestDist = attemptBestDist;
+                    bestPath = attemptBestPath;
+                    console.log(`  Random Restart: New global best ${bestDist.toFixed(2)}`);
                 }
             }
             
@@ -1351,24 +1382,24 @@
         }
         
         function distanceWithDiscovery(p1, p2, discoveredWarps) {
-            // Can teleport TO warps if discovered
+            if (p1.type === 'warp') {
+                return euclideanDistance(p1, p2);
+            }
+            
             if (p2.type === 'warp') {
                 if (isWarpDiscovered(p2, discoveredWarps)) {
                     return TELEPORT_COST;
                 } else {
-                    return 9999; // Can't use undiscovered warp
+                    return 9999;
                 }
             }
             
-            // Direct walking distance
             const directDist = euclideanDistance(p1, p2);
             
-            // Don't check warps if we have very few or if direct is already short
-            if (markers.warps.length === 0 || directDist < TELEPORT_COST * 2) {
+            if (markers.warps.length === 0 || directDist < 20) {
                 return directDist;
             }
             
-            // Check if using a warp would be better (quick check only)
             let bestDist = directDist;
             for (const warp of markers.warps) {
                 if (!isWarpDiscovered(warp, discoveredWarps)) continue;
@@ -1388,20 +1419,26 @@
         function displayResults(results) {
             const resultsContent = document.getElementById('resultsContent');
             
+            allResults = results;
+            
             const bestResult = results.reduce((best, current) => 
                 current.distance < best.distance ? current : best
             );
             
             optimalRoute = bestResult.path;
+            previewRoute = [];
             drawCanvas();
             
             let html = '';
-            results.forEach(result => {
+            results.forEach((result, index) => {
                 const isBest = result === bestResult;
                 const routeStr = formatRoute(result.path);
                 
                 html += `
-                    <div class="method-result ${isBest ? 'best' : ''}">
+                    <div class="method-result ${isBest ? 'best' : ''}" 
+                         data-result-index="${index}"
+                         onmouseenter="previewResult(${index})"
+                         onmouseleave="clearPreview()">
                         <div class="method-name">
                             <span>${result.name}</span>
                             ${isBest ? '<span class="badge">BEST</span>' : ''}
@@ -1413,6 +1450,18 @@
             });
             
             resultsContent.innerHTML = html;
+        }
+        
+        function previewResult(index) {
+            if (allResults && allResults[index]) {
+                previewRoute = allResults[index].path;
+                drawCanvas();
+            }
+        }
+        
+        function clearPreview() {
+            previewRoute = [];
+            drawCanvas();
         }
         
         function formatRoute(path) {
@@ -1427,7 +1476,7 @@
         function calculatePathDistance(path) {
             if (!path || path.length < 2) return 0;
             
-            suppressDiscoveryLogs = true; // Don't spam logs during distance calculation
+            suppressDiscoveryLogs = true;
             let total = 0;
             const discoveredWarps = new Set();
             

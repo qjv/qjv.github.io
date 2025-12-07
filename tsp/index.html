@@ -505,7 +505,7 @@
             </div>
             <div class="marker-type-btn waypoint" onclick="selectMarkerType('waypoint')">
                 <div class="marker-icon" style="background: #4299e1;"></div>
-                <span>Waypoints (optional)</span>
+                <span>Waypoints</span>
             </div>
             <div class="marker-type-btn warp" onclick="selectMarkerType('warp')">
                 <div class="marker-icon warp" style="background: #9f7aea;"></div>
@@ -552,7 +552,7 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-marker" style="background: #4299e1;"></div>
-                        <span>Waypoints (optional stops)</span>
+                        <span>Waypoints</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-marker warp" style="background: #9f7aea;"></div>
@@ -586,7 +586,7 @@
         let endpointMode = 'or';
         let warpDiscoveryMode = false;
         let discoveryRange = 50;
-        const TELEPORT_COST = 10;
+        const TELEPORT_COST = 0;
         
         function selectMarkerType(type) {
             selectedMarkerType = type;

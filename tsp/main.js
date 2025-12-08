@@ -118,9 +118,8 @@ function runGW2Algorithms() {
         return [];
     }
     
-    // Collect all required points
-    let requiredPoints = [];
-    let optionalPoints = [];
+    // Collect only required points (skip when required = 0)
+    let pointsToVisit = [];
     
     Object.keys(state.markers.gw2).forEach(type => {
         const required = state.gw2Requirements[type];
@@ -129,22 +128,13 @@ function runGW2Algorithms() {
         if (required > 0) {
             // Must visit exactly 'required' of this type
             // For now, take first N (optimization TODO: choose best subset)
-            requiredPoints.push(...available.slice(0, required));
-            // Rest are optional
-            if (available.length > required) {
-                optionalPoints.push(...available.slice(required));
-            }
-        } else {
-            // All are optional
-            optionalPoints.push(...available);
+            pointsToVisit.push(...available.slice(0, required));
         }
+        // If required === 0, skip this marker type entirely
     });
     
-    // For now, include all optional points (future: optimize which to visit)
-    const pointsToVisit = [...requiredPoints, ...optionalPoints];
-    
     if (pointsToVisit.length === 0) {
-        alert('No points to visit (all optional with 0 required)');
+        alert('No points to visit. Set "Required" > 0 for at least one marker type.');
         return [];
     }
     

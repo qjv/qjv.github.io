@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TSP Path Finder</title>
+    <title>Route Planner</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -20,6 +20,34 @@
             padding: 30px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
+        
+        .mode-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #e2e8f0;
+        }
+        .mode-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #718096;
+            transition: all 0.2s;
+            margin-bottom: -3px;
+        }
+        .mode-tab:hover { color: #4a5568; }
+        .mode-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .mode-content { display: none; }
+        .mode-content.active { display: block; }
+        
         h1 { color: #333; margin-bottom: 10px; font-size: 28px; }
         .subtitle { color: #666; margin-bottom: 25px; font-size: 14px; }
         .controls { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
@@ -49,13 +77,47 @@
         }
         .marker-type-btn:hover { border-color: #cbd5e0; transform: translateY(-2px); }
         .marker-type-btn.active { border-width: 4px; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2); }
-        .marker-type-btn.start.active { border-color: #48bb78; background: #f0fff4; }
-        .marker-type-btn.end.active { border-color: #f56565; background: #fff5f5; }
-        .marker-type-btn.Marker.active { border-color: #4299e1; background: #ebf8ff; }
-        .marker-type-btn.Waypoint.active { border-color: #9f7aea; background: #faf5ff; }
         
-        .marker-icon { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .marker-icon.Waypoint { border-style: dashed; }
+        .marker-icon { width: 24px; height: 24px; }
+        .marker-icon.dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .marker-icon.dot.Waypoint { border-style: dashed; }
+        
+        .gw2-marker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .gw2-marker-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 10px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .gw2-marker-item:hover { border-color: #cbd5e0; transform: translateY(-2px); }
+        .gw2-marker-item.active { border-color: #667eea; border-width: 3px; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2); }
+        .gw2-marker-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .gw2-marker-name { font-size: 13px; font-weight: 600; }
+        .gw2-required-input {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+        }
+        .gw2-required-input label { color: #666; }
+        .gw2-required-input input { width: 50px; padding: 3px 6px; font-size: 11px; }
         
         .options-panel {
             display: flex; gap: 15px; padding: 12px 15px; background: #faf5ff;
@@ -88,24 +150,24 @@
         canvas { display: block; cursor: crosshair; }
         
         .marker {
-            position: absolute; width: 28px; height: 28px; border-radius: 50%; border: 3px solid white;
+            position: absolute; width: 28px; height: 28px; border-radius: 50%;
             cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transform: translate(-50%, -50%);
             display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;
             color: white; transition: all 0.2s; z-index: 10;
         }
+        .marker img { width: 24px; height: 24px; pointer-events: none; }
         .marker:hover { transform: translate(-50%, -50%) scale(1.3); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-        .marker.start { background: #48bb78; }
-        .marker.end { background: #f56565; }
-        .marker.Marker { background: #4299e1; }
-        .marker.Waypoint { background: #9f7aea; border-style: dashed; cursor: ns-resize; }
+        .marker.start { background: #48bb78; border: 3px solid white; }
+        .marker.end { background: #f56565; border: 3px solid white; }
+        .marker.Marker { background: #4299e1; border: 3px solid white; }
+        .marker.Waypoint { background: #9f7aea; border: 3px dashed white; cursor: ns-resize; }
+        .marker.gw2 { background: transparent; border: none; box-shadow: none; width: 32px; height: 32px; }
         
         .legend {
             margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 6px;
             display: flex; gap: 20px; flex-wrap: wrap;
         }
         .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-        .legend-marker { width: 18px; height: 18px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .legend-marker.Waypoint { border-style: dashed; }
         
         .results-panel { display: none; }
         .results-panel.active { display: block; }
@@ -152,57 +214,100 @@
         .computing { text-align: center; padding: 30px; color: #667eea; }
         .computing-spinner { font-size: 32px; animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .reminder-note {
+            background: #fef5e7;
+            border-left: 4px solid #f39c12;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #7d6608;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🗺️ Traveling Salesman Path Finder</h1>
-        <p class="subtitle">Upload an image and place markers. <br><strong>Discovery Mode:</strong> Algorithms detour to waypoints (🚶) only if it results in shorter total path. Line-of-sight also discovers. Drag waypoints to resize.</p>
+        <h1>🗺️ Route Planner</h1>
         
-        <div class="controls">
-            <div class="input-group">
-                <input type="text" id="imageUrl" placeholder="Enter image URL...">
-                <button onclick="loadImageFromUrl()">Load URL</button>
-            </div>
-            <label for="imageFile">
-                <button onclick="document.getElementById('imageFile').click()">Upload Image</button>
-            </label>
-            <input type="file" id="imageFile" accept="image/*" onchange="loadImageFromFile(event)">
-            <button class="secondary" onclick="calculatePath()">Find Shortest Path</button>
-            <button class="danger" onclick="clearAll()">Clear All</button>
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="switchMode('tsp')">TSP Solver</button>
+            <button class="mode-tab" onclick="switchMode('gw2')">GW2 Leveling</button>
         </div>
         
-        <div class="marker-type-selector">
-            <div class="marker-type-btn start active" onclick="selectMarkerType('start')">
-                <div class="marker-icon" style="background: #48bb78;"></div>
-                <span>Start Point</span>
+        <!-- TSP MODE -->
+        <div id="tsp-mode" class="mode-content active">
+            <p class="subtitle">Traveling Salesman Problem solver with waypoint discovery and teleportation mechanics.</p>
+            
+            <div class="controls">
+                <div class="input-group">
+                    <input type="text" id="imageUrl" placeholder="Enter image URL...">
+                    <button onclick="loadImageFromUrl()">Load URL</button>
+                </div>
+                <label for="imageFile">
+                    <button onclick="document.getElementById('imageFile').click()">Upload Image</button>
+                </label>
+                <input type="file" id="imageFile" accept="image/*" onchange="loadImageFromFile(event)">
+                <button class="secondary" onclick="calculatePath()">Find Shortest Path</button>
+                <button class="danger" onclick="clearAll()">Clear All</button>
             </div>
-            <div class="marker-type-btn end" onclick="selectMarkerType('end')">
-                <div class="marker-icon" style="background: #f56565;"></div>
-                <span>End Points</span>
+            
+            <div class="marker-type-selector" id="tspMarkerSelector">
+                <div class="marker-type-btn start active" onclick="selectMarkerType('start')">
+                    <div class="marker-icon dot" style="background: #48bb78;"></div>
+                    <span>Start Point</span>
+                </div>
+                <div class="marker-type-btn end" onclick="selectMarkerType('end')">
+                    <div class="marker-icon dot" style="background: #f56565;"></div>
+                    <span>End Points</span>
+                </div>
+                <div class="marker-type-btn Marker" onclick="selectMarkerType('Marker')">
+                    <div class="marker-icon dot" style="background: #4299e1;"></div>
+                    <span>Markers</span>
+                </div>
+                <div class="marker-type-btn Waypoint" onclick="selectMarkerType('Waypoint')">
+                    <div class="marker-icon dot Waypoint" style="background: #9f7aea;"></div>
+                    <span>Waypoint</span>
+                </div>
             </div>
-            <div class="marker-type-btn Marker" onclick="selectMarkerType('Marker')">
-                <div class="marker-icon" style="background: #4299e1;"></div>
-                <span>Markers</span>
+            
+            <div class="options-panel">
+                <div class="option-group">
+                    <input type="checkbox" id="WaypointDiscovery" onchange="toggleWaypointDiscovery()">
+                    <label for="WaypointDiscovery">Waypoint Discovery Mode</label>
+                </div>
             </div>
-            <div class="marker-type-btn Waypoint" onclick="selectMarkerType('Waypoint')">
-                <div class="marker-icon Waypoint" style="background: #9f7aea;"></div>
-                <span>Waypoint</span>
+            
+            <div class="endpoint-mode-selector" id="endpointModeSelector" style="display: none;">
+                <label>Multiple Endpoints Mode:</label>
+                <div class="mode-option active" onclick="selectEndpointMode('or')">OR (any)</div>
+                <div class="mode-option" onclick="selectEndpointMode('and')">AND (all)</div>
+                <div class="mode-description" id="modeDescription">Choose best endpoint to finish</div>
             </div>
         </div>
         
-        <div class="options-panel">
-            <div class="option-group">
-                <input type="checkbox" id="WaypointDiscovery" onchange="toggleWaypointDiscovery()">
-                <label for="WaypointDiscovery">Waypoint Discovery Mode</label>
+        <!-- GW2 MODE -->
+        <div id="gw2-mode" class="mode-content">
+            <p class="subtitle">Plan optimal leveling routes visiting hearts, vistas, waypoints, and other objectives.</p>
+            
+            <div class="controls">
+                <div class="input-group">
+                    <input type="text" id="imageUrlGW2" placeholder="Enter map image URL...">
+                    <button onclick="loadImageFromUrlGW2()">Load URL</button>
+                </div>
+                <label for="imageFileGW2">
+                    <button onclick="document.getElementById('imageFileGW2').click()">Upload Image</button>
+                </label>
+                <input type="file" id="imageFileGW2" accept="image/*" onchange="loadImageFromFileGW2(event)">
+                <button class="secondary" onclick="calculatePath()">Find Best Route</button>
+                <button class="danger" onclick="clearAll()">Clear All</button>
             </div>
-        </div>
-        
-        <div class="endpoint-mode-selector" id="endpointModeSelector" style="display: none;">
-            <label>Multiple Endpoints Mode:</label>
-            <div class="mode-option active" onclick="selectEndpointMode('or')">OR (any)</div>
-            <div class="mode-option" onclick="selectEndpointMode('and')">AND (all)</div>
-            <div class="mode-description" id="modeDescription">Choose best endpoint to finish</div>
+            
+            <div class="gw2-marker-grid" id="gw2MarkerSelector"></div>
+            
+            <div class="reminder-note">
+                ⚠️ <strong>Note:</strong> Optimization for large point sets coming later. Performance may be slower with many markers.
+            </div>
         </div>
         
         <div class="main-content">
@@ -214,27 +319,7 @@
                     </div>
                 </div>
                 
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-marker" style="background: #48bb78;"></div>
-                        <span>Start (required)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-marker" style="background: #f56565;"></div>
-                        <span>End</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-marker" style="background: #4299e1;"></div>
-                        <span>Markers</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-marker Waypoint" style="background: #9f7aea;"></div>
-                        <span>Waypoints (Drag to resize • ✓ = discovered)</span>
-                    </div>
-                    <div class="legend-item" style="margin-left: auto; font-style: italic; color: #666;">
-                        <span>💡 Hover over results to preview routes</span>
-                    </div>
-                </div>
+                <div class="legend" id="legend"></div>
             </div>
             
             <div class="results-panel" id="resultsPanel">
@@ -248,14 +333,30 @@
     </div>
 
     <script>
+        const GW2_MARKERS = [
+            { type: 'waypoint', name: 'Waypoint', icon: 'https://wiki.guildwars2.com/images/d/d2/Waypoint_%28map_icon%29.png', color: '#4299e1' },
+            { type: 'heart', name: 'Heart', icon: 'https://wiki.guildwars2.com/images/f/f8/Complete_heart_%28map_icon%29.png', color: '#f56565' },
+            { type: 'scout', name: 'Scout', icon: 'https://wiki.guildwars2.com/images/f/fe/Scout_%28map_icon%29.png', color: '#48bb78' },
+            { type: 'vista', name: 'Vista', icon: 'https://wiki.guildwars2.com/images/f/ff/Vista_%28map_icon%29.png', color: '#9f7aea' },
+            { type: 'poi', name: 'Point of Interest', icon: 'https://wiki.guildwars2.com/images/7/70/Point_of_interest_%28map_icon%29.png', color: '#ed8936' },
+            { type: 'dodge', name: 'Dodge', icon: 'https://wiki.guildwars2.com/images/c/cc/Dodge_Instructor.png', color: '#38b2ac' },
+            { type: 'event', name: 'Possible Event', icon: 'https://wiki.guildwars2.com/images/b/bc/Event_star_%28map_icon%29.png', color: '#ecc94b' },
+            { type: 'harvest', name: 'Harvest', icon: 'https://wiki.guildwars2.com/images/b/b2/Harvesting_Collection_Box_%28map_icon%29.png', color: '#68d391' },
+            { type: 'mining', name: 'Mining', icon: 'https://wiki.guildwars2.com/images/7/79/Mining_Collection_Box_%28map_icon%29.png', color: '#a0aec0' },
+            { type: 'logging', name: 'Logging', icon: 'https://wiki.guildwars2.com/images/d/d8/Logging_Collection_Box_%28map_icon%29.png', color: '#975a16' }
+        ];
+        
+        let currentMode = 'tsp';
         let canvas, ctx;
         let img = null;
         let markers = {
             start: null,
             ends: [],
             Markers: [],
-            Waypoints: []
+            Waypoints: [],
+            gw2: {} // Will store arrays for each GW2 marker type
         };
+        let gw2Requirements = {}; // Stores minimum required for each type
         let optimalRoute = [];
         let previewRoute = [];
         let allResults = [];
@@ -268,12 +369,76 @@
         let resizingWaypoint = null;
         let isDraggingRadius = false;
         
+        // Initialize GW2 markers object and requirements
+        GW2_MARKERS.forEach(m => {
+            markers.gw2[m.type] = [];
+            gw2Requirements[m.type] = 0;
+        });
+        
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.mode-content').forEach(content => content.classList.remove('active'));
+            
+            if (mode === 'tsp') {
+                document.querySelector('.mode-tab:nth-child(1)').classList.add('active');
+                document.getElementById('tsp-mode').classList.add('active');
+                selectedMarkerType = 'start';
+                document.querySelectorAll('#tspMarkerSelector .marker-type-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelector('#tspMarkerSelector .marker-type-btn.start').classList.add('active');
+            } else {
+                document.querySelector('.mode-tab:nth-child(2)').classList.add('active');
+                document.getElementById('gw2-mode').classList.add('active');
+                initGW2MarkerSelector();
+                selectedMarkerType = 'waypoint';
+            }
+            updateLegend();
+            clearAll();
+        }
+        
+        function initGW2MarkerSelector() {
+            const container = document.getElementById('gw2MarkerSelector');
+            container.innerHTML = '';
+            
+            GW2_MARKERS.forEach(markerDef => {
+                const item = document.createElement('div');
+                item.className = 'gw2-marker-item';
+                if (selectedMarkerType === markerDef.type) item.classList.add('active');
+                item.onclick = () => selectGW2MarkerType(markerDef.type);
+                
+                item.innerHTML = `
+                    <div class="gw2-marker-header">
+                        <img class="marker-icon" src="${markerDef.icon}" alt="${markerDef.name}">
+                        <span class="gw2-marker-name">${markerDef.name}</span>
+                    </div>
+                    <div class="gw2-required-input">
+                        <label>Required:</label>
+                        <input type="number" min="0" value="${gw2Requirements[markerDef.type]}" 
+                               onclick="event.stopPropagation()" 
+                               onchange="updateGW2Requirement('${markerDef.type}', this.value)">
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+        
+        function selectGW2MarkerType(type) {
+            selectedMarkerType = type;
+            document.querySelectorAll('.gw2-marker-item').forEach(item => item.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+        
+        function updateGW2Requirement(type, value) {
+            gw2Requirements[type] = parseInt(value) || 0;
+        }
+        
         function selectMarkerType(type) {
             selectedMarkerType = type;
-            document.querySelectorAll('.marker-type-btn').forEach(btn => {
+            document.querySelectorAll('#tspMarkerSelector .marker-type-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.querySelector(`.marker-type-btn.${type}`).classList.add('active');
+            document.querySelector(`#tspMarkerSelector .marker-type-btn.${type}`).classList.add('active');
         }
         
         function toggleWaypointDiscovery() {
@@ -301,7 +466,7 @@
         
         function updateEndpointModeVisibility() {
             const selector = document.getElementById('endpointModeSelector');
-            if (markers.ends.length > 1) {
+            if (currentMode === 'tsp' && markers.ends.length > 1) {
                 selector.style.display = 'flex';
             } else {
                 selector.style.display = 'none';
@@ -318,10 +483,26 @@
         function loadImageFromUrl() {
             const url = document.getElementById('imageUrl').value.trim();
             if (!url) { alert('Please enter an image URL'); return; }
+            loadImage(url);
+        }
+        
+        function loadImageFromUrlGW2() {
+            const url = document.getElementById('imageUrlGW2').value.trim();
+            if (!url) { alert('Please enter an image URL'); return; }
+            loadImage(url);
+        }
+        
+        function loadImage(url) {
             const image = new Image();
             image.crossOrigin = "anonymous";
             image.onload = () => { img = image; initCanvas(); };
-            image.onerror = () => { alert('Failed to load image. Please check the URL.'); };
+            image.onerror = () => { 
+                // Try without CORS
+                const image2 = new Image();
+                image2.onload = () => { img = image2; initCanvas(); };
+                image2.onerror = () => { alert('Failed to load image. Try uploading it instead.'); };
+                image2.src = url;
+            };
             image.src = url;
         }
         
@@ -337,8 +518,18 @@
             reader.readAsDataURL(file);
         }
         
+        function loadImageFromFileGW2(event) {
+            loadImageFromFile(event);
+        }
+        
         function initCanvas() {
-            markers = { start: null, ends: [], Markers: [], Waypoints: [] };
+            if (currentMode === 'tsp') {
+                markers = { start: null, ends: [], Markers: [], Waypoints: [], gw2: markers.gw2 };
+            } else {
+                markers.gw2 = {};
+                GW2_MARKERS.forEach(m => markers.gw2[m.type] = []);
+            }
+            
             optimalRoute = [];
             previewRoute = [];
             allResults = [];
@@ -370,6 +561,47 @@
             container.appendChild(canvas);
             drawCanvas();
             canvas.addEventListener('click', handleCanvasClick);
+            updateLegend();
+        }
+        
+        function updateLegend() {
+            const legend = document.getElementById('legend');
+            if (currentMode === 'tsp') {
+                legend.innerHTML = `
+                    <div class="legend-item">
+                        <div class="marker-icon dot" style="background: #48bb78;"></div>
+                        <span>Start (required)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="marker-icon dot" style="background: #f56565;"></div>
+                        <span>End</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="marker-icon dot" style="background: #4299e1;"></div>
+                        <span>Markers</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="marker-icon dot Waypoint" style="background: #9f7aea;"></div>
+                        <span>Waypoints (Drag to resize • ✓ = discovered)</span>
+                    </div>
+                    <div class="legend-item" style="margin-left: auto; font-style: italic; color: #666;">
+                        <span>💡 Hover over results to preview routes</span>
+                    </div>
+                `;
+            } else {
+                let html = '';
+                GW2_MARKERS.forEach(m => {
+                    const count = markers.gw2[m.type] ? markers.gw2[m.type].length : 0;
+                    const required = gw2Requirements[m.type];
+                    html += `
+                        <div class="legend-item">
+                            <img class="marker-icon" src="${m.icon}" alt="${m.name}">
+                            <span>${m.name}: ${count}${required > 0 ? ` (min: ${required})` : ''}</span>
+                        </div>
+                    `;
+                });
+                legend.innerHTML = html;
+            }
         }
         
         function drawCanvas() {
@@ -377,25 +609,27 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            markers.Waypoints.forEach(w => {
-                ctx.strokeStyle = '#9f7aea';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([5, 5]);
-                ctx.globalAlpha = 0.5;
-                ctx.beginPath();
-                ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
-                ctx.stroke();
-                
-                ctx.fillStyle = 'rgba(159, 122, 234, 0.1)';
-                ctx.fill();
-            });
-            ctx.globalAlpha = 1.0;
-            ctx.setLineDash([]);
+            if (currentMode === 'tsp') {
+                markers.Waypoints.forEach(w => {
+                    ctx.strokeStyle = '#9f7aea';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = 'rgba(159, 122, 234, 0.1)';
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+                ctx.setLineDash([]);
+            }
             
             const routeToDraw = previewRoute.length > 0 ? previewRoute : optimalRoute;
             const isPreview = previewRoute.length > 0;
             
-            if (WaypointDiscoveryMode && routeToDraw.length > 0) {
+            if (currentMode === 'tsp' && WaypointDiscoveryMode && routeToDraw.length > 0) {
                 const discoveredWaypoints = new Set();
                 
                 for (let i = 0; i < routeToDraw.length; i++) {
@@ -437,8 +671,7 @@
                 for (let i = 0; i < routeToDraw.length - 1; i++) {
                     const current = routeToDraw[i];
                     const next = routeToDraw[i + 1];
-                    // Skip drawing line if next is a teleport waypoint (not explicitly visited)
-                    if (next.type === 'Waypoint' && !next.explicitVisit) continue;
+                    if (currentMode === 'tsp' && next.type === 'Waypoint' && !next.explicitVisit) continue;
                     
                     ctx.beginPath();
                     ctx.moveTo(current.x, current.y);
@@ -449,22 +682,22 @@
                 ctx.globalAlpha = 1.0;
                 ctx.setLineDash([]);
                 
-                // Draw teleport indicators
-                for (let i = 0; i < routeToDraw.length - 1; i++) {
-                    const current = routeToDraw[i];
-                    const next = routeToDraw[i + 1];
-                    // Only show teleport indicator for waypoints that aren't explicitly visited
-                    if (next.type === 'Waypoint' && !next.explicitVisit) {
-                        const text = `⚡ W${next.id + 1}`;
-                        const textPos = findBestTextPosition(current, next, text, routeToDraw);
-                        ctx.save();
-                        ctx.font = 'bold 14px Arial';
-                        ctx.fillStyle = isPreview ? '#4299e1' : '#9f7aea';
-                        ctx.strokeStyle = 'white';
-                        ctx.lineWidth = 3;
-                        ctx.strokeText(text, textPos.x, textPos.y);
-                        ctx.fillText(text, textPos.x, textPos.y);
-                        ctx.restore();
+                if (currentMode === 'tsp') {
+                    for (let i = 0; i < routeToDraw.length - 1; i++) {
+                        const current = routeToDraw[i];
+                        const next = routeToDraw[i + 1];
+                        if (next.type === 'Waypoint' && !next.explicitVisit) {
+                            const text = `⚡ W${next.id + 1}`;
+                            const textPos = findBestTextPosition(current, next, text, routeToDraw);
+                            ctx.save();
+                            ctx.font = 'bold 14px Arial';
+                            ctx.fillStyle = isPreview ? '#4299e1' : '#9f7aea';
+                            ctx.strokeStyle = 'white';
+                            ctx.lineWidth = 3;
+                            ctx.strokeText(text, textPos.x, textPos.y);
+                            ctx.fillText(text, textPos.x, textPos.y);
+                            ctx.restore();
+                        }
                     }
                 }
             }
@@ -510,24 +743,33 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
-            if (selectedMarkerType === 'start') {
-                if (markers.start) removeMarker('start', null);
-                markers.start = { x, y, type: 'start' };
-                createMarkerElement('start', x, y);
-            } else if (selectedMarkerType === 'end') {
-                const id = markers.ends.length;
-                markers.ends.push({ x, y, id, type: 'end' });
-                createMarkerElement('end', x, y, id);
-                updateEndpointModeVisibility();
-            } else if (selectedMarkerType === 'Marker') {
-                const id = markers.Markers.length;
-                markers.Markers.push({ x, y, id, type: 'Marker' });
-                createMarkerElement('Marker', x, y, id);
-            } else if (selectedMarkerType === 'Waypoint') {
-                const id = markers.Waypoints.length;
-                markers.Waypoints.push({ x, y, id, type: 'Waypoint', radius: 30 });
-                createMarkerElement('Waypoint', x, y, id);
-                drawCanvas();
+            if (currentMode === 'tsp') {
+                if (selectedMarkerType === 'start') {
+                    if (markers.start) removeMarker('start', null);
+                    markers.start = { x, y, type: 'start' };
+                    createMarkerElement('start', x, y);
+                } else if (selectedMarkerType === 'end') {
+                    const id = markers.ends.length;
+                    markers.ends.push({ x, y, id, type: 'end' });
+                    createMarkerElement('end', x, y, id);
+                    updateEndpointModeVisibility();
+                } else if (selectedMarkerType === 'Marker') {
+                    const id = markers.Markers.length;
+                    markers.Markers.push({ x, y, id, type: 'Marker' });
+                    createMarkerElement('Marker', x, y, id);
+                } else if (selectedMarkerType === 'Waypoint') {
+                    const id = markers.Waypoints.length;
+                    markers.Waypoints.push({ x, y, id, type: 'Waypoint', radius: 30 });
+                    createMarkerElement('Waypoint', x, y, id);
+                    drawCanvas();
+                }
+            } else {
+                // GW2 mode
+                const markerType = selectedMarkerType;
+                const id = markers.gw2[markerType].length;
+                markers.gw2[markerType].push({ x, y, id, type: markerType });
+                createGW2MarkerElement(markerType, x, y, id);
+                updateLegend();
             }
         }
         
@@ -591,6 +833,32 @@
             markerElements.push(marker);
         }
         
+        function createGW2MarkerElement(type, x, y, id) {
+            const container = document.getElementById('canvasContainer');
+            const rect = canvas.getBoundingClientRect();
+            const marker = document.createElement('div');
+            marker.className = 'marker gw2';
+            marker.style.left = (rect.left - container.getBoundingClientRect().left + x) + 'px';
+            marker.style.top = (rect.top - container.getBoundingClientRect().top + y) + 'px';
+            marker.dataset.type = type;
+            marker.dataset.id = id;
+            
+            const markerDef = GW2_MARKERS.find(m => m.type === type);
+            const img = document.createElement('img');
+            img.src = markerDef.icon;
+            img.style.width = '28px';
+            img.style.height = '28px';
+            marker.appendChild(img);
+            
+            marker.addEventListener('click', function(e) {
+                e.stopPropagation();
+                removeGW2Marker(type, id);
+            });
+            
+            container.appendChild(marker);
+            markerElements.push(marker);
+        }
+        
         function removeMarker(type, id = null) {
             const container = document.getElementById('canvasContainer');
             if (type === 'start') {
@@ -625,13 +893,32 @@
             drawCanvas();
         }
         
+        function removeGW2Marker(type, id) {
+            const container = document.getElementById('canvasContainer');
+            const idx = markers.gw2[type].findIndex(m => m.id === id);
+            if (idx !== -1) {
+                markers.gw2[type].splice(idx, 1);
+                container.querySelectorAll(`.marker.gw2[data-type="${type}"]`).forEach(el => el.remove());
+                markers.gw2[type].forEach((m, i) => { m.id = i; createGW2MarkerElement(type, m.x, m.y, i); });
+            }
+            optimalRoute = []; previewRoute = []; allResults = [];
+            document.getElementById('resultsPanel').classList.remove('active');
+            updateLegend();
+        }
+        
         function clearAll() {
             const container = document.getElementById('canvasContainer');
             container.querySelectorAll('.marker').forEach(m => m.remove());
-            markers = { start: null, ends: [], Markers: [], Waypoints: [] };
+            if (currentMode === 'tsp') {
+                markers = { start: null, ends: [], Markers: [], Waypoints: [], gw2: markers.gw2 };
+            } else {
+                markers.gw2 = {};
+                GW2_MARKERS.forEach(m => markers.gw2[m.type] = []);
+            }
             markerElements = []; optimalRoute = []; previewRoute = []; allResults = [];
             document.getElementById('resultsPanel').classList.remove('active');
             updateEndpointModeVisibility();
+            updateLegend();
             if (img) drawCanvas();
         }
         
@@ -639,12 +926,40 @@
         function clearDistanceCache() { distanceCache.clear(); }
         
         function calculatePath() {
-            if (!markers.start) { alert('Please set a start point'); return; }
-            if (endpointMode === 'and' && markers.ends.length > 0 && markers.Waypoints.length === 0) {
-                alert('AND mode requires at least one Waypoint to handle mandatory teleportation from endpoints!');
-                return;
+            if (currentMode === 'tsp') {
+                if (!markers.start) { alert('Please set a start point'); return; }
+                if (endpointMode === 'and' && markers.ends.length > 0 && markers.Waypoints.length === 0) {
+                    alert('AND mode requires at least one Waypoint to handle mandatory teleportation from endpoints!');
+                    return;
+                }
+                if (markers.Markers.length > 25 && !confirm(`You have ${markers.Markers.length} Markers. Continue?`)) return;
+            } else {
+                // GW2 mode validation
+                let totalPoints = 0;
+                Object.keys(markers.gw2).forEach(type => {
+                    totalPoints += markers.gw2[type].length;
+                });
+                if (totalPoints === 0) {
+                    alert('Please place at least one marker on the map');
+                    return;
+                }
+                
+                // Check if requirements are met
+                let unmetRequirements = [];
+                Object.keys(gw2Requirements).forEach(type => {
+                    const required = gw2Requirements[type];
+                    const available = markers.gw2[type].length;
+                    if (required > available) {
+                        const markerDef = GW2_MARKERS.find(m => m.type === type);
+                        unmetRequirements.push(`${markerDef.name}: need ${required}, have ${available}`);
+                    }
+                });
+                
+                if (unmetRequirements.length > 0) {
+                    alert('Requirements not met:\n' + unmetRequirements.join('\n'));
+                    return;
+                }
             }
-            if (markers.Markers.length > 25 && !confirm(`You have ${markers.Markers.length} Markers. Continue?`)) return;
             
             clearDistanceCache();
             const resultsPanel = document.getElementById('resultsPanel');
@@ -665,6 +980,10 @@
         }
         
         function runAllAlgorithms() {
+            if (currentMode === 'gw2') {
+                return runGW2Algorithms();
+            }
+            
             const start = markers.start;
             const Markers = markers.Markers;
             let scenarios = [];
@@ -709,6 +1028,139 @@
             return results;
         }
         
+        function runGW2Algorithms() {
+            // Collect all points that need to be visited
+            let allPoints = [];
+            let requiredPoints = [];
+            
+            Object.keys(markers.gw2).forEach(type => {
+                const required = gw2Requirements[type];
+                const available = markers.gw2[type];
+                
+                if (required > 0) {
+                    // Must visit at least 'required' of this type
+                    requiredPoints.push({ type, count: required, points: available });
+                } else if (required === 0 && available.length > 0) {
+                    // Optional points - can visit any or all
+                    allPoints.push(...available);
+                }
+            });
+            
+            // For now, simple approach: if requirements exist, visit required count from each type + all optional
+            // More complex: find best subset that meets requirements (future optimization)
+            let pointsToVisit = [...allPoints];
+            requiredPoints.forEach(req => {
+                // For now, just add first N required points (not optimal, but works)
+                pointsToVisit.push(...req.points.slice(0, req.count));
+            });
+            
+            if (pointsToVisit.length === 0) {
+                alert('No points to visit');
+                return [];
+            }
+            
+            // Use first point as start
+            const start = pointsToVisit[0];
+            const remaining = pointsToVisit.slice(1);
+            
+            const runAlgorithm = (algoName, algoFunc) => {
+                const path = algoFunc(start, null, remaining);
+                const dist = calculatePathDistanceGW2(path);
+                return { name: algoName, path, distance: dist };
+            };
+            
+            const results = [];
+            const pointCount = pointsToVisit.length;
+            
+            if (pointCount <= 7) results.push(runAlgorithm('Brute Force (Optimal)', bruteForceAllPoints));
+            results.push(runAlgorithm('Nearest Neighbor', nearestNeighborSimple));
+            if (pointCount <= 20) {
+                results.push(runAlgorithm('Nearest Neighbor + 2-Opt', (s, e, p) => twoOptImproveSimple(nearestNeighborSimple(s, e, p))));
+            }
+            results.push(runAlgorithm('Greedy Insertion', greedyInsertionSimple));
+            
+            return results;
+        }
+        
+        function nearestNeighborSimple(start, end, points) {
+            if (points.length === 0) return [start];
+            const path = [start];
+            let current = start;
+            const remaining = new Set(points);
+            
+            while (remaining.size > 0) {
+                let nearest = null, minDist = Infinity;
+                for (const point of remaining) {
+                    const dist = euclideanDistance(current, point);
+                    if (dist < minDist) { minDist = dist; nearest = point; }
+                }
+                if (nearest) {
+                    path.push(nearest);
+                    current = nearest;
+                    remaining.delete(nearest);
+                }
+            }
+            return path;
+        }
+        
+        function twoOptImproveSimple(path) {
+            if (path.length < 4) return path;
+            let improved = true, bestPath = [...path], iterations = 0;
+            const maxIterations = Math.min(50, path.length * 2);
+            
+            while (improved && iterations < maxIterations) {
+                improved = false; iterations++;
+                for (let i = 1; i < bestPath.length - 2; i++) {
+                    for (let j = i + 1; j < bestPath.length - 1; j++) {
+                        const currentCost = calculatePathDistanceGW2(bestPath);
+                        const newPath = [...bestPath];
+                        newPath.splice(i, j - i + 1, ...newPath.slice(i, j + 1).reverse());
+                        const newCost = calculatePathDistanceGW2(newPath);
+                        
+                        if (newCost < currentCost) {
+                            bestPath = newPath; improved = true;
+                        }
+                    }
+                }
+            }
+            return bestPath;
+        }
+        
+        function greedyInsertionSimple(start, end, points) {
+            if (points.length === 0) return [start];
+            const path = [start, points[0]];
+            const remaining = new Set(points.slice(1));
+            
+            while (remaining.size > 0) {
+                let bestPoint = null, bestPosition = -1, bestIncrease = Infinity;
+                for (const point of remaining) {
+                    for (let i = 1; i < path.length; i++) {
+                        const before = path[i - 1], after = path[i];
+                        const currentDist = euclideanDistance(before, after);
+                        const newDist = euclideanDistance(before, point) + euclideanDistance(point, after);
+                        const increase = newDist - currentDist;
+                        if (increase < bestIncrease) { bestIncrease = increase; bestPoint = point; bestPosition = i; }
+                    }
+                }
+                if (bestPoint) {
+                    path.splice(bestPosition, 0, bestPoint);
+                    remaining.delete(bestPoint);
+                } else {
+                    break;
+                }
+            }
+            return path;
+        }
+        
+        function calculatePathDistanceGW2(path) {
+            if (!path || path.length < 2) return 0;
+            let total = 0;
+            for (let i = 0; i < path.length - 1; i++) {
+                total += euclideanDistance(path[i], path[i + 1]);
+            }
+            return total;
+        }
+        
         function bruteForceAllPoints(start, end, points) {
             if (points.length === 0) return end ? [start, end] : [start];
             let bestPath = null, bestDist = Infinity, permCount = 0;
@@ -718,7 +1170,7 @@
                 if (++permCount > maxPerms) return;
                 if (remaining.length === 0) {
                     const fullPath = end ? [...currentPath, end] : currentPath;
-                    const dist = calculatePathDistance(fullPath);
+                    const dist = currentMode === 'gw2' ? calculatePathDistanceGW2(fullPath) : calculatePathDistance(fullPath);
                     if (dist < bestDist) { bestDist = dist; bestPath = fullPath; }
                     return;
                 }
@@ -743,22 +1195,14 @@
                 let nearest = null, minDist = Infinity;
                 let bestWaypointDetour = null;
                 
-                // Find nearest point considering both direct paths and waypoint detours
                 for (const point of remaining) {
                     const directDist = distanceWithDiscovery(current, point, discoveredWaypoints);
                     
-                    // Check if detouring through an undiscovered waypoint would be better
                     if (WaypointDiscoveryMode) {
                         for (const waypoint of markers.Waypoints) {
                             if (!isWaypointDiscovered(waypoint, discoveredWaypoints)) {
-                                // Cost: walk to waypoint + walk from waypoint to point
                                 const detourDist = euclideanDistance(current, waypoint) + euclideanDistance(waypoint, point);
-                                
-                                // Estimate future savings from having this waypoint
                                 const futureSavings = estimateWaypointValue(waypoint, remaining, discoveredWaypoints);
-                                
-                                // Only detour if: detour_cost + (future_savings / remaining_count) < direct_cost
-                                // We divide future savings by remaining count to amortize benefit
                                 const effectiveCost = detourDist - (futureSavings / remaining.size);
                                 
                                 if (effectiveCost < directDist && effectiveCost < minDist) {
@@ -770,7 +1214,6 @@
                         }
                     }
                     
-                    // Compare with direct path
                     if (directDist < minDist) {
                         minDist = directDist;
                         nearest = point;
@@ -779,7 +1222,6 @@
                 }
                 
                 if (nearest) {
-                    // If we found a beneficial waypoint detour, visit it first
                     if (bestWaypointDetour) {
                         const waypointCopy = { ...bestWaypointDetour, explicitVisit: true };
                         path.push(waypointCopy);
@@ -852,7 +1294,6 @@
                                       distanceWithDiscovery(point, after, discoveredWaypoints);
                         const increase = newDist - currentDist;
                         
-                        // Check waypoint detour option for this insertion
                         if (WaypointDiscoveryMode) {
                             for (const waypoint of markers.Waypoints) {
                                 if (!isWaypointDiscovered(waypoint, discoveredWaypoints)) {
@@ -883,12 +1324,10 @@
                 }
                 
                 if (bestPoint) {
-                    // Insert waypoint detour if beneficial
                     if (bestWaypointDetour) {
                         const waypointCopy = { ...bestWaypointDetour, explicitVisit: true };
                         path.splice(bestWaypointPosition, 0, waypointCopy);
                         updateDiscoveredWaypoints(waypointCopy, discoveredWaypoints);
-                        // Adjust position since we inserted waypoint
                         if (bestPosition >= bestWaypointPosition) bestPosition++;
                     }
                     
@@ -969,20 +1408,17 @@
             return !WaypointDiscoveryMode || discoveredWaypoints.has(Waypoint);
         }
         
-        // Estimate potential distance savings if this waypoint were unlocked
         function estimateWaypointValue(waypoint, remainingPoints, discoveredWaypoints) {
             if (isWaypointDiscovered(waypoint, discoveredWaypoints)) return 0;
             
             let potentialSavings = 0;
             const pointsArray = Array.from(remainingPoints);
             
-            // For each pair of remaining points, estimate if teleporting via this waypoint saves distance
             for (let i = 0; i < pointsArray.length; i++) {
                 for (let j = i + 1; j < pointsArray.length; j++) {
                     const directDist = euclideanDistance(pointsArray[i], pointsArray[j]);
                     const viaWaypointDist = TELEPORT_COST + euclideanDistance(waypoint, pointsArray[j]);
                     const saving = Math.max(0, directDist - viaWaypointDist);
-                    // Conservative discount since not all pairs will be in sequence
                     potentialSavings += saving * 0.2;
                 }
             }
@@ -991,7 +1427,6 @@
         }
         
         function distanceWithDiscovery(p1, p2, discoveredWaypoints) {
-            // If p1 is a waypoint (teleport source), distance to next point is just euclidean
             if (p1.type === 'Waypoint') return euclideanDistance(p1, p2);
 
             let bestDist = euclideanDistance(p1, p2);
@@ -999,19 +1434,16 @@
                 bestDist = Infinity;
             }
             
-            // If p2 is an explicitly visited waypoint (walked to for discovery), treat as walk destination
             if (p2.type === 'Waypoint' && p2.explicitVisit) {
                 return euclideanDistance(p1, p2);
             }
             
-            // If p2 is a waypoint teleport point, check if discovered
             if (p2.type === 'Waypoint') {
                 return isWaypointDiscovered(p2, discoveredWaypoints) ? TELEPORT_COST : 999999;
             }
             
             if (markers.Waypoints.length === 0) return bestDist;
 
-            // Check if any discovered waypoint provides a shorter teleport route
             for (const Waypoint of markers.Waypoints) {
                 if (!isWaypointDiscovered(Waypoint, discoveredWaypoints)) continue;
                 const totalViaWaypoint = TELEPORT_COST + euclideanDistance(Waypoint, p2);
@@ -1055,24 +1487,18 @@
                 const prev = path[i - 1];
                 const current = path[i];
                 
-                // If current is a waypoint with explicitVisit flag, it was walked to (not a teleport)
                 if (current.type === 'Waypoint' && current.explicitVisit) {
                     newPath.push(current);
                     updateDiscoveredWaypoints(current, discoveredWaypoints);
                     continue;
                 }
                 
-                // First, check if we should insert a CURRENTLY DISCOVERED waypoint as teleport shortcut
-                // (Only waypoints already discovered BEFORE this segment can be used)
                 const Waypoint = findBestWaypoint(prev, current, discoveredWaypoints);
                 
                 if (Waypoint) {
                     newPath.push(Waypoint);
-                    // Don't update discoveries here - waypoint was already discovered
                 }
                 
-                // Now check for line-of-sight discoveries along this segment
-                // (These newly discovered waypoints won't be used on THIS segment)
                 updateDiscoveriesAlongSegment(prev, current, discoveredWaypoints);
                 
                 newPath.push(current);
@@ -1121,10 +1547,16 @@
                 if (point.type === 'start') return 'Start';
                 if (point.type === 'end') return `E${point.id + 1}`;
                 if (point.type === 'Waypoint') {
-                    // Mark explicitly visited waypoints with walk icon
                     return point.explicitVisit ? `🚶W${point.id + 1}` : `⚡W${point.id + 1}`;
                 }
-                return `P${point.id + 1}`;
+                if (point.type === 'Marker') return `P${point.id + 1}`;
+                
+                // GW2 markers
+                const markerDef = GW2_MARKERS.find(m => m.type === point.type);
+                if (markerDef) {
+                    return `${markerDef.name.charAt(0)}${point.id + 1}`;
+                }
+                return `?${point.id + 1}`;
             }).join(' → ');
         }
         
@@ -1139,19 +1571,16 @@
                 const current = path[i];
                 const next = path[i + 1];
                 
-                // Update discoveries at current point
                 updateDiscoveredWaypoints(current, discoveredWaypoints);
-                
-                // Calculate distance using currently discovered waypoints
-                // (Line-of-sight discoveries on this segment don't affect this segment's cost)
                 total += distanceWithDiscovery(current, next, discoveredWaypoints);
-                
-                // Now update line-of-sight discoveries for NEXT segments
                 updateDiscoveriesAlongSegment(current, next, discoveredWaypoints);
             }
             suppressDiscoveryLogs = false;
             return total;
         }
+        
+        // Initialize
+        updateLegend();
     </script>
 </body>
 </html>

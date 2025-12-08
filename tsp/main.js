@@ -118,26 +118,86 @@ function runGW2Algorithms() {
         return [];
     }
     
-    // Collect only required points (skip when required = 0)
-    let pointsToVisit = [];
+    // Collect required points with smart subset selection
+    let bestSubset = null;
+    let bestSubsetDist = Infinity;
+    const numAttempts = 20; // Try 20 different random subsets
     
-    Object.keys(state.markers.gw2).forEach(type => {
-        const required = state.gw2Requirements[type];
-        const available = state.markers.gw2[type];
+    for (let attempt = 0; attempt < numAttempts; attempt++) {
+        let candidatePoints = [];
         
-        if (required > 0) {
-            // Must visit exactly 'required' of this type
-            // For now, take first N (optimization TODO: choose best subset)
-            pointsToVisit.push(...available.slice(0, required));
+        Object.keys(state.markers.gw2).forEach(type => {
+            const required = state.gw2Requirements[type];
+            const available = state.markers.gw2[type];
+            
+            if (required > 0 && available.length > 0) {
+                if (required >= available.length) {
+                    // Must visit all
+                    candidatePoints.push(...available);
+                } else {
+                    // Choose random subset
+                    const shuffled = [...available].sort(() => Math.random() - 0.5);
+                    candidatePoints.push(...shuffled.slice(0, required));
+                }
+            }
+        });
+        
+        // Add waypoints if required
+        const waypointRequirement = state.gw2Requirements['waypoint'] || 0;
+        if (waypointRequirement > 0 && state.gw2Waypoints.length > 0) {
+            if (waypointRequirement >= state.gw2Waypoints.length) {
+                candidatePoints.push(...state.gw2Waypoints);
+            } else {
+                const shuffled = [...state.gw2Waypoints].sort(() => Math.random() - 0.5);
+                candidatePoints.push(...shuffled.slice(0, waypointRequirement));
+            }
         }
-        // If required === 0, skip this marker type entirely
-    });
+        
+        if (candidatePoints.length === 0) continue;
+        
+        // Quick distance estimate for this subset
+        const start = state.markers.gw2Start;
+        let estimatedDist = 0;
+        let current = start;
+        const remaining = [...candidatePoints];
+        
+        while (remaining.length > 0) {
+            let nearest = null;
+            let minDist = Infinity;
+            let nearestIdx = -1;
+            
+            for (let i = 0; i < remaining.length; i++) {
+                const dist = euclideanDistance(current, remaining[i]);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = remaining[i];
+                    nearestIdx = i;
+                }
+            }
+            
+            estimatedDist += minDist;
+            current = nearest;
+            remaining.splice(nearestIdx, 1);
+        }
+        
+        // Add distance to end if exists
+        if (state.markers.gw2Ends.length > 0) {
+            const distToEnd = Math.min(...state.markers.gw2Ends.map(e => euclideanDistance(current, e)));
+            estimatedDist += distToEnd;
+        }
+        
+        if (estimatedDist < bestSubsetDist) {
+            bestSubsetDist = estimatedDist;
+            bestSubset = candidatePoints;
+        }
+    }
     
-    if (pointsToVisit.length === 0) {
+    if (!bestSubset || bestSubset.length === 0) {
         alert('No points to visit. Set "Required" > 0 for at least one marker type.');
         return [];
     }
     
+    const pointsToVisit = bestSubset;
     const start = state.markers.gw2Start;
     const ends = state.markers.gw2Ends;
     

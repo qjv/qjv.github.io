@@ -563,7 +563,7 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-marker" style="background: #f56565;"></div>
-                        <span>End (optional, multiple)</span>
+                        <span>End</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-marker" style="background: #4299e1;"></div>
@@ -606,15 +606,7 @@
         let endpointMode = 'or';
         let WaypointDiscoveryMode = false;
         let discoveryRange = 50;
-        const TELEPORT_COST = 0; // Free teleportation TO Waypoints (not FROM)
-        
-        /**
-         * Waypoint MECHANICS:
-         * - You can teleport FROM any location TO a discovered Waypoint (cost = 0)
-         * - You CANNOT chain teleports (Waypoint → Waypoint requires walking)
-         * - After teleporting TO a Waypoint, you walk FROM it normally
-         * - In discovery mode: Waypoints must be within range to be "discovered" first
-         */
+        const TELEPORT_COST = 0; // Free teleportation TO Waypoints
         
         function selectMarkerType(type) {
             selectedMarkerType = type;
@@ -649,7 +641,7 @@
             if (mode === 'or') {
                 description.textContent = 'Choose best endpoint to finish';
             } else {
-                description.textContent = 'Visit all endpoints (requires Waypoints between them)';
+                description.textContent = 'Pass through all endpoints (Must teleport after visit)';
             }
         }
         
@@ -796,6 +788,7 @@
                     const current = routeToDraw[i];
                     const next = routeToDraw[i + 1];
                     
+                    // Don't draw line for teleports
                     if (next.type === 'Waypoint') {
                         continue;
                     }
@@ -816,8 +809,6 @@
                     
                     if (next.type === 'Waypoint') {
                         const text = `⚡ W${next.id + 1}`;
-                        
-                        // Find best position for text to avoid markers
                         const textPos = findBestTextPosition(current, next, text, routeToDraw);
                         
                         ctx.save();
@@ -840,13 +831,12 @@
             const dy = Waypoint.y - origin.y;
             const angle = Math.atan2(dy, dx);
             
-            // Try different positions around the origin point
             const positions = [
-                { offset: 35, angleOffset: 0, label: 'along direction' },      // Along the teleport direction
-                { offset: 35, angleOffset: Math.PI / 2, label: 'perpendicular up' },  // Perpendicular (up)
-                { offset: 35, angleOffset: -Math.PI / 2, label: 'perpendicular down' }, // Perpendicular (down)
-                { offset: 35, angleOffset: Math.PI, label: 'opposite' },       // Opposite direction
-                { offset: 50, angleOffset: Math.PI / 4, label: 'diagonal 1' },       // Diagonal positions
+                { offset: 35, angleOffset: 0, label: 'along direction' },
+                { offset: 35, angleOffset: Math.PI / 2, label: 'perpendicular up' },
+                { offset: 35, angleOffset: -Math.PI / 2, label: 'perpendicular down' },
+                { offset: 35, angleOffset: Math.PI, label: 'opposite' },
+                { offset: 50, angleOffset: Math.PI / 4, label: 'diagonal 1' },
                 { offset: 50, angleOffset: -Math.PI / 4, label: 'diagonal 2' },
                 { offset: 50, angleOffset: 3 * Math.PI / 4, label: 'diagonal 3' },
                 { offset: 50, angleOffset: -3 * Math.PI / 4, label: 'diagonal 4' },
@@ -855,25 +845,22 @@
             ctx.font = 'bold 14px Arial';
             const textMetrics = ctx.measureText(text);
             const textWidth = textMetrics.width;
-            const textHeight = 16; // Approximate height
             
-            // Get all marker positions to check for collisions
             const allMarkers = [
                 markers.start,
                 ...markers.ends,
                 ...markers.Markers,
                 ...markers.Waypoints,
                 ...route
-            ].filter(m => m); // Remove nulls
+            ].filter(m => m);
             
             for (const pos of positions) {
                 const testAngle = angle + pos.angleOffset;
                 const testX = origin.x + Math.cos(testAngle) * pos.offset;
                 const testY = origin.y + Math.sin(testAngle) * pos.offset;
                 
-                // Check if this position collides with any markers
                 let hasCollision = false;
-                const markerRadius = 20; // Buffer zone around markers
+                const markerRadius = 20;
                 
                 for (const marker of allMarkers) {
                     const dist = Math.sqrt(
@@ -892,7 +879,6 @@
                 }
             }
             
-            // Fallback: use original position with larger offset
             return {
                 x: origin.x + Math.cos(angle) * 60,
                 y: origin.y + Math.sin(angle) * 60
@@ -1055,8 +1041,8 @@
                 return;
             }
             
-            if (endpointMode === 'and' && markers.ends.length > 1 && markers.Waypoints.length === 0) {
-                alert('AND mode with multiple endpoints requires at least one Waypoint point!');
+            if (endpointMode === 'and' && markers.ends.length > 0 && markers.Waypoints.length === 0) {
+                alert('AND mode requires at least one Waypoint to handle mandatory teleportation from endpoints!');
                 return;
             }
             
@@ -1093,89 +1079,83 @@
         function runAllAlgorithms() {
             console.log('=== Starting Algorithm Calculations ===');
             const start = markers.start;
-            const ends = markers.ends;
             const Markers = markers.Markers;
-            const finalEnd = ends.length > 0 ? ends[0] : null;
             
-            console.log(`Points: ${Markers.length} Markers, ${markers.Waypoints.length} Waypoints`);
+            // Prepare Scenarios based on Mode
+            let scenarios = [];
             
+            if (endpointMode === 'or' && markers.ends.length > 0) {
+                // OR MODE: Try each endpoint as the final destination
+                markers.ends.forEach(end => {
+                    scenarios.push({
+                        destination: end,
+                        pointsToVisit: [...Markers]
+                    });
+                });
+            } else if (endpointMode === 'and') {
+                // AND MODE: Visit endpoints as intermediate nodes
+                // No specific final destination unless implicitly the last one visited
+                scenarios.push({
+                    destination: null,
+                    pointsToVisit: [...Markers, ...markers.ends]
+                });
+            } else {
+                // Default / No endpoints / Fallback
+                scenarios.push({
+                    destination: markers.ends.length > 0 ? markers.ends[0] : null,
+                    pointsToVisit: [...Markers]
+                });
+            }
+
+            // Function to run a specific algorithm across all scenarios and pick the best one
+            const runAlgorithm = (algoName, algoFunc) => {
+                let bestForAlgo = null;
+                let minAlgoDist = Infinity;
+
+                scenarios.forEach(scenario => {
+                    const rawPath = algoFunc(start, scenario.destination, scenario.pointsToVisit);
+                    const processedPath = insertWaypointsInPath(rawPath);
+                    const dist = calculatePathDistance(processedPath);
+                    
+                    if (dist < minAlgoDist) {
+                        minAlgoDist = dist;
+                        bestForAlgo = {
+                            name: algoName,
+                            path: processedPath,
+                            distance: dist
+                        };
+                    }
+                });
+                return bestForAlgo;
+            };
+
             const results = [];
-            
-            if (!finalEnd && Markers.length === 0) {
-                console.log('No destination, returning empty path');
-                return [{
-                    name: 'No destination',
-                    path: [start],
-                    distance: 0
-                }];
+            const pointCount = Math.max(...scenarios.map(s => s.pointsToVisit.length));
+
+            // 1. Brute Force
+            if (pointCount <= 7) {
+                results.push(runAlgorithm('Brute Force (Optimal)', bruteForceAllPoints));
             }
-            
-            const allPoints = [...Markers];
-            console.log(`Total points to visit: ${allPoints.length}`);
-            
-            if (allPoints.length <= 7) {
-                console.log('Running Brute Force...');
-                const startTime = performance.now();
-                const brutePath = bruteForceAllPoints(start, finalEnd, allPoints);
-                const brutePathWithWaypoints = insertWaypointsInPath(brutePath);
-                console.log(`Brute Force completed in ${(performance.now() - startTime).toFixed(2)}ms`);
-                results.push({
-                    name: 'Brute Force (Optimal)',
-                    path: brutePathWithWaypoints,
-                    distance: calculatePathDistance(brutePathWithWaypoints)
-                });
-            } else {
-                console.log('Skipping Brute Force (too many points)');
+
+            // 2. Nearest Neighbor
+            results.push(runAlgorithm('Nearest Neighbor', nearestNeighborAllPoints));
+
+            // 3. NN + 2-Opt
+            if (pointCount <= 20) {
+                const nn2OptFunc = (s, e, p) => {
+                    const initial = nearestNeighborAllPoints(s, e, p);
+                    return twoOptImprove(initial);
+                };
+                results.push(runAlgorithm('Nearest Neighbor + 2-Opt', nn2OptFunc));
             }
-            
-            console.log('Running Nearest Neighbor...');
-            let startTime = performance.now();
-            const nnPath = nearestNeighborAllPoints(start, finalEnd, allPoints);
-            const nnPathWithWaypoints = insertWaypointsInPath(nnPath);
-            console.log(`Nearest Neighbor completed in ${(performance.now() - startTime).toFixed(2)}ms`);
-            results.push({
-                name: 'Nearest Neighbor',
-                path: nnPathWithWaypoints,
-                distance: calculatePathDistance(nnPathWithWaypoints)
-            });
-            
-            if (allPoints.length <= 20) {
-                console.log('Running Nearest Neighbor + 2-Opt...');
-                startTime = performance.now();
-                const nn2opt = twoOptImprove([...nnPath]);
-                const nn2optWithWaypoints = insertWaypointsInPath(nn2opt);
-                console.log(`NN + 2-Opt completed in ${(performance.now() - startTime).toFixed(2)}ms`);
-                results.push({
-                    name: 'Nearest Neighbor + 2-Opt',
-                    path: nn2optWithWaypoints,
-                    distance: calculatePathDistance(nn2optWithWaypoints)
-                });
-            } else {
-                console.log('Skipping 2-Opt (too many points)');
-            }
-            
-            console.log('Running Greedy Insertion...');
-            startTime = performance.now();
-            const greedyPath = greedyInsertion(start, finalEnd, allPoints);
-            const greedyPathWithWaypoints = insertWaypointsInPath(greedyPath);
-            console.log(`Greedy Insertion completed in ${(performance.now() - startTime).toFixed(2)}ms`);
-            results.push({
-                name: 'Greedy Insertion',
-                path: greedyPathWithWaypoints,
-                distance: calculatePathDistance(greedyPathWithWaypoints)
-            });
-            
-            const attempts = allPoints.length <= 10 ? 15 : allPoints.length <= 15 ? 10 : 5;
-            console.log(`Running Random Restart (${attempts} attempts)...`);
-            startTime = performance.now();
-            const randomPath = randomRestart(start, finalEnd, allPoints, attempts);
-            const randomPathWithWaypoints = insertWaypointsInPath(randomPath);
-            console.log(`Random Restart completed in ${(performance.now() - startTime).toFixed(2)}ms`);
-            results.push({
-                name: `Random Restart (${attempts}x)`,
-                path: randomPathWithWaypoints,
-                distance: calculatePathDistance(randomPathWithWaypoints)
-            });
+
+            // 4. Greedy Insertion
+            results.push(runAlgorithm('Greedy Insertion', greedyInsertion));
+
+            // 5. Random Restart
+            const attempts = pointCount <= 10 ? 15 : pointCount <= 15 ? 10 : 5;
+            const randomFunc = (s, e, p) => randomRestart(s, e, p, attempts);
+            results.push(runAlgorithm(`Random Restart (${attempts}x)`, randomFunc));
             
             console.log('=== All Algorithms Complete ===');
             return results;
@@ -1216,7 +1196,6 @@
         }
         
         function nearestNeighborAllPoints(start, end, points) {
-            console.log(`  NN: Processing ${points.length} points`);
             if (points.length === 0) {
                 return end ? [start, end] : [start];
             }
@@ -1228,13 +1207,7 @@
             
             updateDiscoveredWaypoints(current, discoveredWaypoints);
             
-            let iterations = 0;
             while (remaining.length > 0) {
-                iterations++;
-                if (iterations % 5 === 0) {
-                    console.log(`  NN: Iteration ${iterations}, ${remaining.length} points remaining`);
-                }
-                
                 let nearest = null;
                 let minDist = Infinity;
                 let nearestIdx = -1;
@@ -1253,6 +1226,11 @@
                     current = nearest;
                     updateDiscoveredWaypoints(current, discoveredWaypoints);
                     remaining.splice(nearestIdx, 1);
+                } else {
+                    // Fallback for islands (should mostly happen in bad AND configs)
+                    const next = remaining.pop();
+                    path.push(next);
+                    current = next;
                 }
             }
             
@@ -1260,7 +1238,6 @@
                 path.push(end);
             }
             
-            console.log(`  NN: Completed ${iterations} iterations`);
             return path;
         }
         
@@ -1278,12 +1255,14 @@
                 
                 for (let i = 1; i < bestPath.length - 2; i++) {
                     for (let j = i + 1; j < bestPath.length - 1; j++) {
-                        const beforeDist = euclideanDistance(bestPath[i-1], bestPath[i]) +
-                                         euclideanDistance(bestPath[j], bestPath[j+1]);
-                        const afterDist = euclideanDistance(bestPath[i-1], bestPath[j]) +
-                                        euclideanDistance(bestPath[i], bestPath[j+1]);
+                        // Calculate cost of swapping
+                        const currentCost = distanceWithDiscovery(bestPath[i-1], bestPath[i], new Set()) + 
+                                          distanceWithDiscovery(bestPath[j], bestPath[j+1], new Set());
                         
-                        if (afterDist < beforeDist) {
+                        const newCost = distanceWithDiscovery(bestPath[i-1], bestPath[j], new Set()) + 
+                                        distanceWithDiscovery(bestPath[i], bestPath[j+1], new Set());
+                        
+                        if (newCost < currentCost) {
                             const newPath = [...bestPath];
                             const segment = newPath.slice(i, j + 1).reverse();
                             newPath.splice(i, j - i + 1, ...segment);
@@ -1298,7 +1277,6 @@
         }
         
         function greedyInsertion(start, end, points) {
-            console.log(`  Greedy: Processing ${points.length} points`);
             if (points.length === 0) {
                 return end ? [start, end] : [start];
             }
@@ -1312,14 +1290,10 @@
             updateDiscoveredWaypoints(start, discoveredWaypoints);
             updateDiscoveredWaypoints(points[0], discoveredWaypoints);
             
-            let insertions = 1;
             let totalChecks = 0;
             const MAX_CHECKS = 10000;
             
             while (remaining.length > 0) {
-                insertions++;
-                console.log(`  Greedy: Insertion ${insertions}/${points.length}, path length ${path.length}, ${remaining.length} remaining`);
-                
                 let bestPoint = null;
                 let bestPosition = -1;
                 let bestIncrease = Infinity;
@@ -1328,20 +1302,19 @@
                     const maxPos = end ? path.length - 1 : path.length;
                     for (let i = 1; i < maxPos; i++) {
                         totalChecks++;
-                        
                         if (totalChecks > MAX_CHECKS) {
-                            console.error(`  Greedy: Hit safety limit! Inserting remaining at end.`);
+                            // Safety exit
                             const insertPos = end ? path.length - 1 : path.length;
                             remaining.forEach(p => path.splice(insertPos, 0, p));
-                            console.log(`  Greedy: Emergency exit - final path length ${path.length}`);
                             return path;
                         }
                         
                         const before = path[i - 1];
                         const after = path[i];
                         
-                        const currentDist = euclideanDistance(before, after);
-                        const newDist = euclideanDistance(before, point) + euclideanDistance(point, after);
+                        const currentDist = distanceWithDiscovery(before, after, discoveredWaypoints);
+                        const newDist = distanceWithDiscovery(before, point, discoveredWaypoints) + 
+                                      distanceWithDiscovery(point, after, discoveredWaypoints);
                         const increase = newDist - currentDist;
                         
                         if (increase < bestIncrease) {
@@ -1358,19 +1331,15 @@
                     const idx = remaining.indexOf(bestPoint);
                     remaining.splice(idx, 1);
                 } else {
-                    console.error(`  Greedy: No best point found! Inserting remaining.`);
                     const insertPos = end ? path.length - 1 : path.length;
                     remaining.forEach(p => path.splice(insertPos, 0, p));
                     break;
                 }
             }
-            
-            console.log(`  Greedy: Completed ${insertions} insertions with ${totalChecks} checks`);
             return path;
         }
         
         function randomRestart(start, end, points, attempts) {
-            console.log(`  Random Restart: ${attempts} attempts with ${points.length} points`);
             if (points.length === 0) {
                 return end ? [start, end] : [start];
             }
@@ -1396,28 +1365,13 @@
                     }
                 }
                 
-                console.log(`  Random Restart: Attempt ${attempt + 1}/${attempts} - best: ${attemptBestDist.toFixed(2)}`);
-                
                 if (attemptBestDist < bestDist) {
                     bestDist = attemptBestDist;
                     bestPath = attemptBestPath;
-                    console.log(`  Random Restart: New global best ${bestDist.toFixed(2)}`);
                 }
             }
             
-            console.log(`  Random Restart: Final best distance ${bestDist.toFixed(2)}`);
             return bestPath || [start, ...(end ? [end] : [])];
-        }
-        
-        function getAllSubsets(arr) {
-            const subsets = [[]];
-            for (const item of arr) {
-                const len = subsets.length;
-                for (let i = 0; i < len; i++) {
-                    subsets.push([...subsets[i], item]);
-                }
-            }
-            return subsets;
         }
         
         let suppressDiscoveryLogs = false;
@@ -1432,9 +1386,6 @@
                 const dist = euclideanDistance(point, Waypoint);
                 if (dist <= discoveryRange) {
                     if (!discoveredWaypoints.has(Waypoint)) {
-                        if (!suppressDiscoveryLogs) {
-                            console.log(`    Discovered Waypoint W${Waypoint.id + 1} from point at (${point.x.toFixed(0)}, ${point.y.toFixed(0)})`);
-                        }
                         discoveredWaypoints.add(Waypoint);
                     }
                 }
@@ -1450,27 +1401,55 @@
             if (p1.type === 'Waypoint') {
                 return euclideanDistance(p1, p2);
             }
+
+            // CRITICAL AND MODE LOGIC: 
+            // If exiting an Endpoint, we MUST use a waypoint.
+            // Direct travel to anything other than a Waypoint is forbidden (Infinite cost).
+            if (endpointMode === 'and' && p1.type === 'end') {
+                if (p2.type !== 'Waypoint') {
+                    // Direct path blocked. We force the algorithm to find a path via a Waypoint.
+                    // The function below will check bestDist via Waypoints.
+                } else {
+                    // Teleport cost to Waypoint is 0.
+                    return 0;
+                }
+            }
             
+            // If teleporting TO a waypoint from anywhere (except End which is handled above, but technically same rule)
             if (p2.type === 'Waypoint') {
                 if (isWaypointDiscovered(p2, discoveredWaypoints)) {
                     return TELEPORT_COST;
                 } else {
-                    return 9999;
+                    return 999999;
                 }
             }
             
-            const directDist = euclideanDistance(p1, p2);
+            let directDist = euclideanDistance(p1, p2);
             
-            if (markers.Waypoints.length === 0 || directDist < 20) {
+            // Enforce AND mode block if applicable
+            if (endpointMode === 'and' && p1.type === 'end' && p2.type !== 'Waypoint') {
+                directDist = Infinity;
+            }
+            
+            if (markers.Waypoints.length === 0) {
                 return directDist;
             }
             
+            // Check if warping is faster
             let bestDist = directDist;
             for (const Waypoint of markers.Waypoints) {
                 if (!isWaypointDiscovered(Waypoint, discoveredWaypoints)) continue;
-                const WaypointPath = TELEPORT_COST + euclideanDistance(Waypoint, p2);
-                if (WaypointPath < bestDist) {
-                    bestDist = WaypointPath;
+                
+                // Cost = (Cost P1->W) + (Cost W->P2)
+                // Cost P1->W: If P1 is End, it's 0. If P1 is Marker, it's standard teleport (0 or dist depending on rules).
+                // Code standard: Teleport TO Waypoint is free.
+                
+                const distToWaypoint = 0; // Teleport allowed from anywhere
+                const distFromWaypoint = euclideanDistance(Waypoint, p2);
+                const totalViaWaypoint = distToWaypoint + distFromWaypoint;
+
+                if (totalViaWaypoint < bestDist) {
+                    bestDist = totalViaWaypoint;
                 }
             }
             
@@ -1482,13 +1461,22 @@
                 return null;
             }
             
-            const directDist = euclideanDistance(p1, p2);
+            let directDist = euclideanDistance(p1, p2);
+            
+            // In AND mode, if P1 is End, direct travel is impossible
+            if (endpointMode === 'and' && p1.type === 'end') {
+                directDist = Infinity;
+            }
+            
             let bestWaypoint = null;
             let bestDist = directDist;
             
             for (const Waypoint of markers.Waypoints) {
                 if (!isWaypointDiscovered(Waypoint, discoveredWaypoints)) continue;
+                
+                // Teleport to W is free/instant
                 const WaypointPath = TELEPORT_COST + euclideanDistance(Waypoint, p2);
+                
                 if (WaypointPath < bestDist) {
                     bestDist = WaypointPath;
                     bestWaypoint = Waypoint;
@@ -1506,7 +1494,6 @@
             
             const newPath = [path[0]];
             updateDiscoveredWaypoints(path[0], discoveredWaypoints);
-            let WaypointsInserted = 0;
             
             for (let i = 1; i < path.length; i++) {
                 const prev = path[i - 1];
@@ -1517,26 +1504,10 @@
                 if (Waypoint) {
                     newPath.push(Waypoint);
                     updateDiscoveredWaypoints(Waypoint, discoveredWaypoints);
-                    WaypointsInserted++;
-                    
-                    const prevLabel = prev.type === 'start' ? 'Start' : 
-                                     prev.type === 'Marker' ? `P${prev.id + 1}` :
-                                     prev.type === 'Waypoint' ? `W${prev.id + 1}` :
-                                     prev.type === 'end' ? `E${prev.id + 1}` : 'point';
-                    const currLabel = current.type === 'start' ? 'Start' : 
-                                     current.type === 'Marker' ? `P${current.id + 1}` :
-                                     current.type === 'Waypoint' ? `W${current.id + 1}` :
-                                     current.type === 'end' ? `E${current.id + 1}` : 'point';
-                    
-                    console.log(`  📍 Inserted W${Waypoint.id + 1} between ${prevLabel} and ${currLabel}`);
                 }
                 
                 newPath.push(current);
                 updateDiscoveredWaypoints(current, discoveredWaypoints);
-            }
-            
-            if (WaypointsInserted > 0) {
-                console.log(`  ⚡ Total Waypoints inserted: ${WaypointsInserted}`);
             }
             
             return newPath;
@@ -1624,7 +1595,7 @@
                     if (isWaypointDiscovered(next, discoveredWaypoints)) {
                         total += TELEPORT_COST;
                     } else {
-                        total += 10000;
+                        total += 999999;
                     }
                 } else {
                     total += euclideanDistance(current, next);

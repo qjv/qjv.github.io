@@ -579,14 +579,6 @@
         let distanceCache = new Map();
         function clearDistanceCache() { distanceCache.clear(); }
         
-        function getCachedDistance(p1, p2, discoveredWaypoints) {
-            const key = `${p1.x},${p1.y}-${p2.x},${p2.y}`;
-            if (distanceCache.has(key)) return distanceCache.get(key);
-            const dist = distanceWithDiscovery(p1, p2, discoveredWaypoints);
-            distanceCache.set(key, dist);
-            return dist;
-        }
-        
         function calculatePath() {
             if (!markers.start) { alert('Please set a start point'); return; }
             if (endpointMode === 'and' && markers.ends.length > 0 && markers.Waypoints.length === 0) {
@@ -717,13 +709,15 @@
                 improved = false; iterations++;
                 for (let i = 1; i < bestPath.length - 2; i++) {
                     for (let j = i + 1; j < bestPath.length - 1; j++) {
-                        const currentCost = distanceWithDiscovery(bestPath[i-1], bestPath[i], new Set()) + 
-                                          distanceWithDiscovery(bestPath[j], bestPath[j+1], new Set());
-                        const newCost = distanceWithDiscovery(bestPath[i-1], bestPath[j], new Set()) + 
-                                        distanceWithDiscovery(bestPath[i], bestPath[j+1], new Set());
+                        const currentCost = calculatePathDistance(bestPath);
+                        
+                        // Try swap
+                        const newPath = [...bestPath];
+                        newPath.splice(i, j - i + 1, ...newPath.slice(i, j + 1).reverse());
+                        
+                        const newCost = calculatePathDistance(newPath);
+                        
                         if (newCost < currentCost) {
-                            const newPath = [...bestPath];
-                            newPath.splice(i, j - i + 1, ...newPath.slice(i, j + 1).reverse());
                             bestPath = newPath; improved = true;
                         }
                     }
@@ -808,18 +802,23 @@
             if (p1.type === 'Waypoint') return euclideanDistance(p1, p2);
 
             // STRICT AND MODE LOGIC: Endpoint MUST go to Waypoint if one exists
-            if (endpointMode === 'and' && p1.type === 'end' && p2.type !== 'Waypoint') {
-                if (markers.Waypoints.length > 0) return Infinity;
-            }
+            // This function returns the MINIMUM cost. If p1=End, direct travel is banned.
+            // So we must return the cost of (End -> Waypoint -> p2).
+            // Cost(End->Waypoint) is 0. So we return Min(Dist(Waypoint, p2)).
             
             if (p2.type === 'Waypoint') {
                 return isWaypointDiscovered(p2, discoveredWaypoints) ? TELEPORT_COST : 999999;
             }
             
             let bestDist = euclideanDistance(p1, p2);
-            if (endpointMode === 'and' && p1.type === 'end') bestDist = Infinity; // Enforce forced teleport lookup
             
-            if (markers.Waypoints.length === 0) return euclideanDistance(p1, p2);
+            // If we are at an endpoint in AND mode, and waypoints exist, DIRECT TRAVEL IS BANNED.
+            // We set bestDist to Infinity so that the only valid paths are those via a waypoint.
+            if (endpointMode === 'and' && p1.type === 'end' && markers.Waypoints.length > 0) {
+                bestDist = Infinity;
+            }
+            
+            if (markers.Waypoints.length === 0) return bestDist;
 
             for (const Waypoint of markers.Waypoints) {
                 if (!isWaypointDiscovered(Waypoint, discoveredWaypoints)) continue;
@@ -834,7 +833,6 @@
             if (p1.type === 'Waypoint' || p2.type === 'Waypoint') return null;
             
             let directDist = euclideanDistance(p1, p2);
-            // In AND mode, if P1 is End, direct travel is FORBIDDEN if waypoints exist
             if (endpointMode === 'and' && p1.type === 'end' && markers.Waypoints.length > 0) {
                 directDist = Infinity;
             }
@@ -930,11 +928,9 @@
                 const current = path[i];
                 const next = path[i + 1];
                 updateDiscoveredWaypoints(current, discoveredWaypoints);
-                if (next.type === 'Waypoint') {
-                    total += isWaypointDiscovered(next, discoveredWaypoints) ? TELEPORT_COST : 999999;
-                } else {
-                    total += euclideanDistance(current, next);
-                }
+                
+                // FIXED: Use distanceWithDiscovery to ensure mandatory teleport logic is checked during calculation
+                total += distanceWithDiscovery(current, next, discoveredWaypoints);
             }
             suppressDiscoveryLogs = false;
             return total;

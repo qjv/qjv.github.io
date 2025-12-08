@@ -97,7 +97,7 @@
         .marker.start { background: #48bb78; }
         .marker.end { background: #f56565; }
         .marker.Marker { background: #4299e1; }
-        .marker.Waypoint { background: #9f7aea; border-style: dashed; }
+        .marker.Waypoint { background: #9f7aea; border-style: dashed; cursor: ns-resize; /* Hint at resizing */ }
         
         .legend {
             margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 6px;
@@ -157,7 +157,7 @@
 <body>
     <div class="container">
         <h1>🗺️ Traveling Salesman Path Finder</h1>
-        <p class="subtitle">Upload an image and place markers to find the shortest path using multiple algorithms</p>
+        <p class="subtitle">Upload an image and place markers. <br><strong>New:</strong> Click and drag Waypoints to resize their discovery range.</p>
         
         <div class="controls">
             <div class="input-group">
@@ -196,12 +196,7 @@
                 <input type="checkbox" id="WaypointDiscovery" onchange="toggleWaypointDiscovery()">
                 <label for="WaypointDiscovery">Waypoint Discovery Mode</label>
             </div>
-            <div class="option-group" id="discoveryRangeGroup" style="display: none;">
-                <label for="discoveryRange">Discovery Range:</label>
-                <input type="number" id="discoveryRange" value="50" min="10" max="500" step="10">
-                <span style="font-size: 12px; color: #666;">pixels</span>
             </div>
-        </div>
         
         <div class="endpoint-mode-selector" id="endpointModeSelector" style="display: none;">
             <label>Multiple Endpoints Mode:</label>
@@ -234,7 +229,7 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-marker Waypoint" style="background: #9f7aea;"></div>
-                        <span>Waypoints (teleport: free)</span>
+                        <span>Waypoints (Drag to resize)</span>
                     </div>
                     <div class="legend-item" style="margin-left: auto; font-style: italic; color: #666;">
                         <span>💡 Hover over results to preview routes</span>
@@ -268,8 +263,11 @@
         let selectedMarkerType = 'start';
         let endpointMode = 'or';
         let WaypointDiscoveryMode = false;
-        let discoveryRange = 50;
-        const TELEPORT_COST = 0; // Free teleportation TO Waypoints
+        const TELEPORT_COST = 0; 
+        
+        // Resize logic variables
+        let resizingWaypoint = null;
+        let isDraggingRadius = false;
         
         function selectMarkerType(type) {
             selectedMarkerType = type;
@@ -281,8 +279,6 @@
         
         function toggleWaypointDiscovery() {
             WaypointDiscoveryMode = document.getElementById('WaypointDiscovery').checked;
-            const rangeGroup = document.getElementById('discoveryRangeGroup');
-            rangeGroup.style.display = WaypointDiscoveryMode ? 'flex' : 'none';
             optimalRoute = [];
             previewRoute = [];
             allResults = [];
@@ -382,33 +378,52 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
+            // DRAW TRIGGER ZONES FOR WAYPOINTS
+            markers.Waypoints.forEach(w => {
+                ctx.strokeStyle = '#9f7aea';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Light fill
+                ctx.fillStyle = 'rgba(159, 122, 234, 0.1)';
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+            ctx.setLineDash([]);
+            
             const routeToDraw = previewRoute.length > 0 ? previewRoute : optimalRoute;
             const isPreview = previewRoute.length > 0;
             
+            // Draw Discovered Logic Visuals (using per-waypoint radius)
             if (WaypointDiscoveryMode && routeToDraw.length > 0) {
-                discoveryRange = parseInt(document.getElementById('discoveryRange').value);
                 const discoveredWaypoints = new Set();
                 
                 for (let i = 0; i < routeToDraw.length; i++) {
                     const point = routeToDraw[i];
                     for (const Waypoint of markers.Waypoints) {
                         const dist = euclideanDistance(point, Waypoint);
-                        if (dist <= discoveryRange) {
+                        if (dist <= Waypoint.radius) {
                             if (!discoveredWaypoints.has(Waypoint)) {
-                                ctx.strokeStyle = '#9f7aea';
-                                ctx.lineWidth = 2;
+                                // Highlight discovered triggers
+                                ctx.strokeStyle = '#48bb78'; // Green for discovered
+                                ctx.lineWidth = 3;
                                 ctx.setLineDash([5, 5]);
-                                ctx.globalAlpha = 0.3;
                                 ctx.beginPath();
-                                ctx.arc(point.x, point.y, discoveryRange, 0, Math.PI * 2);
+                                ctx.arc(point.x, point.y, Waypoint.radius, 0, Math.PI * 2); // Draw at point location? Or highlight waypoint? 
+                                // Highlighting the waypoint itself is clearer:
+                                ctx.beginPath();
+                                ctx.arc(Waypoint.x, Waypoint.y, Waypoint.radius, 0, Math.PI * 2);
                                 ctx.stroke();
-                                ctx.globalAlpha = 1.0;
-                                ctx.setLineDash([]);
                                 discoveredWaypoints.add(Waypoint);
                             }
                         }
                     }
                 }
+                ctx.setLineDash([]);
             }
             
             if (routeToDraw.length > 0) {
@@ -467,7 +482,6 @@
             ctx.font = 'bold 14px Arial';
             const textMetrics = ctx.measureText(text);
             const textWidth = textMetrics.width;
-            
             const allMarkers = [markers.start, ...markers.ends, ...markers.Markers, ...markers.Waypoints, ...route].filter(m => m);
             
             for (const pos of positions) {
@@ -487,6 +501,8 @@
         }
         
         function handleCanvasClick(e) {
+            // This handles placing NEW markers on the canvas background
+            // Existing marker clicks are handled by their element listeners
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -506,11 +522,39 @@
                 createMarkerElement('Marker', x, y, id);
             } else if (selectedMarkerType === 'Waypoint') {
                 const id = markers.Waypoints.length;
-                markers.Waypoints.push({ x, y, id, type: 'Waypoint' });
+                // Add default radius of 30
+                markers.Waypoints.push({ x, y, id, type: 'Waypoint', radius: 30 });
                 createMarkerElement('Waypoint', x, y, id);
+                drawCanvas(); // Update visuals
             }
         }
         
+        // --- Drag / Resize Logic ---
+        
+        function onWaypointResize(e) {
+            if (!resizingWaypoint) return;
+            isDraggingRadius = true;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Calculate new radius
+            const dist = Math.sqrt(Math.pow(mouseX - resizingWaypoint.x, 2) + Math.pow(mouseY - resizingWaypoint.y, 2));
+            resizingWaypoint.radius = Math.max(15, dist); // Minimum 15px radius
+            
+            drawCanvas();
+        }
+        
+        function onWaypointResizeEnd() {
+            resizingWaypoint = null;
+            document.removeEventListener('mousemove', onWaypointResize);
+            document.removeEventListener('mouseup', onWaypointResizeEnd);
+            // We do NOT reset isDraggingRadius here immediately, 
+            // because the 'click' event follows 'mouseup' and checks this flag.
+            setTimeout(() => { isDraggingRadius = false; }, 50);
+        }
+
         function createMarkerElement(type, x, y, id = null) {
             const container = document.getElementById('canvasContainer');
             const rect = canvas.getBoundingClientRect();
@@ -521,11 +565,31 @@
             marker.dataset.type = type;
             
             if (type === 'Marker') { marker.dataset.id = id; marker.textContent = id + 1; }
-            else if (type === 'Waypoint') { marker.dataset.id = id; marker.textContent = 'W' + (id + 1); }
+            else if (type === 'Waypoint') { 
+                marker.dataset.id = id; 
+                marker.textContent = 'W' + (id + 1); 
+                
+                // Add Resize Listeners specific to Waypoints
+                marker.addEventListener('mousedown', function(e) {
+                    if (e.button !== 0) return; // Left click only
+                    e.preventDefault(); // Prevent text selection
+                    e.stopPropagation(); // Stop canvas click
+                    
+                    resizingWaypoint = markers.Waypoints.find(w => w.id === id);
+                    isDraggingRadius = false;
+                    
+                    document.addEventListener('mousemove', onWaypointResize);
+                    document.addEventListener('mouseup', onWaypointResizeEnd);
+                });
+            }
             else if (type === 'end') { marker.dataset.id = id; marker.textContent = 'E' + (id + 1); }
             
             marker.addEventListener('click', function(e) {
                 e.stopPropagation();
+                // If we were resizing (dragged), do not delete
+                if (type === 'Waypoint' && isDraggingRadius) {
+                    return;
+                }
                 removeMarker(type, id);
             });
             container.appendChild(marker);
@@ -588,7 +652,6 @@
             if (markers.Markers.length > 25 && !confirm(`You have ${markers.Markers.length} Markers. Continue?`)) return;
             
             clearDistanceCache();
-            discoveryRange = parseInt(document.getElementById('discoveryRange').value);
             const resultsPanel = document.getElementById('resultsPanel');
             const resultsContent = document.getElementById('resultsContent');
             resultsPanel.classList.add('active');
@@ -710,11 +773,8 @@
                 for (let i = 1; i < bestPath.length - 2; i++) {
                     for (let j = i + 1; j < bestPath.length - 1; j++) {
                         const currentCost = calculatePathDistance(bestPath);
-                        
-                        // Try swap
                         const newPath = [...bestPath];
                         newPath.splice(i, j - i + 1, ...newPath.slice(i, j + 1).reverse());
-                        
                         const newCost = calculatePathDistance(newPath);
                         
                         if (newCost < currentCost) {
@@ -791,7 +851,8 @@
         function updateDiscoveredWaypoints(point, discoveredWaypoints) {
             if (!WaypointDiscoveryMode) { markers.Waypoints.forEach(w => discoveredWaypoints.add(w)); return; }
             for (const Waypoint of markers.Waypoints) {
-                if (euclideanDistance(point, Waypoint) <= discoveryRange) discoveredWaypoints.add(Waypoint);
+                // CHANGED: Use Waypoint.radius
+                if (euclideanDistance(point, Waypoint) <= Waypoint.radius) discoveredWaypoints.add(Waypoint);
             }
         }
         function isWaypointDiscovered(Waypoint, discoveredWaypoints) {
@@ -801,30 +862,23 @@
         function distanceWithDiscovery(p1, p2, discoveredWaypoints) {
             if (p1.type === 'Waypoint') return euclideanDistance(p1, p2);
 
-            // STRICT AND MODE LOGIC: Endpoint MUST go to Waypoint if one exists
-            // This function returns the MINIMUM cost. If p1=End, direct travel is banned.
-            // So we must return the cost of (End -> Waypoint -> p2).
-            // Cost(End->Waypoint) is 0. So we return Min(Dist(Waypoint, p2)).
+            let bestDist = euclideanDistance(p1, p2);
+            if (endpointMode === 'and' && p1.type === 'end' && markers.Waypoints.length > 0) {
+                bestDist = Infinity;
+            }
             
             if (p2.type === 'Waypoint') {
                 return isWaypointDiscovered(p2, discoveredWaypoints) ? TELEPORT_COST : 999999;
-            }
-            
-            let bestDist = euclideanDistance(p1, p2);
-            
-            // If we are at an endpoint in AND mode, and waypoints exist, DIRECT TRAVEL IS BANNED.
-            // We set bestDist to Infinity so that the only valid paths are those via a waypoint.
-            if (endpointMode === 'and' && p1.type === 'end' && markers.Waypoints.length > 0) {
-                bestDist = Infinity;
             }
             
             if (markers.Waypoints.length === 0) return bestDist;
 
             for (const Waypoint of markers.Waypoints) {
                 if (!isWaypointDiscovered(Waypoint, discoveredWaypoints)) continue;
-                // Cost = Teleport(0) + DistFromWaypoint
                 const totalViaWaypoint = 0 + euclideanDistance(Waypoint, p2);
-                if (totalViaWaypoint < bestDist) bestDist = totalViaWaypoint;
+                if (totalViaWaypoint < bestDist) {
+                    bestDist = totalViaWaypoint;
+                }
             }
             return bestDist;
         }
@@ -928,8 +982,6 @@
                 const current = path[i];
                 const next = path[i + 1];
                 updateDiscoveredWaypoints(current, discoveredWaypoints);
-                
-                // FIXED: Use distanceWithDiscovery to ensure mandatory teleport logic is checked during calculation
                 total += distanceWithDiscovery(current, next, discoveredWaypoints);
             }
             suppressDiscoveryLogs = false;

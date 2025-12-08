@@ -157,7 +157,7 @@
 <body>
     <div class="container">
         <h1>🗺️ Traveling Salesman Path Finder</h1>
-        <p class="subtitle">Upload an image and place markers. <br><strong>Discovery Mode:</strong> Algorithms strategically unlock waypoints and detect line-of-sight discoveries. Drag waypoints to resize range.</p>
+        <p class="subtitle">Upload an image and place markers. <br><strong>Discovery Mode:</strong> Algorithms may walk to waypoints (🚶) to discover them for later teleportation (⚡). Line-of-sight also discovers. Drag waypoints to resize range.</p>
         
         <div class="controls">
             <div class="input-group">
@@ -437,7 +437,8 @@
                 for (let i = 0; i < routeToDraw.length - 1; i++) {
                     const current = routeToDraw[i];
                     const next = routeToDraw[i + 1];
-                    if (next.type === 'Waypoint') continue;
+                    // Skip drawing line if next is a teleport waypoint (not explicitly visited)
+                    if (next.type === 'Waypoint' && !next.explicitVisit) continue;
                     
                     ctx.beginPath();
                     ctx.moveTo(current.x, current.y);
@@ -448,10 +449,12 @@
                 ctx.globalAlpha = 1.0;
                 ctx.setLineDash([]);
                 
+                // Draw teleport indicators
                 for (let i = 0; i < routeToDraw.length - 1; i++) {
                     const current = routeToDraw[i];
                     const next = routeToDraw[i + 1];
-                    if (next.type === 'Waypoint') {
+                    // Only show teleport indicator for waypoints that aren't explicitly visited
+                    if (next.type === 'Waypoint' && !next.explicitVisit) {
                         const text = `⚡ W${next.id + 1}`;
                         const textPos = findBestTextPosition(current, next, text, routeToDraw);
                         ctx.save();
@@ -737,11 +740,14 @@
             updateDiscoveredWaypoints(current, discoveredWaypoints);
             
             while (remaining.size > 0) {
+                // Check if we should strategically walk to an undiscovered waypoint
                 if (WaypointDiscoveryMode) {
                     for (const waypoint of markers.Waypoints) {
                         if (shouldVisitWaypointNow(current, waypoint, remaining, discoveredWaypoints)) {
-                            path.push(waypoint);
-                            current = waypoint;
+                            // Mark as explicit visit (walking to discover it)
+                            const waypointCopy = { ...waypoint, explicitVisit: true };
+                            path.push(waypointCopy);
+                            current = waypointCopy;
                             updateDiscoveredWaypoints(current, discoveredWaypoints);
                             break;
                         }
@@ -802,12 +808,15 @@
             const MAX_CHECKS = 10000;
             
             while (remaining.size > 0) {
+                // Check if we should strategically walk to an undiscovered waypoint
                 if (WaypointDiscoveryMode && remaining.size > 1) {
+                    const currentPos = path[path.length - (end ? 2 : 1)];
                     for (const waypoint of markers.Waypoints) {
-                        if (shouldVisitWaypointNow(path[path.length - (end ? 2 : 1)], waypoint, remaining, discoveredWaypoints)) {
+                        if (shouldVisitWaypointNow(currentPos, waypoint, remaining, discoveredWaypoints)) {
                             const insertPos = end ? path.length - 1 : path.length;
-                            path.splice(insertPos, 0, waypoint);
-                            updateDiscoveredWaypoints(waypoint, discoveredWaypoints);
+                            const waypointCopy = { ...waypoint, explicitVisit: true };
+                            path.splice(insertPos, 0, waypointCopy);
+                            updateDiscoveredWaypoints(waypointCopy, discoveredWaypoints);
                             break;
                         }
                     }
@@ -909,37 +918,48 @@
             return !WaypointDiscoveryMode || discoveredWaypoints.has(Waypoint);
         }
         
+        // Estimate value of having a waypoint unlocked for future segments
         function estimateWaypointValue(waypoint, remainingPoints, discoveredWaypoints) {
             if (isWaypointDiscovered(waypoint, discoveredWaypoints)) return 0;
             
             let potentialSavings = 0;
             const pointsArray = Array.from(remainingPoints);
             
+            // Calculate potential savings on future segments if this waypoint were discovered
             for (let i = 0; i < pointsArray.length; i++) {
                 for (let j = i + 1; j < pointsArray.length; j++) {
                     const directDist = euclideanDistance(pointsArray[i], pointsArray[j]);
-                    const viaWaypointDist = euclideanDistance(pointsArray[i], waypoint) + 
-                                           TELEPORT_COST + 
-                                           euclideanDistance(waypoint, pointsArray[j]);
+                    const viaWaypointDist = TELEPORT_COST + euclideanDistance(waypoint, pointsArray[j]);
                     const saving = Math.max(0, directDist - viaWaypointDist);
-                    potentialSavings += saving * 0.3;
+                    potentialSavings += saving * 0.3; // Discount for uncertainty
                 }
             }
             
             return potentialSavings;
         }
         
+        // Check if visiting a waypoint now (walking to undiscovered, or teleporting to discovered) is beneficial
         function shouldVisitWaypointNow(current, waypoint, remainingPoints, discoveredWaypoints) {
-            if (isWaypointDiscovered(waypoint, discoveredWaypoints)) return false;
             if (remainingPoints.size < 2) return false;
             
-            const detourCost = euclideanDistance(current, waypoint);
-            const potentialValue = estimateWaypointValue(waypoint, remainingPoints, discoveredWaypoints);
+            const isDiscovered = isWaypointDiscovered(waypoint, discoveredWaypoints);
             
-            return potentialValue > detourCost * 1.2;
+            // If discovered, cost is teleport (0), otherwise we walk there
+            const visitCost = isDiscovered ? TELEPORT_COST : euclideanDistance(current, waypoint);
+            
+            if (isDiscovered) {
+                // For discovered waypoints, just check if teleporting is useful
+                // (This would be for strategic positioning, less common)
+                return false; // Usually we handle discovered waypoints in insertWaypointsInPath
+            } else {
+                // For undiscovered waypoints, check if walking there to unlock it is worth it
+                const potentialValue = estimateWaypointValue(waypoint, remainingPoints, discoveredWaypoints);
+                return potentialValue > visitCost * 1.5; // Higher threshold for walking
+            }
         }
         
         function distanceWithDiscovery(p1, p2, discoveredWaypoints) {
+            // If p1 is a waypoint (teleport source), distance to next point is just euclidean
             if (p1.type === 'Waypoint') return euclideanDistance(p1, p2);
 
             let bestDist = euclideanDistance(p1, p2);
@@ -947,15 +967,22 @@
                 bestDist = Infinity;
             }
             
+            // If p2 is an explicitly visited waypoint (walked to for discovery), treat as walk destination
+            if (p2.type === 'Waypoint' && p2.explicitVisit) {
+                return euclideanDistance(p1, p2);
+            }
+            
+            // If p2 is a waypoint teleport point, check if discovered
             if (p2.type === 'Waypoint') {
                 return isWaypointDiscovered(p2, discoveredWaypoints) ? TELEPORT_COST : 999999;
             }
             
             if (markers.Waypoints.length === 0) return bestDist;
 
+            // Check if any discovered waypoint provides a shorter teleport route
             for (const Waypoint of markers.Waypoints) {
                 if (!isWaypointDiscovered(Waypoint, discoveredWaypoints)) continue;
-                const totalViaWaypoint = 0 + euclideanDistance(Waypoint, p2);
+                const totalViaWaypoint = TELEPORT_COST + euclideanDistance(Waypoint, p2);
                 if (totalViaWaypoint < bestDist) {
                     bestDist = totalViaWaypoint;
                 }
@@ -998,6 +1025,15 @@
                 
                 updateDiscoveriesAlongSegment(prev, current, discoveredWaypoints);
                 
+                // If current is a waypoint with explicitVisit flag, it was walked to (not a teleport)
+                // So add it to the path as a regular destination, not a teleport shortcut
+                if (current.type === 'Waypoint' && current.explicitVisit) {
+                    newPath.push(current);
+                    updateDiscoveredWaypoints(current, discoveredWaypoints);
+                    continue;
+                }
+                
+                // Check if we should insert a waypoint as a teleport shortcut
                 const Waypoint = findBestWaypoint(prev, current, discoveredWaypoints);
                 
                 if (Waypoint) {
@@ -1049,7 +1085,10 @@
             return path.map(point => {
                 if (point.type === 'start') return 'Start';
                 if (point.type === 'end') return `E${point.id + 1}`;
-                if (point.type === 'Waypoint') return `W${point.id + 1}`;
+                if (point.type === 'Waypoint') {
+                    // Mark explicitly visited waypoints with walk icon
+                    return point.explicitVisit ? `🚶W${point.id + 1}` : `⚡W${point.id + 1}`;
+                }
                 return `P${point.id + 1}`;
             }).join(' → ');
         }

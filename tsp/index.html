@@ -157,7 +157,7 @@
 <body>
     <div class="container">
         <h1>🗺️ Traveling Salesman Path Finder</h1>
-        <p class="subtitle">Upload an image and place markers. <br><strong>Discovery Mode:</strong> Algorithms may walk to waypoints (🚶) to discover them for later teleportation (⚡). Line-of-sight also discovers. Drag waypoints to resize range.</p>
+        <p class="subtitle">Upload an image and place markers. <br><strong>Discovery Mode:</strong> Algorithms detour to waypoints (🚶) only if it results in shorter total path. Line-of-sight also discovers. Drag waypoints to resize.</p>
         
         <div class="controls">
             <div class="input-group">
@@ -740,27 +740,53 @@
             updateDiscoveredWaypoints(current, discoveredWaypoints);
             
             while (remaining.size > 0) {
-                // Check if we should strategically walk to an undiscovered waypoint
-                if (WaypointDiscoveryMode) {
-                    for (const waypoint of markers.Waypoints) {
-                        if (shouldVisitWaypointNow(current, waypoint, remaining, discoveredWaypoints)) {
-                            // Mark as explicit visit (walking to discover it)
-                            const waypointCopy = { ...waypoint, explicitVisit: true };
-                            path.push(waypointCopy);
-                            current = waypointCopy;
-                            updateDiscoveredWaypoints(current, discoveredWaypoints);
-                            break;
+                let nearest = null, minDist = Infinity;
+                let bestWaypointDetour = null;
+                
+                // Find nearest point considering both direct paths and waypoint detours
+                for (const point of remaining) {
+                    const directDist = distanceWithDiscovery(current, point, discoveredWaypoints);
+                    
+                    // Check if detouring through an undiscovered waypoint would be better
+                    if (WaypointDiscoveryMode) {
+                        for (const waypoint of markers.Waypoints) {
+                            if (!isWaypointDiscovered(waypoint, discoveredWaypoints)) {
+                                // Cost: walk to waypoint + walk from waypoint to point
+                                const detourDist = euclideanDistance(current, waypoint) + euclideanDistance(waypoint, point);
+                                
+                                // Estimate future savings from having this waypoint
+                                const futureSavings = estimateWaypointValue(waypoint, remaining, discoveredWaypoints);
+                                
+                                // Only detour if: detour_cost + (future_savings / remaining_count) < direct_cost
+                                // We divide future savings by remaining count to amortize benefit
+                                const effectiveCost = detourDist - (futureSavings / remaining.size);
+                                
+                                if (effectiveCost < directDist && effectiveCost < minDist) {
+                                    minDist = effectiveCost;
+                                    nearest = point;
+                                    bestWaypointDetour = waypoint;
+                                }
+                            }
                         }
+                    }
+                    
+                    // Compare with direct path
+                    if (directDist < minDist) {
+                        minDist = directDist;
+                        nearest = point;
+                        bestWaypointDetour = null;
                     }
                 }
                 
-                let nearest = null, minDist = Infinity;
-                for (const point of remaining) {
-                    const dist = distanceWithDiscovery(current, point, discoveredWaypoints);
-                    if (dist < minDist) { minDist = dist; nearest = point; }
-                }
-                
                 if (nearest) {
+                    // If we found a beneficial waypoint detour, visit it first
+                    if (bestWaypointDetour) {
+                        const waypointCopy = { ...bestWaypointDetour, explicitVisit: true };
+                        path.push(waypointCopy);
+                        current = waypointCopy;
+                        updateDiscoveredWaypoints(current, discoveredWaypoints);
+                    }
+                    
                     updateDiscoveriesAlongSegment(current, nearest, discoveredWaypoints);
                     path.push(nearest);
                     current = nearest;
@@ -808,21 +834,9 @@
             const MAX_CHECKS = 10000;
             
             while (remaining.size > 0) {
-                // Check if we should strategically walk to an undiscovered waypoint
-                if (WaypointDiscoveryMode && remaining.size > 1) {
-                    const currentPos = path[path.length - (end ? 2 : 1)];
-                    for (const waypoint of markers.Waypoints) {
-                        if (shouldVisitWaypointNow(currentPos, waypoint, remaining, discoveredWaypoints)) {
-                            const insertPos = end ? path.length - 1 : path.length;
-                            const waypointCopy = { ...waypoint, explicitVisit: true };
-                            path.splice(insertPos, 0, waypointCopy);
-                            updateDiscoveredWaypoints(waypointCopy, discoveredWaypoints);
-                            break;
-                        }
-                    }
-                }
-                
                 let bestPoint = null, bestPosition = -1, bestIncrease = Infinity;
+                let bestWaypointDetour = null, bestWaypointPosition = -1;
+                
                 for (const point of remaining) {
                     const maxPos = end ? path.length - 1 : path.length;
                     for (let i = 1; i < maxPos; i++) {
@@ -837,10 +851,47 @@
                         const newDist = distanceWithDiscovery(before, point, discoveredWaypoints) + 
                                       distanceWithDiscovery(point, after, discoveredWaypoints);
                         const increase = newDist - currentDist;
-                        if (increase < bestIncrease) { bestIncrease = increase; bestPoint = point; bestPosition = i; }
+                        
+                        // Check waypoint detour option for this insertion
+                        if (WaypointDiscoveryMode) {
+                            for (const waypoint of markers.Waypoints) {
+                                if (!isWaypointDiscovered(waypoint, discoveredWaypoints)) {
+                                    const detourDist = euclideanDistance(before, waypoint) + 
+                                                      euclideanDistance(waypoint, point) + 
+                                                      distanceWithDiscovery(point, after, discoveredWaypoints);
+                                    const futureSavings = estimateWaypointValue(waypoint, remaining, discoveredWaypoints);
+                                    const effectiveIncrease = (detourDist - currentDist) - (futureSavings / remaining.size);
+                                    
+                                    if (effectiveIncrease < bestIncrease) {
+                                        bestIncrease = effectiveIncrease;
+                                        bestPoint = point;
+                                        bestPosition = i;
+                                        bestWaypointDetour = waypoint;
+                                        bestWaypointPosition = i;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (increase < bestIncrease) {
+                            bestIncrease = increase;
+                            bestPoint = point;
+                            bestPosition = i;
+                            bestWaypointDetour = null;
+                        }
                     }
                 }
+                
                 if (bestPoint) {
+                    // Insert waypoint detour if beneficial
+                    if (bestWaypointDetour) {
+                        const waypointCopy = { ...bestWaypointDetour, explicitVisit: true };
+                        path.splice(bestWaypointPosition, 0, waypointCopy);
+                        updateDiscoveredWaypoints(waypointCopy, discoveredWaypoints);
+                        // Adjust position since we inserted waypoint
+                        if (bestPosition >= bestWaypointPosition) bestPosition++;
+                    }
+                    
                     const before = path[bestPosition - 1];
                     updateDiscoveriesAlongSegment(before, bestPoint, discoveredWaypoints);
                     path.splice(bestPosition, 0, bestPoint);
@@ -918,44 +969,25 @@
             return !WaypointDiscoveryMode || discoveredWaypoints.has(Waypoint);
         }
         
-        // Estimate value of having a waypoint unlocked for future segments
+        // Estimate potential distance savings if this waypoint were unlocked
         function estimateWaypointValue(waypoint, remainingPoints, discoveredWaypoints) {
             if (isWaypointDiscovered(waypoint, discoveredWaypoints)) return 0;
             
             let potentialSavings = 0;
             const pointsArray = Array.from(remainingPoints);
             
-            // Calculate potential savings on future segments if this waypoint were discovered
+            // For each pair of remaining points, estimate if teleporting via this waypoint saves distance
             for (let i = 0; i < pointsArray.length; i++) {
                 for (let j = i + 1; j < pointsArray.length; j++) {
                     const directDist = euclideanDistance(pointsArray[i], pointsArray[j]);
                     const viaWaypointDist = TELEPORT_COST + euclideanDistance(waypoint, pointsArray[j]);
                     const saving = Math.max(0, directDist - viaWaypointDist);
-                    potentialSavings += saving * 0.3; // Discount for uncertainty
+                    // Conservative discount since not all pairs will be in sequence
+                    potentialSavings += saving * 0.2;
                 }
             }
             
             return potentialSavings;
-        }
-        
-        // Check if visiting a waypoint now (walking to undiscovered, or teleporting to discovered) is beneficial
-        function shouldVisitWaypointNow(current, waypoint, remainingPoints, discoveredWaypoints) {
-            if (remainingPoints.size < 2) return false;
-            
-            const isDiscovered = isWaypointDiscovered(waypoint, discoveredWaypoints);
-            
-            // If discovered, cost is teleport (0), otherwise we walk there
-            const visitCost = isDiscovered ? TELEPORT_COST : euclideanDistance(current, waypoint);
-            
-            if (isDiscovered) {
-                // For discovered waypoints, just check if teleporting is useful
-                // (This would be for strategic positioning, less common)
-                return false; // Usually we handle discovered waypoints in insertWaypointsInPath
-            } else {
-                // For undiscovered waypoints, check if walking there to unlock it is worth it
-                const potentialValue = estimateWaypointValue(waypoint, remainingPoints, discoveredWaypoints);
-                return potentialValue > visitCost * 1.5; // Higher threshold for walking
-            }
         }
         
         function distanceWithDiscovery(p1, p2, discoveredWaypoints) {

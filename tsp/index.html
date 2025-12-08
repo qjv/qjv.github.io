@@ -1055,23 +1055,26 @@
                 const prev = path[i - 1];
                 const current = path[i];
                 
-                updateDiscoveriesAlongSegment(prev, current, discoveredWaypoints);
-                
                 // If current is a waypoint with explicitVisit flag, it was walked to (not a teleport)
-                // So add it to the path as a regular destination, not a teleport shortcut
                 if (current.type === 'Waypoint' && current.explicitVisit) {
                     newPath.push(current);
                     updateDiscoveredWaypoints(current, discoveredWaypoints);
                     continue;
                 }
                 
-                // Check if we should insert a waypoint as a teleport shortcut
+                // First, check if we should insert a CURRENTLY DISCOVERED waypoint as teleport shortcut
+                // (Only waypoints already discovered BEFORE this segment can be used)
                 const Waypoint = findBestWaypoint(prev, current, discoveredWaypoints);
                 
                 if (Waypoint) {
                     newPath.push(Waypoint);
-                    updateDiscoveredWaypoints(Waypoint, discoveredWaypoints);
+                    // Don't update discoveries here - waypoint was already discovered
                 }
+                
+                // Now check for line-of-sight discoveries along this segment
+                // (These newly discovered waypoints won't be used on THIS segment)
+                updateDiscoveriesAlongSegment(prev, current, discoveredWaypoints);
+                
                 newPath.push(current);
                 updateDiscoveredWaypoints(current, discoveredWaypoints);
             }
@@ -1135,9 +1138,16 @@
             for (let i = 0; i < path.length - 1; i++) {
                 const current = path[i];
                 const next = path[i + 1];
+                
+                // Update discoveries at current point
                 updateDiscoveredWaypoints(current, discoveredWaypoints);
-                updateDiscoveriesAlongSegment(current, next, discoveredWaypoints);
+                
+                // Calculate distance using currently discovered waypoints
+                // (Line-of-sight discoveries on this segment don't affect this segment's cost)
                 total += distanceWithDiscovery(current, next, discoveredWaypoints);
+                
+                // Now update line-of-sight discoveries for NEXT segments
+                updateDiscoveriesAlongSegment(current, next, discoveredWaypoints);
             }
             suppressDiscoveryLogs = false;
             return total;

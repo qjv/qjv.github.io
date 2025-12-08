@@ -97,7 +97,7 @@
         .marker.start { background: #48bb78; }
         .marker.end { background: #f56565; }
         .marker.Marker { background: #4299e1; }
-        .marker.Waypoint { background: #9f7aea; border-style: dashed; cursor: ns-resize; /* Hint at resizing */ }
+        .marker.Waypoint { background: #9f7aea; border-style: dashed; cursor: ns-resize; }
         
         .legend {
             margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 6px;
@@ -157,7 +157,7 @@
 <body>
     <div class="container">
         <h1>🗺️ Traveling Salesman Path Finder</h1>
-        <p class="subtitle">Upload an image and place markers. <br><strong>New:</strong> Click and drag Waypoints to resize their discovery range.</p>
+        <p class="subtitle">Upload an image and place markers. <br><strong>Discovery Mode:</strong> Algorithms strategically unlock waypoints and detect line-of-sight discoveries. Drag waypoints to resize range.</p>
         
         <div class="controls">
             <div class="input-group">
@@ -196,7 +196,7 @@
                 <input type="checkbox" id="WaypointDiscovery" onchange="toggleWaypointDiscovery()">
                 <label for="WaypointDiscovery">Waypoint Discovery Mode</label>
             </div>
-            </div>
+        </div>
         
         <div class="endpoint-mode-selector" id="endpointModeSelector" style="display: none;">
             <label>Multiple Endpoints Mode:</label>
@@ -229,7 +229,7 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-marker Waypoint" style="background: #9f7aea;"></div>
-                        <span>Waypoints (Drag to resize)</span>
+                        <span>Waypoints (Drag to resize • ✓ = discovered)</span>
                     </div>
                     <div class="legend-item" style="margin-left: auto; font-style: italic; color: #666;">
                         <span>💡 Hover over results to preview routes</span>
@@ -265,7 +265,6 @@
         let WaypointDiscoveryMode = false;
         const TELEPORT_COST = 0; 
         
-        // Resize logic variables
         let resizingWaypoint = null;
         let isDraggingRadius = false;
         
@@ -378,7 +377,6 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // DRAW TRIGGER ZONES FOR WAYPOINTS
             markers.Waypoints.forEach(w => {
                 ctx.strokeStyle = '#9f7aea';
                 ctx.lineWidth = 2;
@@ -388,7 +386,6 @@
                 ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Light fill
                 ctx.fillStyle = 'rgba(159, 122, 234, 0.1)';
                 ctx.fill();
             });
@@ -398,30 +395,35 @@
             const routeToDraw = previewRoute.length > 0 ? previewRoute : optimalRoute;
             const isPreview = previewRoute.length > 0;
             
-            // Draw Discovered Logic Visuals (using per-waypoint radius)
             if (WaypointDiscoveryMode && routeToDraw.length > 0) {
                 const discoveredWaypoints = new Set();
                 
                 for (let i = 0; i < routeToDraw.length; i++) {
                     const point = routeToDraw[i];
-                    for (const Waypoint of markers.Waypoints) {
-                        const dist = euclideanDistance(point, Waypoint);
-                        if (dist <= Waypoint.radius) {
-                            if (!discoveredWaypoints.has(Waypoint)) {
-                                // Highlight discovered triggers
-                                ctx.strokeStyle = '#48bb78'; // Green for discovered
-                                ctx.lineWidth = 3;
-                                ctx.setLineDash([5, 5]);
-                                ctx.beginPath();
-                                ctx.arc(point.x, point.y, Waypoint.radius, 0, Math.PI * 2); // Draw at point location? Or highlight waypoint? 
-                                // Highlighting the waypoint itself is clearer:
-                                ctx.beginPath();
-                                ctx.arc(Waypoint.x, Waypoint.y, Waypoint.radius, 0, Math.PI * 2);
-                                ctx.stroke();
+                    updateDiscoveredWaypoints(point, discoveredWaypoints);
+                    
+                    if (i > 0) {
+                        const prevPoint = routeToDraw[i - 1];
+                        for (const Waypoint of markers.Waypoints) {
+                            if (!discoveredWaypoints.has(Waypoint) && 
+                                lineSegmentIntersectsCircle(prevPoint, point, Waypoint, Waypoint.radius)) {
                                 discoveredWaypoints.add(Waypoint);
                             }
                         }
                     }
+                }
+                
+                for (const Waypoint of discoveredWaypoints) {
+                    ctx.strokeStyle = '#48bb78';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.arc(Waypoint.x, Waypoint.y, Waypoint.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#48bb78';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText('✓', Waypoint.x + Waypoint.radius + 5, Waypoint.y - Waypoint.radius);
                 }
                 ctx.setLineDash([]);
             }
@@ -501,8 +503,6 @@
         }
         
         function handleCanvasClick(e) {
-            // This handles placing NEW markers on the canvas background
-            // Existing marker clicks are handled by their element listeners
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -522,14 +522,11 @@
                 createMarkerElement('Marker', x, y, id);
             } else if (selectedMarkerType === 'Waypoint') {
                 const id = markers.Waypoints.length;
-                // Add default radius of 30
                 markers.Waypoints.push({ x, y, id, type: 'Waypoint', radius: 30 });
                 createMarkerElement('Waypoint', x, y, id);
-                drawCanvas(); // Update visuals
+                drawCanvas();
             }
         }
-        
-        // --- Drag / Resize Logic ---
         
         function onWaypointResize(e) {
             if (!resizingWaypoint) return;
@@ -539,9 +536,8 @@
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             
-            // Calculate new radius
             const dist = Math.sqrt(Math.pow(mouseX - resizingWaypoint.x, 2) + Math.pow(mouseY - resizingWaypoint.y, 2));
-            resizingWaypoint.radius = Math.max(15, dist); // Minimum 15px radius
+            resizingWaypoint.radius = Math.max(15, dist);
             
             drawCanvas();
         }
@@ -550,8 +546,6 @@
             resizingWaypoint = null;
             document.removeEventListener('mousemove', onWaypointResize);
             document.removeEventListener('mouseup', onWaypointResizeEnd);
-            // We do NOT reset isDraggingRadius here immediately, 
-            // because the 'click' event follows 'mouseup' and checks this flag.
             setTimeout(() => { isDraggingRadius = false; }, 50);
         }
 
@@ -569,11 +563,10 @@
                 marker.dataset.id = id; 
                 marker.textContent = 'W' + (id + 1); 
                 
-                // Add Resize Listeners specific to Waypoints
                 marker.addEventListener('mousedown', function(e) {
-                    if (e.button !== 0) return; // Left click only
-                    e.preventDefault(); // Prevent text selection
-                    e.stopPropagation(); // Stop canvas click
+                    if (e.button !== 0) return;
+                    e.preventDefault();
+                    e.stopPropagation();
                     
                     resizingWaypoint = markers.Waypoints.find(w => w.id === id);
                     isDraggingRadius = false;
@@ -586,7 +579,6 @@
             
             marker.addEventListener('click', function(e) {
                 e.stopPropagation();
-                // If we were resizing (dragged), do not delete
                 if (type === 'Waypoint' && isDraggingRadius) {
                     return;
                 }
@@ -740,23 +732,34 @@
             if (points.length === 0) return end ? [start, end] : [start];
             const path = [start];
             let current = start;
-            const remaining = [...points];
+            const remaining = new Set(points);
             const discoveredWaypoints = new Set();
             updateDiscoveredWaypoints(current, discoveredWaypoints);
             
-            while (remaining.length > 0) {
-                let nearest = null, minDist = Infinity, nearestIdx = -1;
-                for (let i = 0; i < remaining.length; i++) {
-                    const dist = distanceWithDiscovery(current, remaining[i], discoveredWaypoints);
-                    if (dist < minDist) { minDist = dist; nearest = remaining[i]; nearestIdx = i; }
+            while (remaining.size > 0) {
+                if (WaypointDiscoveryMode) {
+                    for (const waypoint of markers.Waypoints) {
+                        if (shouldVisitWaypointNow(current, waypoint, remaining, discoveredWaypoints)) {
+                            path.push(waypoint);
+                            current = waypoint;
+                            updateDiscoveredWaypoints(current, discoveredWaypoints);
+                            break;
+                        }
+                    }
                 }
+                
+                let nearest = null, minDist = Infinity;
+                for (const point of remaining) {
+                    const dist = distanceWithDiscovery(current, point, discoveredWaypoints);
+                    if (dist < minDist) { minDist = dist; nearest = point; }
+                }
+                
                 if (nearest) {
-                    path.push(nearest); current = nearest;
+                    updateDiscoveriesAlongSegment(current, nearest, discoveredWaypoints);
+                    path.push(nearest);
+                    current = nearest;
                     updateDiscoveredWaypoints(current, discoveredWaypoints);
-                    remaining.splice(nearestIdx, 1);
-                } else {
-                    const next = remaining.pop();
-                    path.push(next); current = next;
+                    remaining.delete(nearest);
                 }
             }
             if (end) path.push(end);
@@ -790,13 +793,26 @@
             if (points.length === 0) return end ? [start, end] : [start];
             const path = [start, points[0]];
             if (end) path.push(end);
-            const remaining = points.slice(1);
+            const remaining = new Set(points.slice(1));
             const discoveredWaypoints = new Set();
             updateDiscoveredWaypoints(start, discoveredWaypoints);
+            updateDiscoveriesAlongSegment(start, points[0], discoveredWaypoints);
             updateDiscoveredWaypoints(points[0], discoveredWaypoints);
-            let totalChecks = 0; const MAX_CHECKS = 10000;
+            let totalChecks = 0;
+            const MAX_CHECKS = 10000;
             
-            while (remaining.length > 0) {
+            while (remaining.size > 0) {
+                if (WaypointDiscoveryMode && remaining.size > 1) {
+                    for (const waypoint of markers.Waypoints) {
+                        if (shouldVisitWaypointNow(path[path.length - (end ? 2 : 1)], waypoint, remaining, discoveredWaypoints)) {
+                            const insertPos = end ? path.length - 1 : path.length;
+                            path.splice(insertPos, 0, waypoint);
+                            updateDiscoveredWaypoints(waypoint, discoveredWaypoints);
+                            break;
+                        }
+                    }
+                }
+                
                 let bestPoint = null, bestPosition = -1, bestIncrease = Infinity;
                 for (const point of remaining) {
                     const maxPos = end ? path.length - 1 : path.length;
@@ -804,7 +820,7 @@
                         totalChecks++;
                         if (totalChecks > MAX_CHECKS) {
                             const insertPos = end ? path.length - 1 : path.length;
-                            remaining.forEach(p => path.splice(insertPos, 0, p));
+                            Array.from(remaining).forEach(p => path.splice(insertPos, 0, p));
                             return path;
                         }
                         const before = path[i - 1], after = path[i];
@@ -816,12 +832,14 @@
                     }
                 }
                 if (bestPoint) {
+                    const before = path[bestPosition - 1];
+                    updateDiscoveriesAlongSegment(before, bestPoint, discoveredWaypoints);
                     path.splice(bestPosition, 0, bestPoint);
                     updateDiscoveredWaypoints(bestPoint, discoveredWaypoints);
-                    remaining.splice(remaining.indexOf(bestPoint), 1);
+                    remaining.delete(bestPoint);
                 } else {
                     const insertPos = end ? path.length - 1 : path.length;
-                    remaining.forEach(p => path.splice(insertPos, 0, p));
+                    Array.from(remaining).forEach(p => path.splice(insertPos, 0, p));
                     break;
                 }
             }
@@ -848,15 +866,77 @@
         }
         
         let suppressDiscoveryLogs = false;
+        
+        function lineSegmentIntersectsCircle(p1, p2, center, radius) {
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const fx = p1.x - center.x;
+            const fy = p1.y - center.y;
+            
+            const a = dx * dx + dy * dy;
+            if (a < 0.001) return euclideanDistance(p1, center) <= radius;
+            
+            const b = 2 * (fx * dx + fy * dy);
+            const c = (fx * fx + fy * fy) - radius * radius;
+            const discriminant = b * b - 4 * a * c;
+            
+            if (discriminant < 0) return false;
+            
+            const sqrtDisc = Math.sqrt(discriminant);
+            const t1 = (-b - sqrtDisc) / (2 * a);
+            const t2 = (-b + sqrtDisc) / (2 * a);
+            
+            return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1) || (t1 < 0 && t2 > 1);
+        }
+        
         function updateDiscoveredWaypoints(point, discoveredWaypoints) {
             if (!WaypointDiscoveryMode) { markers.Waypoints.forEach(w => discoveredWaypoints.add(w)); return; }
             for (const Waypoint of markers.Waypoints) {
-                // CHANGED: Use Waypoint.radius
                 if (euclideanDistance(point, Waypoint) <= Waypoint.radius) discoveredWaypoints.add(Waypoint);
             }
         }
+        
+        function updateDiscoveriesAlongSegment(p1, p2, discoveredWaypoints) {
+            if (!WaypointDiscoveryMode) return;
+            for (const Waypoint of markers.Waypoints) {
+                if (!discoveredWaypoints.has(Waypoint) && lineSegmentIntersectsCircle(p1, p2, Waypoint, Waypoint.radius)) {
+                    discoveredWaypoints.add(Waypoint);
+                }
+            }
+        }
+        
         function isWaypointDiscovered(Waypoint, discoveredWaypoints) {
             return !WaypointDiscoveryMode || discoveredWaypoints.has(Waypoint);
+        }
+        
+        function estimateWaypointValue(waypoint, remainingPoints, discoveredWaypoints) {
+            if (isWaypointDiscovered(waypoint, discoveredWaypoints)) return 0;
+            
+            let potentialSavings = 0;
+            const pointsArray = Array.from(remainingPoints);
+            
+            for (let i = 0; i < pointsArray.length; i++) {
+                for (let j = i + 1; j < pointsArray.length; j++) {
+                    const directDist = euclideanDistance(pointsArray[i], pointsArray[j]);
+                    const viaWaypointDist = euclideanDistance(pointsArray[i], waypoint) + 
+                                           TELEPORT_COST + 
+                                           euclideanDistance(waypoint, pointsArray[j]);
+                    const saving = Math.max(0, directDist - viaWaypointDist);
+                    potentialSavings += saving * 0.3;
+                }
+            }
+            
+            return potentialSavings;
+        }
+        
+        function shouldVisitWaypointNow(current, waypoint, remainingPoints, discoveredWaypoints) {
+            if (isWaypointDiscovered(waypoint, discoveredWaypoints)) return false;
+            if (remainingPoints.size < 2) return false;
+            
+            const detourCost = euclideanDistance(current, waypoint);
+            const potentialValue = estimateWaypointValue(waypoint, remainingPoints, discoveredWaypoints);
+            
+            return potentialValue > detourCost * 1.2;
         }
         
         function distanceWithDiscovery(p1, p2, discoveredWaypoints) {
@@ -915,6 +995,9 @@
             for (let i = 1; i < path.length; i++) {
                 const prev = path[i - 1];
                 const current = path[i];
+                
+                updateDiscoveriesAlongSegment(prev, current, discoveredWaypoints);
+                
                 const Waypoint = findBestWaypoint(prev, current, discoveredWaypoints);
                 
                 if (Waypoint) {
@@ -982,6 +1065,7 @@
                 const current = path[i];
                 const next = path[i + 1];
                 updateDiscoveredWaypoints(current, discoveredWaypoints);
+                updateDiscoveriesAlongSegment(current, next, discoveredWaypoints);
                 total += distanceWithDiscovery(current, next, discoveredWaypoints);
             }
             suppressDiscoveryLogs = false;

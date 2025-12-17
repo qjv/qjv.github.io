@@ -2,7 +2,7 @@
 layout: default
 title: batch icon recolor
 ---
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -98,14 +98,72 @@ title: batch icon recolor
         }
         
         input[type="text"].hex-input {
-            width: 90px;
             padding: 0.5rem;
             background: #0f3460;
-            border: 1px solid #0f3460;
+            border: 1px solid #e94560;
             border-radius: 6px;
-            color: #eee;
+            color: #fff;
             font-size: 0.875rem;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        
+        input[type="text"].hex-input:focus {
+            outline: none;
+            border-color: #e94560;
+            box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.2);
+        }
+
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            border: 2px solid #0f3460;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .color-swatch:hover {
+            transform: scale(1.1);
+            border-color: #e94560;
+        }
+
+        .color-picker-popup {
+            position: absolute;
+            background: #16213e;
+            border: 2px solid #e94560;
+            border-radius: 8px;
+            padding: 1rem;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 30px);
+            gap: 6px;
+            margin-bottom: 0.5rem;
+        }
+
+        .color-grid-item {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-grid-item:hover {
+            transform: scale(1.15);
+            border-color: #e94560;
+        }
+
+        .color-input-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
         }
         
         input[type="number"] {
@@ -309,9 +367,9 @@ title: batch icon recolor
                 
                 <div class="setting-group">
                     <label>Fill Color</label>
-                    <div class="color-picker-container">
-                        <input type="color" id="fillColor" value="#ffffff">
-                        <input type="text" id="fillColorHex" class="hex-input" value="#ffffff" placeholder="#ffffff">
+                    <div class="color-input-row">
+                        <div class="color-swatch" id="fillColorSwatch" style="background: #ffffff;" onclick="openColorPicker('fill')"></div>
+                        <input type="text" id="fillColorHex" class="hex-input" value="#ffffff" placeholder="#FFFFFF" style="flex: 1;">
                     </div>
                 </div>
 
@@ -340,9 +398,9 @@ title: batch icon recolor
 
                 <div class="setting-group">
                     <label>Outline Color</label>
-                    <div class="color-picker-container">
-                        <input type="color" id="outlineColor" value="#000000">
-                        <input type="text" id="outlineColorHex" class="hex-input" value="#000000" placeholder="#000000">
+                    <div class="color-input-row">
+                        <div class="color-swatch" id="outlineColorSwatch" style="background: #000000;" onclick="openColorPicker('outline')"></div>
+                        <input type="text" id="outlineColorHex" class="hex-input" value="#000000" placeholder="#000000" style="flex: 1;">
                     </div>
                 </div>
                 
@@ -370,8 +428,24 @@ title: batch icon recolor
         <div id="foldersContainer"></div>
     </div>
 
+    <div id="colorPickerPopup" class="color-picker-popup hidden">
+        <div class="color-grid" id="colorGrid"></div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" id="popupHexInput" class="hex-input" placeholder="#FFFFFF" style="flex: 1;">
+            <button onclick="closeColorPicker()" class="btn btn-danger" style="padding: 0.5rem;">Close</button>
+        </div>
+    </div>
+
     <script>
         let folders = {}; // { folderPath: { files: [], originals: [], color: '#fff', processed: [] } }
+        let currentColorTarget = null; // 'fill', 'outline', or 'folder-<path>'
+        
+        const commonColors = [
+            '#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
+            '#C0C0C0', '#808080', '#800000', '#808000', '#008000', '#800080', '#008080', '#000080',
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
+            '#52489C', '#4062BB', '#59C3C3', '#EBEBEB', '#F45B69', '#6BCF7F', '#DDA15E', '#BC6C25'
+        ];
         
         const dropZone = document.getElementById('dropZone');
         const folderInput = document.getElementById('folderInput');
@@ -380,26 +454,77 @@ title: batch icon recolor
         const foldersContainer = document.getElementById('foldersContainer');
         const replacePattern = document.getElementById('replacePattern');
         
-        const fillColorPicker = document.getElementById('fillColor');
+        const fillColorSwatch = document.getElementById('fillColorSwatch');
         const fillColorHex = document.getElementById('fillColorHex');
         const enableOutlineCheckbox = document.getElementById('enableOutline');
         const outlineModeSelect = document.getElementById('outlineMode');
-        const outlineColorPicker = document.getElementById('outlineColor');
+        const outlineColorSwatch = document.getElementById('outlineColorSwatch');
         const outlineColorHex = document.getElementById('outlineColorHex');
         const outlineWidthInput = document.getElementById('outlineWidth');
 
-        // Sync color pickers with hex inputs
-        fillColorPicker.addEventListener('input', (e) => {
-            fillColorHex.value = e.target.value;
-            regenerateAllPreviews();
+        // Initialize color grid
+        const colorGrid = document.getElementById('colorGrid');
+        commonColors.forEach(color => {
+            const item = document.createElement('div');
+            item.className = 'color-grid-item';
+            item.style.background = color;
+            item.onclick = () => selectColor(color);
+            colorGrid.appendChild(item);
         });
 
+        // Color picker functions
+        window.openColorPicker = function(target) {
+            currentColorTarget = target;
+            const popup = document.getElementById('colorPickerPopup');
+            const popupInput = document.getElementById('popupHexInput');
+            
+            if (target === 'fill') {
+                popupInput.value = fillColorHex.value;
+            } else if (target === 'outline') {
+                popupInput.value = outlineColorHex.value;
+            } else if (target.startsWith('folder-')) {
+                const folderPath = target.substring(7);
+                popupInput.value = folders[folderPath].color;
+            }
+            
+            popup.classList.remove('hidden');
+            popup.style.position = 'fixed';
+            popup.style.top = '50%';
+            popup.style.left = '50%';
+            popup.style.transform = 'translate(-50%, -50%)';
+        }
+
+        window.closeColorPicker = function() {
+            document.getElementById('colorPickerPopup').classList.add('hidden');
+        }
+
+        window.selectColor = function(color) {
+            const popupInput = document.getElementById('popupHexInput');
+            popupInput.value = color;
+            applyColor(color);
+        }
+
+        function applyColor(color) {
+            if (currentColorTarget === 'fill') {
+                fillColorHex.value = color;
+                fillColorSwatch.style.background = color;
+                regenerateAllPreviews();
+            } else if (currentColorTarget === 'outline') {
+                outlineColorHex.value = color;
+                outlineColorSwatch.style.background = color;
+                regenerateAllPreviews();
+            } else if (currentColorTarget && currentColorTarget.startsWith('folder-')) {
+                const folderPath = currentColorTarget.substring(7);
+                updateFolderColorFromHex(folderPath, color);
+            }
+        }
+
+        // Hex input handlers
         fillColorHex.addEventListener('input', (e) => {
             let hex = e.target.value.trim();
             if (!hex.startsWith('#')) hex = '#' + hex;
             if (/^#[0-9A-F]{6}$/i.test(hex)) {
-                fillColorPicker.value = hex;
-                fillColorHex.value = hex;
+                fillColorSwatch.style.background = hex;
             }
         });
 
@@ -407,25 +532,18 @@ title: batch icon recolor
             let hex = e.target.value.trim();
             if (!hex.startsWith('#')) hex = '#' + hex;
             if (/^#[0-9A-F]{6}$/i.test(hex)) {
-                fillColorPicker.value = hex;
-                fillColorHex.value = hex;
+                fillColorSwatch.style.background = hex;
                 regenerateAllPreviews();
             } else {
-                fillColorHex.value = fillColorPicker.value;
+                fillColorHex.value = fillColorSwatch.style.background;
             }
-        });
-
-        outlineColorPicker.addEventListener('input', (e) => {
-            outlineColorHex.value = e.target.value;
-            regenerateAllPreviews();
         });
 
         outlineColorHex.addEventListener('input', (e) => {
             let hex = e.target.value.trim();
             if (!hex.startsWith('#')) hex = '#' + hex;
             if (/^#[0-9A-F]{6}$/i.test(hex)) {
-                outlineColorPicker.value = hex;
-                outlineColorHex.value = hex;
+                outlineColorSwatch.style.background = hex;
             }
         });
 
@@ -433,11 +551,18 @@ title: batch icon recolor
             let hex = e.target.value.trim();
             if (!hex.startsWith('#')) hex = '#' + hex;
             if (/^#[0-9A-F]{6}$/i.test(hex)) {
-                outlineColorPicker.value = hex;
-                outlineColorHex.value = hex;
+                outlineColorSwatch.style.background = hex;
                 regenerateAllPreviews();
             } else {
-                outlineColorHex.value = outlineColorPicker.value;
+                outlineColorHex.value = outlineColorSwatch.style.background;
+            }
+        });
+
+        document.getElementById('popupHexInput').addEventListener('blur', (e) => {
+            let hex = e.target.value.trim();
+            if (!hex.startsWith('#')) hex = '#' + hex;
+            if (/^#[0-9A-F]{6}$/i.test(hex)) {
+                applyColor(hex);
             }
         });
 
@@ -517,7 +642,7 @@ title: batch icon recolor
                     folders[folderPath] = {
                         files: [],
                         originals: [],
-                        color: fillColorPicker.value,
+                        color: fillColorHex.value,
                         processed: []
                     };
                 }
@@ -572,6 +697,16 @@ title: batch icon recolor
             renderFolders();
         };
 
+        window.updateFolderColorFromHex = async function(folderPath, hex) {
+            let cleanHex = hex.trim();
+            if (!cleanHex.startsWith('#')) cleanHex = '#' + cleanHex;
+            if (/^#[0-9A-F]{6}$/i.test(cleanHex)) {
+                folders[folderPath].color = cleanHex;
+                await regenerateFolderPreviews(folderPath);
+                renderFolders();
+            }
+        };
+
         async function regenerateAllPreviews() {
             for (let folderPath of Object.keys(folders)) {
                 await regenerateFolderPreviews(folderPath);
@@ -584,7 +719,7 @@ title: batch icon recolor
             const fillColor = folderData.color;
             const enableOutline = enableOutlineCheckbox.checked;
             const outlineMode = outlineModeSelect.value;
-            const outlineColor = outlineColorPicker.value;
+            const outlineColor = outlineColorHex.value;
             const outlineWidth = parseInt(outlineWidthInput.value);
 
             for (let i = 0; i < folderData.files.length; i++) {
@@ -614,10 +749,13 @@ title: batch icon recolor
                     <div class="folder-name">${folderName}</div>
                     <div class="folder-settings">
                         <div class="setting-group">
-                            <label style="margin-bottom: 0;">Folder Color</label>
-                            <input type="color" value="${folderData.color}" 
-                                   onchange="updateFolderColor('${folderPath}', this.value)"
-                                   style="margin-left: 0.5rem;">
+                            <label style="margin-bottom: 0.5rem;">Folder Color</label>
+                            <div class="color-input-row">
+                                <div class="color-swatch" style="background: ${folderData.color};" onclick="openColorPicker('folder-${folderPath}')"></div>
+                                <input type="text" class="hex-input" value="${folderData.color}" 
+                                       onchange="updateFolderColorFromHex('${folderPath}', this.value)"
+                                       style="width: 100px;">
+                            </div>
                         </div>
                     </div>
                 `;

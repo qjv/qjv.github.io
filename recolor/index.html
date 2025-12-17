@@ -128,6 +128,22 @@ title: batch icon recolor
             font-size: 0.875rem;
         }
         
+        select.pattern-input {
+            width: 100%;
+            padding: 0.5rem;
+            background: #0f3460;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            color: #eee;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        
+        select.pattern-input option {
+            background: #0f3460;
+            color: #eee;
+        }
+        
         .drop-zone {
             border: 2px dashed #0f3460;
             border-radius: 8px;
@@ -310,6 +326,19 @@ title: batch icon recolor
                 </div>
 
                 <div class="setting-group">
+                    <label>Outline Mode</label>
+                    <select id="outlineMode" class="pattern-input">
+                        <option value="simple">Simple (Fast)</option>
+                        <option value="smooth">Smooth (Anti-aliased)</option>
+                        <option value="sharp">Sharp Edge Only</option>
+                        <option value="solid">Solid (Double Pass)</option>
+                    </select>
+                    <small style="color: #a0a0a0; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                        Simple: Standard circular outline | Smooth: Gradient fade | Sharp: 1px edge | Solid: Thicker uniform
+                    </small>
+                </div>
+
+                <div class="setting-group">
                     <label>Outline Color</label>
                     <div class="color-picker-container">
                         <input type="color" id="outlineColor" value="#000000">
@@ -354,6 +383,7 @@ title: batch icon recolor
         const fillColorPicker = document.getElementById('fillColor');
         const fillColorHex = document.getElementById('fillColorHex');
         const enableOutlineCheckbox = document.getElementById('enableOutline');
+        const outlineModeSelect = document.getElementById('outlineMode');
         const outlineColorPicker = document.getElementById('outlineColor');
         const outlineColorHex = document.getElementById('outlineColorHex');
         const outlineWidthInput = document.getElementById('outlineWidth');
@@ -362,6 +392,15 @@ title: batch icon recolor
         fillColorPicker.addEventListener('input', (e) => {
             fillColorHex.value = e.target.value;
             regenerateAllPreviews();
+        });
+
+        fillColorHex.addEventListener('input', (e) => {
+            let hex = e.target.value.trim();
+            if (!hex.startsWith('#')) hex = '#' + hex;
+            if (/^#[0-9A-F]{6}$/i.test(hex)) {
+                fillColorPicker.value = hex;
+                fillColorHex.value = hex;
+            }
         });
 
         fillColorHex.addEventListener('blur', (e) => {
@@ -381,6 +420,15 @@ title: batch icon recolor
             regenerateAllPreviews();
         });
 
+        outlineColorHex.addEventListener('input', (e) => {
+            let hex = e.target.value.trim();
+            if (!hex.startsWith('#')) hex = '#' + hex;
+            if (/^#[0-9A-F]{6}$/i.test(hex)) {
+                outlineColorPicker.value = hex;
+                outlineColorHex.value = hex;
+            }
+        });
+
         outlineColorHex.addEventListener('blur', (e) => {
             let hex = e.target.value.trim();
             if (!hex.startsWith('#')) hex = '#' + hex;
@@ -394,6 +442,7 @@ title: batch icon recolor
         });
 
         enableOutlineCheckbox.addEventListener('change', regenerateAllPreviews);
+        outlineModeSelect.addEventListener('change', regenerateAllPreviews);
         outlineWidthInput.addEventListener('change', regenerateAllPreviews);
 
         dropZone.addEventListener('click', () => folderInput.click());
@@ -534,6 +583,7 @@ title: batch icon recolor
             const folderData = folders[folderPath];
             const fillColor = folderData.color;
             const enableOutline = enableOutlineCheckbox.checked;
+            const outlineMode = outlineModeSelect.value;
             const outlineColor = outlineColorPicker.value;
             const outlineWidth = parseInt(outlineWidthInput.value);
 
@@ -542,6 +592,7 @@ title: batch icon recolor
                     folderData.files[i],
                     fillColor,
                     enableOutline,
+                    outlineMode,
                     outlineColor,
                     outlineWidth
                 );
@@ -614,7 +665,7 @@ title: batch icon recolor
             }
         }
 
-        async function processImage(file, fillColor, enableOutline, outlineColor, outlineWidth) {
+        async function processImage(file, fillColor, enableOutline, outlineMode, outlineColor, outlineWidth) {
             return new Promise((resolve) => {
                 const img = new Image();
                 const reader = new FileReader();
@@ -651,44 +702,21 @@ title: batch icon recolor
                             const ob = parseInt(outlineColor.slice(5, 7), 16);
                             
                             const originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const outlineData = ctx.createImageData(canvas.width, canvas.height);
                             
-                            for (let i = 0; i < originalData.data.length; i++) {
-                                outlineData.data[i] = originalData.data[i];
+                            switch(outlineMode) {
+                                case 'simple':
+                                    applySimpleOutline(ctx, originalData, or, og, ob, outlineWidth);
+                                    break;
+                                case 'smooth':
+                                    applySmoothOutline(ctx, originalData, or, og, ob, outlineWidth);
+                                    break;
+                                case 'sharp':
+                                    applySharpOutline(ctx, originalData, or, og, ob);
+                                    break;
+                                case 'solid':
+                                    applySolidOutline(ctx, originalData, or, og, ob, outlineWidth);
+                                    break;
                             }
-                            
-                            for (let y = 0; y < canvas.height; y++) {
-                                for (let x = 0; x < canvas.width; x++) {
-                                    const i = (y * canvas.width + x) * 4;
-                                    
-                                    if (originalData.data[i + 3] > 0) {
-                                        for (let dy = -outlineWidth; dy <= outlineWidth; dy++) {
-                                            for (let dx = -outlineWidth; dx <= outlineWidth; dx++) {
-                                                if (dx === 0 && dy === 0) continue;
-                                                const distance = Math.sqrt(dx * dx + dy * dy);
-                                                if (distance > outlineWidth) continue;
-                                                
-                                                const nx = x + dx;
-                                                const ny = y + dy;
-                                                
-                                                if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
-                                                    const ni = (ny * canvas.width + nx) * 4;
-                                                    
-                                                    if (originalData.data[ni + 3] === 0) {
-                                                        outlineData.data[ni] = or;
-                                                        outlineData.data[ni + 1] = og;
-                                                        outlineData.data[ni + 2] = ob;
-                                                        outlineData.data[ni + 3] = 255;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            ctx.putImageData(outlineData, 0, 0);
                         }
                         
                         canvas.toBlob((blob) => {
@@ -701,6 +729,236 @@ title: batch icon recolor
                 
                 reader.readAsDataURL(file);
             });
+        }
+
+        function applySimpleOutline(ctx, originalData, or, og, ob, outlineWidth) {
+            const canvas = ctx.canvas;
+            const outlineData = ctx.createImageData(canvas.width, canvas.height);
+            
+            // Copy original
+            for (let i = 0; i < originalData.data.length; i++) {
+                outlineData.data[i] = originalData.data[i];
+            }
+            
+            // Add outline
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    
+                    if (originalData.data[i + 3] > 0) {
+                        for (let dy = -outlineWidth; dy <= outlineWidth; dy++) {
+                            for (let dx = -outlineWidth; dx <= outlineWidth; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+                                if (distance > outlineWidth) continue;
+                                
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                
+                                if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
+                                    const ni = (ny * canvas.width + nx) * 4;
+                                    
+                                    if (originalData.data[ni + 3] === 0) {
+                                        outlineData.data[ni] = or;
+                                        outlineData.data[ni + 1] = og;
+                                        outlineData.data[ni + 2] = ob;
+                                        outlineData.data[ni + 3] = 255;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(outlineData, 0, 0);
+        }
+
+        function applySmoothOutline(ctx, originalData, or, og, ob, outlineWidth) {
+            const canvas = ctx.canvas;
+            const outlineData = ctx.createImageData(canvas.width, canvas.height);
+            
+            // Copy original
+            for (let i = 0; i < originalData.data.length; i++) {
+                outlineData.data[i] = originalData.data[i];
+            }
+            
+            // Add smooth outline with distance-based alpha
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    
+                    if (originalData.data[i + 3] === 0) {
+                        let minDist = outlineWidth + 1;
+                        
+                        // Find closest opaque pixel
+                        for (let dy = -outlineWidth; dy <= outlineWidth; dy++) {
+                            for (let dx = -outlineWidth; dx <= outlineWidth; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                
+                                if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
+                                    const ni = (ny * canvas.width + nx) * 4;
+                                    
+                                    if (originalData.data[ni + 3] > 0) {
+                                        const distance = Math.sqrt(dx * dx + dy * dy);
+                                        if (distance < minDist) {
+                                            minDist = distance;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (minDist <= outlineWidth) {
+                            const alpha = Math.round(255 * (1 - minDist / outlineWidth));
+                            outlineData.data[i] = or;
+                            outlineData.data[i + 1] = og;
+                            outlineData.data[i + 2] = ob;
+                            outlineData.data[i + 3] = alpha;
+                        }
+                    }
+                }
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(outlineData, 0, 0);
+        }
+
+        function applySharpOutline(ctx, originalData, or, og, ob) {
+            const canvas = ctx.canvas;
+            const outlineData = ctx.createImageData(canvas.width, canvas.height);
+            
+            // Copy original
+            for (let i = 0; i < originalData.data.length; i++) {
+                outlineData.data[i] = originalData.data[i];
+            }
+            
+            // Add sharp edge outline (only direct neighbors)
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    
+                    if (originalData.data[i + 3] === 0) {
+                        let hasOpaqueNeighbor = false;
+                        
+                        // Check 4-directional neighbors
+                        const neighbors = [[0,-1], [1,0], [0,1], [-1,0]];
+                        for (let [dx, dy] of neighbors) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            
+                            if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
+                                const ni = (ny * canvas.width + nx) * 4;
+                                if (originalData.data[ni + 3] > 0) {
+                                    hasOpaqueNeighbor = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (hasOpaqueNeighbor) {
+                            outlineData.data[i] = or;
+                            outlineData.data[i + 1] = og;
+                            outlineData.data[i + 2] = ob;
+                            outlineData.data[i + 3] = 255;
+                        }
+                    }
+                }
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(outlineData, 0, 0);
+        }
+
+        function applySolidOutline(ctx, originalData, or, og, ob, outlineWidth) {
+            const canvas = ctx.canvas;
+            
+            // First pass: create outline layer
+            const outlineLayer = ctx.createImageData(canvas.width, canvas.height);
+            
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    
+                    if (originalData.data[i + 3] === 0) {
+                        let hasOpaqueNearby = false;
+                        
+                        for (let dy = -outlineWidth; dy <= outlineWidth; dy++) {
+                            for (let dx = -outlineWidth; dx <= outlineWidth; dx++) {
+                                const distance = Math.sqrt(dx * dx + dy * dy);
+                                if (distance > outlineWidth) continue;
+                                
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                
+                                if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
+                                    const ni = (ny * canvas.width + nx) * 4;
+                                    if (originalData.data[ni + 3] > 0) {
+                                        hasOpaqueNearby = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (hasOpaqueNearby) break;
+                        }
+                        
+                        if (hasOpaqueNearby) {
+                            outlineLayer.data[i] = or;
+                            outlineLayer.data[i + 1] = og;
+                            outlineLayer.data[i + 2] = ob;
+                            outlineLayer.data[i + 3] = 255;
+                        }
+                    }
+                }
+            }
+            
+            // Second pass: expand outline slightly for solid effect
+            const finalData = ctx.createImageData(canvas.width, canvas.height);
+            
+            for (let i = 0; i < outlineLayer.data.length; i++) {
+                finalData.data[i] = outlineLayer.data[i];
+            }
+            
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    const i = (y * canvas.width + x) * 4;
+                    
+                    if (outlineLayer.data[i + 3] > 0) {
+                        // Expand outline by 1 pixel
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                
+                                if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
+                                    const ni = (ny * canvas.width + nx) * 4;
+                                    if (finalData.data[ni + 3] === 0) {
+                                        finalData.data[ni] = or;
+                                        finalData.data[ni + 1] = og;
+                                        finalData.data[ni + 2] = ob;
+                                        finalData.data[ni + 3] = 255;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Overlay original on top
+            for (let i = 0; i < originalData.data.length; i += 4) {
+                if (originalData.data[i + 3] > 0) {
+                    finalData.data[i] = originalData.data[i];
+                    finalData.data[i + 1] = originalData.data[i + 1];
+                    finalData.data[i + 2] = originalData.data[i + 2];
+                    finalData.data[i + 3] = originalData.data[i + 3];
+                }
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(finalData, 0, 0);
         }
 
         downloadAllBtn.addEventListener('click', async () => {

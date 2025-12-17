@@ -4,17 +4,73 @@ layout: none
 <!DOCTYPE html>
 <html>
 <head>
-    <title>pages</title>
+    <title>~/pages</title>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', monospace;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #58a6ff;
+            margin-bottom: 1.5rem;
+            font-weight: normal;
+        }
+        h1::before {
+            content: '$ ';
+            color: #7ee787;
+        }
+        ul {
+            list-style: none;
+        }
+        li {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border-left: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        li:hover {
+            border-left-color: #58a6ff;
+            background: #161b22;
+            padding-left: 1rem;
+        }
+        a {
+            color: #c9d1d9;
+            text-decoration: none;
+        }
+        a::before {
+            content: '→ ';
+            color: #7ee787;
+        }
+        a:hover {
+            color: #58a6ff;
+        }
+    </style>
 </head>
 <body>
-    <h1>Páginas</h1>
-    <ul>
-    {% for page in site.pages %}
-        {% if page.url != "/" and page.url != "/index.html" %}
-        <li><a href="{{ page.url }}">{{ page.title | default: page.name }}</a></li>
-        {% endif %}
-    {% endfor %}
-    </ul>
+    <div class="container">
+        <h1>ls pages/</h1>
+        <ul>
+        {% for page in site.pages %}
+            {% assign ext = page.name | split: '.' | last %}
+            {% if page.url != "/" and page.name == "index.html" and ext != "css" %}
+            <li><a href="{{ page.url }}">{{ page.title | default: page.dir | remove: "/" }}</a></li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
 </body>
 </html>

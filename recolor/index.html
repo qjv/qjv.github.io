@@ -2,7 +2,7 @@
 layout: default
 title: batch icon recolor
 ---
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -468,7 +468,7 @@ title: batch icon recolor
             const item = document.createElement('div');
             item.className = 'color-grid-item';
             item.style.background = color;
-            item.onclick = () => selectColor(color);
+            item.onclick = () => window.selectColor(color);
             colorGrid.appendChild(item);
         });
 
@@ -584,10 +584,12 @@ title: batch icon recolor
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('drag-over');
+            console.log('Files dropped:', e.dataTransfer.items.length);
             handleFiles(e.dataTransfer.items);
         });
         
         folderInput.addEventListener('change', (e) => {
+            console.log('Files selected:', e.target.files.length);
             handleFilesFromInput(e.target.files);
         });
 

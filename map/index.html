@@ -1,0 +1,1070 @@
+---
+layout: default
+name: gw2 maps
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GW2 Map Viewer</title>
+    <style>
+        @import url('https://d1h9a8s8eodvjz.cloudfront.net/fonts/menomonia/08-02-12/menomonia.css');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 320px;
+            background: #252525;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #d4af37;
+        }
+
+        #header {
+            padding: 15px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        h1 {
+            font-size: 20px;
+            color: #d4af37;
+            margin-bottom: 10px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .section {
+            padding: 15px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .section h3 {
+            font-size: 13px;
+            color: #d4af37;
+            margin-bottom: 8px;
+        }
+
+        #mapList {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .map-item {
+            padding: 10px;
+            margin: 4px 0;
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .map-item:hover {
+            background: #2a2a2a;
+            border-color: #d4af37;
+        }
+
+        .map-item.active {
+            background: #d4af37;
+            color: #1a1a1a;
+        }
+
+        #viewer {
+            flex: 1;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        #canvas {
+            position: absolute;
+            image-rendering: pixelated;
+            cursor: grab;
+        }
+
+        #canvas:active {
+            cursor: grabbing;
+        }
+
+        #markerCanvas {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        #selectionCanvas {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #markerDropdown {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.95);
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #d4af37;
+            display: none;
+            max-height: 500px;
+            overflow-y: auto;
+            min-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        #markerDropdown.show {
+            display: block;
+        }
+
+        #markerDropdownToggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.9);
+            border: 2px solid #d4af37;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        #markerDropdownToggle:hover {
+            background: rgba(212, 175, 55, 0.2);
+            transform: scale(1.05);
+        }
+
+        #markerDropdownToggle img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .marker-toggle {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 12px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .marker-toggle:hover {
+            background: #2a2a2a;
+        }
+
+        .marker-toggle input {
+            width: auto;
+            margin: 0 10px 0 0;
+        }
+
+        .marker-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 8px;
+            margin: 4px 0;
+            background: #d4af37;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        button:hover {
+            background: #f0c050;
+        }
+
+        button.active {
+            background: #ff6b6b;
+        }
+
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #d4af37;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div id="header">
+            <h1>🗺️ GW2 Maps</h1>
+            <!--button id="renderWorldBtn">🌍 Render Full World</button-->
+            <input type="text" id="search" placeholder="Search maps...">
+        </div>
+        
+        <div id="mapList">Loading...</div>
+
+        <div class="section">
+            <h3>Floor</h3>
+            <select id="floorSelect">
+                <option value="0">Floor 0</option>
+                <option value="1" selected>Floor 1</option>
+                <option value="2">Floor 2</option>
+                <option value="3">Floor 3</option>
+            </select>
+        </div>
+
+        <div class="section">
+            <h3>Display Scale</h3>
+            <label style="font-size: 11px; color: #999; margin-bottom: 4px;">Icon Size: <span id="iconSizeValue">1.0x</span></label>
+            <input type="range" id="iconScale" min="0.5" max="3" step="0.1" value="1" style="width: 100%; margin-bottom: 10px;">
+            <label style="font-size: 11px; color: #999; margin-bottom: 4px;">Text Size: <span id="textSizeValue">1.0x</span></label>
+            <input type="range" id="textScale" min="0.5" max="3" step="0.1" value="1" style="width: 100%;">
+        </div>
+
+        <div class="section">
+            <h3>Screenshot</h3>
+            <select id="screenshotMode">
+                <option value="full">Full Map</option>
+                <option value="rectangle">Select Rectangle</option>
+            </select>
+            <select id="screenshotZoom">
+                <option value="7" selected>Zoom 7 (Max Detail)</option>
+                <option value="6">Zoom 6</option>
+                <option value="5">Zoom 5</option>
+                <option value="4">Zoom 4</option>
+                <option value="3">Zoom 3</option>
+                <option value="2">Zoom 2</option>
+                <option value="1">Zoom 1</option>
+                <option value="0">Zoom 0 (Min Detail)</option>
+            </select>
+            <select id="screenshotFloor">
+                <option value="0">Floor 0</option>
+                <option value="1" selected>Floor 1</option>
+                <option value="2">Floor 2</option>
+                <option value="3">Floor 3</option>
+            </select>
+            <button id="screenshotBtn">📷 Capture</button>
+        </div>
+    </div>
+
+    <div id="viewer">
+        <canvas id="canvas"></canvas>
+        <canvas id="markerCanvas"></canvas>
+        <canvas id="selectionCanvas"></canvas>
+        
+        <div id="markerDropdownToggle">
+            <img src="icons/eye.png" alt="Toggle markers">
+        </div>
+        
+        <div id="markerDropdown">
+            <div style="margin-bottom: 10px; font-weight: bold; color: #d4af37;">Marker Visibility</div>
+            <div id="markerToggles"></div>
+        </div>
+        
+        <div id="info">Select a map • Drag to pan • Scroll to zoom</div>
+    </div>
+
+    <script>
+        const CONTINENTS = {
+            1: { dims: [81920, 114688], maxZoom: 7 },
+            2: { dims: [16384, 16384], maxZoom: 6 }
+        };
+
+        // Local icon paths
+        const ICONS = {
+            waypoint: 'icons/waypoint.png',
+			poi: 'icons/poi.png',
+            vista: 'icons/vista.png',
+            heart: 'icons/heart.png',
+            heartZone: 'icons/heart2.png',
+            heroBase: 'icons/hp1.png',
+            heroExpansion: 'icons/hp10.png',
+            adventure: 'icons/adventure.png',
+            mastery1: 'icons/mastery1.png',
+            mastery2: 'icons/mastery2.png',
+            mastery3: 'icons/mastery3.png',
+            mastery4: 'icons/mastery4.png',
+            mastery5: 'icons/mastery5.png',
+            mastery6: 'icons/mastery6.png',
+            mastery7: 'icons/mastery7.png',
+            mastery8: 'icons/mastery8.png'
+        };
+
+        // Mastery type to icon mapping
+        const MASTERY_ICONS = {
+            'Tyria': 'mastery1',      // Core Tyria (red)
+            'Maguuma': 'mastery2',    // Heart of Thorns (green)
+            'Desert': 'mastery3',     // Path of Fire (purple)
+            'Tundra': 'mastery4',     // Icebrood Saga (blue)
+            'Jade': 'mastery5',       // End of Dragons (jade)
+            'Sky': 'mastery6',        // Secrets of the Obscure (sky)
+            'Lowland': 'mastery7',    // Janthir Wilds (lowland)
+            'Magic': 'mastery8'       // Visions of Eternity (magic)
+        };
+
+        // Expansion zones (for hero point detection)
+        const EXPANSION_MAPS = [
+            // Heart of Thorns
+            1043, 1045, 1052, 1165, 1041, 1175, 1178, 1185, 1195, 1203,
+            // Path of Fire
+            1210, 1211, 1228, 1226, 1248, 1263, 1271, 1288, 1301, 1310, 1317,
+			// Icebrood Saga
+			1330, 1343, 1371,
+            // End of Dragons
+            1422, 1438, 1442, 1452, 1490, 1420,
+            // Secrets of the Obscure
+            1510, 1517, 1526, 1509,
+            // Janthir Wilds
+            1550, 1554, 1575, 1574,
+			// Visions of Eternity
+			1593, 1595,
+        ];
+
+        let maps = [];
+        let currentMap = null;
+        let currentFloor = 1;
+        let floorData = null;
+        let isWorldView = false;
+        
+        let viewState = {
+            zoom: 7,
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
+            dragging: false,
+            lastX: 0,
+            lastY: 0
+        };
+
+        let markerVisibility = {
+            waypoints: true,
+            landmarks: true,
+            vistas: true,
+			pois: true,
+            hearts: true,
+            heartZones: true,
+            heroPoints: true,
+            sectors: true,
+            masteryPoints: true,
+            adventures: true,
+            regions: true
+        };
+
+        let displayScale = {
+            icons: 1.0,
+            text: 1.0
+        };
+
+        let screenshotState = {
+            active: false,
+            selection: null
+        };
+
+        let mapBounds = null;
+        let baseImage = null;
+        let loadedIcons = {};
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const markerCanvas = document.getElementById('markerCanvas');
+        const markerCtx = markerCanvas.getContext('2d');
+        const selCanvas = document.getElementById('selectionCanvas');
+        const selCtx = selCanvas.getContext('2d');
+        const viewer = document.getElementById('viewer');
+        const markerDropdown = document.getElementById('markerDropdown');
+        const markerToggle = document.getElementById('markerDropdownToggle');
+
+        // Preload icons
+        function preloadIcons() {
+            Object.entries(ICONS).forEach(([key, path]) => {
+                const img = new Image();
+                img.src = path;
+                loadedIcons[key] = img;
+            });
+        }
+
+        function resizeCanvases() {
+            canvas.width = markerCanvas.width = selCanvas.width = viewer.clientWidth;
+            canvas.height = markerCanvas.height = selCanvas.height = viewer.clientHeight;
+            if (currentMap || isWorldView) render();
+        }
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        // Marker dropdown toggle
+        markerToggle.onclick = () => {
+            markerDropdown.classList.toggle('show');
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!markerDropdown.contains(e.target) && !markerToggle.contains(e.target)) {
+                markerDropdown.classList.remove('show');
+            }
+        });
+
+        // Create marker toggles
+        function createMarkerToggles() {
+            const toggles = [
+                { key: 'waypoints', label: 'Waypoints', icon: 'waypoint' },
+				{ key: 'pois', label: 'Points of Interest', icon: 'poi' },
+                { key: 'vistas', label: 'Vistas', icon: 'vista' },
+                { key: 'hearts', label: 'Hearts', icon: 'heart' },
+                { key: 'heartZones', label: 'Heart Zones', icon: 'heartZone' },
+                { key: 'heroPoints', label: 'Hero Points', icon: 'heroBase' },
+                { key: 'sectors', label: 'Sector Labels', icon: null },
+                { key: 'masteryPoints', label: 'Mastery Points', icon: 'mastery1' },
+                { key: 'adventures', label: 'Adventures', icon: 'adventure' },
+                { key: 'regions', label: 'Region Labels', icon: null }
+            ];
+
+            const container = document.getElementById('markerToggles');
+            toggles.forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'marker-toggle';
+                div.innerHTML = `
+                    <input type="checkbox" id="toggle_${t.key}" ${markerVisibility[t.key] ? 'checked' : ''}>
+                    ${t.icon ? `<img class="marker-icon" src="${ICONS[t.icon]}">` : ''}
+                    <label for="toggle_${t.key}">${t.label}</label>
+                `;
+                div.onclick = (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        const checkbox = document.getElementById(`toggle_${t.key}`);
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    markerVisibility[t.key] = document.getElementById(`toggle_${t.key}`).checked;
+                    render();
+                };
+                container.appendChild(div);
+            });
+        }
+
+        // Load maps
+        async function loadMaps() {
+            try {
+                const res = await fetch('https://api.guildwars2.com/v2/maps?ids=all');
+                maps = (await res.json()).filter(m => m.type === 'Public').sort((a, b) => a.name.localeCompare(b.name));
+                displayMaps(maps);
+            } catch (err) {
+                document.getElementById('mapList').textContent = 'Error loading maps';
+                console.error(err);
+            }
+        }
+
+        function displayMaps(list) {
+            const container = document.getElementById('mapList');
+            container.innerHTML = '';
+            list.forEach(map => {
+                const div = document.createElement('div');
+                div.className = 'map-item';
+                div.textContent = `${map.name} (${map.min_level}-${map.max_level})`;
+                div.onclick = () => selectMap(map);
+                container.appendChild(div);
+            });
+        }
+
+        document.getElementById('search').oninput = (e) => {
+            const q = e.target.value.toLowerCase();
+            displayMaps(maps.filter(m => m.name.toLowerCase().includes(q)));
+        };
+
+        document.getElementById('floorSelect').onchange = (e) => {
+            currentFloor = parseInt(e.target.value);
+            if (currentMap) loadMapData(currentMap);
+            else if (isWorldView) renderWorld();
+        };
+
+        document.getElementById('iconScale').oninput = (e) => {
+            displayScale.icons = parseFloat(e.target.value);
+            document.getElementById('iconSizeValue').textContent = displayScale.icons.toFixed(1) + 'x';
+            render();
+        };
+
+        document.getElementById('textScale').oninput = (e) => {
+            displayScale.text = parseFloat(e.target.value);
+            document.getElementById('textSizeValue').textContent = displayScale.text.toFixed(1) + 'x';
+            render();
+        };
+
+        // Render full world
+        //document.getElementById('renderWorldBtn').onclick = async () => {
+        //    isWorldView = true;
+        //    currentMap = null;
+        //    document.querySelectorAll('.map-item').forEach(el => el.classList.remove('active'));
+            
+        //    viewState.zoom = 1;
+        //    viewState.offsetX = 0;
+        //    viewState.offsetY = 0;
+            
+        //    await renderWorld();
+        //};
+
+        async function renderWorld() {
+            const continentId = 1; // Tyria
+            const continent = CONTINENTS[continentId];
+            const [width, height] = continent.dims;
+            const maxZoom = continent.maxZoom;
+            
+            const unitsPerTile = 256;
+            const startTileX = 0;
+            const startTileY = 0;
+            const endTileX = Math.ceil(width / unitsPerTile);
+            const endTileY = Math.ceil(height / unitsPerTile);
+            
+            const tilesWide = endTileX - startTileX;
+            const tilesHigh = endTileY - startTileY;
+            
+            mapBounds = { x1: 0, y1: 0, x2: width, y2: height, width: width, height: height };
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = tilesWide * 256;
+            tempCanvas.height = tilesHigh * 256;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            let loaded = 0;
+            const total = tilesWide * tilesHigh;
+            
+            for (let ty = 0; ty < tilesHigh; ty++) {
+                for (let tx = 0; tx < tilesWide; tx++) {
+                    const url = `https://tiles.guildwars2.com/${continentId}/${currentFloor}/${maxZoom}/${tx}/${ty}.jpg`;
+                    
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        tempCtx.drawImage(img, tx * 256, ty * 256);
+                        loaded++;
+                        if (loaded === total) {
+                            baseImage = tempCanvas;
+                            render();
+                        }
+                    };
+                    img.onerror = () => { loaded++; };
+                    img.src = url;
+                }
+            }
+            
+            try {
+                const res = await fetch(`https://api.guildwars2.com/v2/continents/${continentId}/floors/${currentFloor}`);
+                floorData = await res.json();
+                if (loaded === total) render();
+            } catch (err) {
+                console.error('Error loading floor data:', err);
+            }
+        }
+
+        async function selectMap(map) {
+            isWorldView = false;
+            currentMap = map;
+            document.querySelectorAll('.map-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            viewState.zoom = 7;
+            viewState.offsetX = 0;
+            viewState.offsetY = 0;
+            
+            await loadMapData(map);
+        }
+
+        async function loadMapData(map) {
+            const continent = CONTINENTS[map.continent_id];
+            const maxZoom = continent.maxZoom;
+            
+            const [[x1, y1], [x2, y2]] = map.continent_rect;
+            mapBounds = { x1, y1, x2, y2, width: x2 - x1, height: y2 - y1 };
+            
+            const unitsPerTile = 256;
+            const startTileX = Math.floor(x1 / unitsPerTile);
+            const startTileY = Math.floor(y1 / unitsPerTile);
+            const endTileX = Math.ceil(x2 / unitsPerTile);
+            const endTileY = Math.ceil(y2 / unitsPerTile);
+            
+            const tilesWide = endTileX - startTileX;
+            const tilesHigh = endTileY - startTileY;
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = tilesWide * 256;
+            tempCanvas.height = tilesHigh * 256;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            let loaded = 0;
+            const total = tilesWide * tilesHigh;
+            
+            for (let ty = 0; ty < tilesHigh; ty++) {
+                for (let tx = 0; tx < tilesWide; tx++) {
+                    const tileX = startTileX + tx;
+                    const tileY = startTileY + ty;
+                    const url = `https://tiles.guildwars2.com/${map.continent_id}/${currentFloor}/${maxZoom}/${tileX}/${tileY}.jpg`;
+                    
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        tempCtx.drawImage(img, tx * 256, ty * 256);
+                        loaded++;
+                        if (loaded === total) {
+                            baseImage = tempCanvas;
+                            render();
+                        }
+                    };
+                    img.onerror = () => { loaded++; };
+                    img.src = url;
+                }
+            }
+            
+            try {
+                const res = await fetch(`https://api.guildwars2.com/v2/continents/${map.continent_id}/floors/${currentFloor}`);
+                floorData = await res.json();
+                if (loaded === total) render();
+            } catch (err) {
+                console.error('Error loading floor data:', err);
+            }
+        }
+
+        function clampView() {
+            if (!mapBounds) return;
+            
+            const [[x1, y1], [x2, y2]] = isWorldView ? 
+                [[0, 0], [mapBounds.x2, mapBounds.y2]] : 
+                [[mapBounds.x1, mapBounds.y1], [mapBounds.x2, mapBounds.y2]];
+            
+            const width = (x2 - x1) * viewState.scale / 256;
+            const height = (y2 - y1) * viewState.scale / 256;
+            
+            // Clamp to prevent seeing void
+            const maxOffsetX = 0;
+            const minOffsetX = canvas.width - width;
+            const maxOffsetY = 0;
+            const minOffsetY = canvas.height - height;
+            
+            if (width > canvas.width) {
+                viewState.offsetX = Math.max(minOffsetX, Math.min(maxOffsetX, viewState.offsetX));
+            } else {
+                viewState.offsetX = (canvas.width - width) / 2;
+            }
+            
+            if (height > canvas.height) {
+                viewState.offsetY = Math.max(minOffsetY, Math.min(maxOffsetY, viewState.offsetY));
+            } else {
+                viewState.offsetY = (canvas.height - height) / 2;
+            }
+        }
+
+        function render() {
+            if (!baseImage) return;
+            
+            viewState.scale = Math.pow(2, viewState.zoom);
+            
+            const [[x1, y1], [x2, y2]] = isWorldView ? 
+                [[0, 0], [mapBounds.x2, mapBounds.y2]] : 
+                [[mapBounds.x1, mapBounds.y1], [mapBounds.x2, mapBounds.y2]];
+            
+            const width = (x2 - x1) * viewState.scale / 256;
+            const height = (y2 - y1) * viewState.scale / 256;
+            
+            if (viewState.offsetX === 0 && viewState.offsetY === 0) {
+                viewState.offsetX = (canvas.width - width) / 2;
+                viewState.offsetY = (canvas.height - height) / 2;
+            }
+            
+            clampView();
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            markerCtx.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
+            
+            ctx.drawImage(baseImage, viewState.offsetX, viewState.offsetY, width, height);
+            
+            drawMarkers();
+            
+            const mapName = isWorldView ? 'Full World (Tyria)' : (currentMap ? currentMap.name : 'Select a map');
+            document.getElementById('info').textContent = 
+                `${mapName} • Floor ${currentFloor} • Zoom ${viewState.zoom}`;
+        }
+
+        function toScreen(coord) {
+            const [[x1, y1]] = isWorldView ? [[0, 0]] : [[mapBounds.x1, mapBounds.y1]];
+            const x = ((coord[0] - x1) * viewState.scale / 256) + viewState.offsetX;
+            const y = ((coord[1] - y1) * viewState.scale / 256) + viewState.offsetY;
+            return [x, y];
+        }
+
+        function drawMarkers() {
+            if (!floorData) return;
+            
+            for (const region of Object.values(floorData.regions || {})) {
+                // Draw region label
+                if (markerVisibility.regions && region.label_coord) {
+                    const [x, y] = toScreen(region.label_coord);
+                    markerCtx.save();
+                    markerCtx.font = `${20 * displayScale.text}px Menomonia, Arial`;
+                    markerCtx.fillStyle = 'rgba(212, 175, 55, 0.9)';
+                    markerCtx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+                    markerCtx.lineWidth = 3 * displayScale.text;
+                    markerCtx.textAlign = 'center';
+                    markerCtx.strokeText(region.name, x, y);
+                    markerCtx.fillText(region.name, x, y);
+                    markerCtx.restore();
+                }
+                
+                for (const mapData of Object.values(region.maps || {})) {
+                    // Skip if not in world view and not current map
+                    if (!isWorldView && currentMap && mapData.id !== currentMap.id) continue;
+                    
+                    const mapId = parseInt(Object.keys(region.maps).find(key => region.maps[key] === mapData));
+                    const isExpansionMap = EXPANSION_MAPS.includes(mapId);
+                    
+                    // Heart zones
+                    if (markerVisibility.heartZones && mapData.tasks) {
+                        markerCtx.fillStyle = 'rgba(255, 105, 180, 0.15)';
+                        markerCtx.strokeStyle = 'rgba(255, 105, 180, 0.5)';
+                        markerCtx.lineWidth = 1;
+                        
+                        Object.values(mapData.tasks).forEach(task => {
+                            if (task.bounds && task.bounds.length > 0) {
+                                markerCtx.beginPath();
+                                const [fx, fy] = toScreen(task.bounds[0]);
+                                markerCtx.moveTo(fx, fy);
+                                for (let i = 1; i < task.bounds.length; i++) {
+                                    const [tx, ty] = toScreen(task.bounds[i]);
+                                    markerCtx.lineTo(tx, ty);
+                                }
+                                markerCtx.closePath();
+                                markerCtx.fill();
+                                markerCtx.stroke();
+                            }
+                        });
+                    }
+                    
+                    // Sector labels
+                    if (markerVisibility.sectors && mapData.sectors) {
+                        markerCtx.save();
+                        markerCtx.font = `${14 * displayScale.text}px Menomonia, Arial`;
+                        markerCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                        markerCtx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+                        markerCtx.lineWidth = 2 * displayScale.text;
+                        markerCtx.textAlign = 'center';
+                        
+                        Object.values(mapData.sectors).forEach(sector => {
+                            if (sector.coord) {
+                                const [x, y] = toScreen(sector.coord);
+                                markerCtx.strokeText(sector.name, x, y);
+                                markerCtx.fillText(sector.name, x, y);
+                            }
+                        });
+                        markerCtx.restore();
+                    }
+                    
+                    // POIs
+                    if (mapData.points_of_interest) {
+                        Object.values(mapData.points_of_interest).forEach(poi => {
+                            if (!poi.coord) return;
+                            const [x, y] = toScreen(poi.coord);
+                            const iconSize = displayScale.icons;
+                            
+                            if (poi.type === 'waypoint' && markerVisibility.waypoints && loadedIcons.waypoint) {
+                                const w = 24 * iconSize;
+                                const h = 24 * iconSize;
+                                markerCtx.drawImage(loadedIcons.waypoint, x - w/2, y - h/2, w, h);
+                            } else if (poi.type === 'vista' && markerVisibility.vistas && loadedIcons.vista) {
+                                const w = 20 * iconSize;
+                                const h = 20 * iconSize;
+                                markerCtx.drawImage(loadedIcons.vista, x - w/2, y - h/2, w, h);
+                            } else if (poi.type === 'landmark' && markerVisibility.vistas && loadedIcons.vista) {
+                                const w = 20 * iconSize;
+                                const h = 20 * iconSize;
+                                markerCtx.drawImage(loadedIcons.poi, x - w/2, y - h/2, w, h);
+							}
+                        });
+                    }
+                    
+                    // Hearts
+                    if (markerVisibility.hearts && mapData.tasks && loadedIcons.heart) {
+                        Object.values(mapData.tasks).forEach(task => {
+                            if (task.coord) {
+                                const [x, y] = toScreen(task.coord);
+                                const w = 20 * displayScale.icons;
+                                const h = 20 * displayScale.icons;
+                                markerCtx.drawImage(loadedIcons.heart, x - w/2, y - h/2, w, h);
+                            }
+                        });
+                    }
+                    
+                    // Hero Points (conditional icon based on expansion)
+                    if (markerVisibility.heroPoints && mapData.skill_challenges) {
+                        const heroIcon = isExpansionMap ? loadedIcons.heroExpansion : loadedIcons.heroBase;
+                        if (heroIcon) {
+                            mapData.skill_challenges.forEach(sc => {
+                                if (sc.coord) {
+                                    const [x, y] = toScreen(sc.coord);
+                                    const w = 20 * displayScale.icons;
+                                    const h = 20 * displayScale.icons;
+                                    markerCtx.drawImage(heroIcon, x - w/2, y - h/2, w, h);
+                                }
+                            });
+                        }
+                    }
+                    
+                    // Mastery Points (conditional icon based on type)
+                    if (markerVisibility.masteryPoints && mapData.training_points) {
+                        mapData.training_points.forEach(mp => {
+                            if (mp.coord) {
+                                const iconKey = MASTERY_ICONS[mp.type] || 'mastery8';
+                                const icon = loadedIcons[iconKey];
+                                if (icon) {
+                                    const [x, y] = toScreen(mp.coord);
+                                    const w = 20 * displayScale.icons;
+                                    const h = 20 * displayScale.icons;
+                                    markerCtx.drawImage(icon, x - w/2, y - h/2, w, h);
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Adventures
+                    if (markerVisibility.adventures && mapData.adventures && loadedIcons.adventure) {
+                        mapData.adventures.forEach(adv => {
+                            if (adv.coord) {
+                                const [x, y] = toScreen(adv.coord);
+                                const w = 20 * displayScale.icons;
+                                const h = 20 * displayScale.icons;
+                                markerCtx.drawImage(loadedIcons.adventure, x - w/2, y - h/2, w, h);
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        // Mouse handlers
+        let mouseHandler = {
+            startX: 0,
+            startY: 0,
+            isPanning: false,
+            isSelecting: false
+        };
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (screenshotState.active && document.getElementById('screenshotMode').value === 'rectangle') {
+                mouseHandler.isSelecting = true;
+                const rect = canvas.getBoundingClientRect();
+                mouseHandler.startX = e.clientX - rect.left;
+                mouseHandler.startY = e.clientY - rect.top;
+                return;
+            }
+            
+            mouseHandler.isPanning = true;
+            mouseHandler.startX = e.clientX;
+            mouseHandler.startY = e.clientY;
+            viewState.lastX = e.clientX;
+            viewState.lastY = e.clientY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (mouseHandler.isSelecting) {
+                const rect = canvas.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+                
+                selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
+                selCtx.strokeStyle = '#d4af37';
+                selCtx.lineWidth = 2;
+                selCtx.setLineDash([5, 5]);
+                selCtx.strokeRect(mouseHandler.startX, mouseHandler.startY, 
+                    currentX - mouseHandler.startX, currentY - mouseHandler.startY);
+                selCtx.fillStyle = 'rgba(212, 175, 55, 0.1)';
+                selCtx.fillRect(mouseHandler.startX, mouseHandler.startY, 
+                    currentX - mouseHandler.startX, currentY - mouseHandler.startY);
+                return;
+            }
+            
+            if (mouseHandler.isPanning) {
+                viewState.offsetX += e.clientX - viewState.lastX;
+                viewState.offsetY += e.clientY - viewState.lastY;
+                viewState.lastX = e.clientX;
+                viewState.lastY = e.clientY;
+                render();
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (mouseHandler.isSelecting) {
+                const rect = canvas.getBoundingClientRect();
+                const endX = e.clientX - rect.left;
+                const endY = e.clientY - rect.top;
+                
+                screenshotState.selection = {
+                    x: Math.min(mouseHandler.startX, endX),
+                    y: Math.min(mouseHandler.startY, endY),
+                    w: Math.abs(endX - mouseHandler.startX),
+                    h: Math.abs(endY - mouseHandler.startY)
+                };
+                
+                mouseHandler.isSelecting = false;
+                captureScreenshot();
+                return;
+            }
+            
+            mouseHandler.isPanning = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouseHandler.isPanning = false;
+            mouseHandler.isSelecting = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const maxZoom = isWorldView ? 7 : (currentMap ? CONTINENTS[currentMap.continent_id].maxZoom : 7);
+            
+            if (e.deltaY < 0 && viewState.zoom < maxZoom) {
+                viewState.zoom++;
+                viewState.offsetX = e.offsetX - (e.offsetX - viewState.offsetX) * 2;
+                viewState.offsetY = e.offsetY - (e.offsetY - viewState.offsetY) * 2;
+            } else if (e.deltaY > 0 && viewState.zoom > 0) {
+                viewState.zoom--;
+                viewState.offsetX = e.offsetX - (e.offsetX - viewState.offsetX) * 0.5;
+                viewState.offsetY = e.offsetY - (e.offsetY - viewState.offsetY) * 0.5;
+            }
+            render();
+        });
+
+        // Screenshot
+        document.getElementById('screenshotBtn').onclick = () => {
+            const mode = document.getElementById('screenshotMode').value;
+            
+            if (mode === 'full') {
+                captureScreenshot();
+            } else {
+                screenshotState.active = !screenshotState.active;
+                const btn = document.getElementById('screenshotBtn');
+                btn.classList.toggle('active');
+                btn.textContent = screenshotState.active ? '❌ Cancel' : '📷 Capture';
+                
+                if (screenshotState.active) {
+                    canvas.style.cursor = 'crosshair';
+                } else {
+                    canvas.style.cursor = '';
+                    selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
+                    screenshotState.selection = null;
+                }
+            }
+        };
+
+        async function captureScreenshot() {
+            if (!currentMap && !isWorldView) return;
+            
+            const zoom = parseInt(document.getElementById('screenshotZoom').value);
+            const floor = parseInt(document.getElementById('screenshotFloor').value);
+            const mode = document.getElementById('screenshotMode').value;
+            
+            const [[x1, y1], [x2, y2]] = isWorldView ? 
+                [[0, 0], [CONTINENTS[1].dims[0], CONTINENTS[1].dims[1]]] : 
+                [currentMap.continent_rect[0], currentMap.continent_rect[1]];
+            
+            const continentId = isWorldView ? 1 : currentMap.continent_id;
+            const unitsPerTile = 256;
+            const startTileX = Math.floor(x1 / unitsPerTile);
+            const startTileY = Math.floor(y1 / unitsPerTile);
+            const endTileX = Math.ceil(x2 / unitsPerTile);
+            const endTileY = Math.ceil(y2 / unitsPerTile);
+            
+            const tilesWide = endTileX - startTileX;
+            const tilesHigh = endTileY - startTileY;
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = tilesWide * 256;
+            tempCanvas.height = tilesHigh * 256;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            document.getElementById('screenshotBtn').textContent = 'Loading...';
+            
+            let loaded = 0;
+            const total = tilesWide * tilesHigh;
+            
+            for (let ty = 0; ty < tilesHigh; ty++) {
+                for (let tx = 0; tx < tilesWide; tx++) {
+                    const tileX = startTileX + tx;
+                    const tileY = startTileY + ty;
+                    const url = `https://tiles.guildwars2.com/${continentId}/${floor}/${zoom}/${tileX}/${tileY}.jpg`;
+                    
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        tempCtx.drawImage(img, tx * 256, ty * 256);
+                        loaded++;
+                        if (loaded === total) {
+                            let finalCanvas = tempCanvas;
+                            
+                            if (mode === 'rectangle' && screenshotState.selection) {
+                                const sel = screenshotState.selection;
+                                const cropCanvas = document.createElement('canvas');
+                                cropCanvas.width = sel.w;
+                                cropCanvas.height = sel.h;
+                                const cropCtx = cropCanvas.getContext('2d');
+                                
+                                const scaleX = tempCanvas.width / canvas.width;
+                                const scaleY = tempCanvas.height / canvas.height;
+                                
+                                cropCtx.drawImage(tempCanvas, 
+                                    sel.x * scaleX, sel.y * scaleY, sel.w * scaleX, sel.h * scaleY,
+                                    0, 0, sel.w, sel.h);
+                                finalCanvas = cropCanvas;
+                            }
+                            
+                            finalCanvas.toBlob((blob) => {
+                                navigator.clipboard.write([
+                                    new ClipboardItem({ 'image/png': blob })
+                                ]).then(() => {
+                                    alert('Copied to clipboard!');
+                                    document.getElementById('screenshotBtn').textContent = '📷 Capture';
+                                    screenshotState.active = false;
+                                    screenshotState.selection = null;
+                                    selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
+                                    document.getElementById('screenshotBtn').classList.remove('active');
+                                    canvas.style.cursor = '';
+                                });
+                            });
+                        }
+                    };
+                    img.onerror = () => { loaded++; };
+                    img.src = url;
+                }
+            }
+        }
+
+        // Initialize
+        preloadIcons();
+        createMarkerToggles();
+        loadMaps();
+    </script>
+</body>
+</html>

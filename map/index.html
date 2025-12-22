@@ -1,21 +1,13 @@
----
-layout: default
-name: gw2 maps
----
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GW2 Map Viewer</title>
+    <title>GW2 Map Viewer - Filtered Selection</title>
     <style>
         @import url('https://d1h9a8s8eodvjz.cloudfront.net/fonts/menomonia/08-02-12/menomonia.css');
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: Arial, sans-serif;
@@ -38,13 +30,9 @@ name: gw2 maps
             border-bottom: 1px solid #3a3a3a;
         }
 
-        h1 {
-            font-size: 20px;
-            color: #d4af37;
-            margin-bottom: 10px;
-        }
+        h1 { font-size: 20px; color: #d4af37; margin-bottom: 10px; }
 
-        input, select {
+        input[type="text"], select {
             width: 100%;
             padding: 8px;
             background: #1a1a1a;
@@ -72,25 +60,39 @@ name: gw2 maps
             padding: 10px;
         }
 
-        .map-item {
-            padding: 10px;
-            margin: 4px 0;
-            background: #1a1a1a;
+        .region-group {
+            margin-bottom: 10px;
             border: 1px solid #3a3a3a;
             border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .region-header {
+            background: #2a2a2a;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            color: #d4af37;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .region-header:hover { background: #333; }
+        .region-header.active { background: #d4af37; color: #1a1a1a; }
+
+        .map-item {
+            padding: 6px 10px 6px 20px;
+            background: #1a1a1a;
             cursor: pointer;
             font-size: 12px;
+            border-top: 1px solid #2a2a2a;
+            color: #bbb;
         }
 
-        .map-item:hover {
-            background: #2a2a2a;
-            border-color: #d4af37;
-        }
-
-        .map-item.active {
-            background: #d4af37;
-            color: #1a1a1a;
-        }
+        .map-item:hover { background: #252525; color: #fff; }
+        .map-item.active { color: #d4af37; font-weight: bold; }
 
         #viewer {
             flex: 1;
@@ -99,137 +101,96 @@ name: gw2 maps
             overflow: hidden;
         }
 
-        #canvas {
-            position: absolute;
-            image-rendering: pixelated;
-            cursor: grab;
-        }
+        #canvas { position: absolute; image-rendering: pixelated; cursor: grab; }
+        #canvas:active { cursor: grabbing; }
+        #markerCanvas { position: absolute; pointer-events: none; }
+        #selectionCanvas { position: absolute; z-index: 10; pointer-events: none; }
 
-        #canvas:active {
-            cursor: grabbing;
+        #markerControls {
+            position: absolute; top: 10px; right: 10px; z-index: 50;
+            width: 40px; height: 40px;
         }
-
-        #markerCanvas {
-            position: absolute;
-            pointer-events: none;
+        #markerControls::after {
+            content: ''; position: absolute; top: 100%; left: -20px; right: -20px; height: 30px; background: transparent;
         }
-
-        #selectionCanvas {
-            position: absolute;
-            z-index: 10;
-            pointer-events: none;
-        }
-
+        
         #markerDropdown {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.95);
-            padding: 15px;
-            border-radius: 6px;
-            border: 2px solid #d4af37;
-            display: none;
-            max-height: 500px;
-            overflow-y: auto;
-            min-width: 220px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            position: absolute; top: 45px; right: 0;
+            background: rgba(0,0,0,0.95); padding: 15px;
+            border-radius: 6px; border: 2px solid #d4af37;
+            display: none; max-height: 500px; overflow-y: auto;
+            min-width: 220px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
-
-        #markerDropdown.show {
-            display: block;
-        }
+        #markerControls:hover #markerDropdown { display: block; }
 
         #markerDropdownToggle {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 40px;
-            height: 40px;
-            background: rgba(0,0,0,0.9);
-            border: 2px solid #d4af37;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 40px; height: 40px;
+            background: rgba(0,0,0,0.9); border: 2px solid #d4af37;
+            border-radius: 6px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
             transition: all 0.2s;
+            position: relative; z-index: 51;
         }
-
-        #markerDropdownToggle:hover {
-            background: rgba(212, 175, 55, 0.2);
-            transform: scale(1.05);
-        }
-
-        #markerDropdownToggle img {
-            width: 24px;
-            height: 24px;
-        }
-
+        #markerDropdownToggle:hover { transform: scale(1.05); background: #333; }
+        #markerDropdownToggle img { width: 24px; height: 24px; transition: opacity 0.2s; }
+        
         .marker-toggle {
-            display: flex;
-            align-items: center;
-            margin: 8px 0;
-            font-size: 12px;
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 4px;
-            transition: background 0.2s;
+            display: flex; align-items: center; margin: 8px 0;
+            font-size: 12px; cursor: pointer; padding: 6px;
+            border-radius: 4px; transition: background 0.2s;
         }
-
-        .marker-toggle:hover {
-            background: #2a2a2a;
+        .marker-toggle:hover { background: #2a2a2a; }
+        .marker-toggle input[type="checkbox"] { 
+            appearance: auto; width: 16px; height: 16px; margin-right: 10px; 
+            cursor: pointer; accent-color: #d4af37;
         }
-
-        .marker-toggle input {
-            width: auto;
-            margin: 0 10px 0 0;
-        }
-
-        .marker-icon {
-            width: 20px;
-            height: 20px;
-            margin-right: 8px;
-        }
+        .marker-icon { width: 20px; height: 20px; margin-right: 8px; }
 
         button {
-            width: 100%;
-            padding: 8px;
-            margin: 4px 0;
-            background: #d4af37;
-            color: #1a1a1a;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 12px;
+            width: 100%; padding: 8px; margin: 4px 0;
+            background: #d4af37; color: #1a1a1a;
+            border: none; border-radius: 4px; cursor: pointer;
+            font-weight: bold; font-size: 12px;
         }
-
-        button:hover {
-            background: #f0c050;
-        }
-
-        button.active {
-            background: #ff6b6b;
-        }
+        button:hover { background: #f0c050; }
+        button.active { background: #ff6b6b; }
 
         #info {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.9);
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #d4af37;
-            font-size: 11px;
+            position: absolute; bottom: 10px; left: 10px;
+            background: rgba(0,0,0,0.9); padding: 8px 12px;
+            border-radius: 4px; border: 1px solid #d4af37;
+            font-size: 11px; z-index: 20;
         }
+
+        #inspector {
+            position: absolute; bottom: 45px; left: 10px;
+            background: rgba(0,0,0,0.9); padding: 8px 12px;
+            border-radius: 4px; border: 1px solid #888;
+            font-size: 11px; color: #bbb; z-index: 20; display: none;
+            min-width: 150px;
+        }
+        .value-highlight { color: #d4af37; font-weight: bold; }
+        .map-highlight { color: #4fa4ff; font-weight: bold; }
+        
+        .world-btn {
+            background: #254060; color: #fff; margin-bottom: 10px;
+        }
+        .world-btn:hover { background: #305075; }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <div id="header">
             <h1>🗺️ GW2 Maps</h1>
-            <!--button id="renderWorldBtn">🌍 Render Full World</button-->
             <input type="text" id="search" placeholder="Search maps...">
+            <select id="typeFilter">
+                <option value="Public">Public (Open World)</option>
+                <option value="Instance">Instance</option>
+                <option value="WvW">World vs World</option>
+                <option value="PvP">PvP</option>
+                <option value="Tutorial">Tutorial</option>
+                <option value="All">All Types</option>
+            </select>
         </div>
         
         <div id="mapList">Loading...</div>
@@ -237,16 +198,13 @@ name: gw2 maps
         <div class="section">
             <h3>Floor</h3>
             <select id="floorSelect">
-                <option value="0">Floor 0</option>
-                <option value="1" selected>Floor 1</option>
-                <option value="2">Floor 2</option>
-                <option value="3">Floor 3</option>
+                <option value="1" selected>Floor 1 (Default)</option>
             </select>
         </div>
 
         <div class="section">
             <h3>Display Scale</h3>
-            <label style="font-size: 11px; color: #999; margin-bottom: 4px;">Icon Size: <span id="iconSizeValue">1.0x</span></label>
+            <label style="font-size: 11px; color: #999; margin-bottom: 4px;">Icon Base Size: <span id="iconSizeValue">1.0x</span></label>
             <input type="range" id="iconScale" min="0.5" max="3" step="0.1" value="1" style="width: 100%; margin-bottom: 10px;">
             <label style="font-size: 11px; color: #999; margin-bottom: 4px;">Text Size: <span id="textSizeValue">1.0x</span></label>
             <input type="range" id="textScale" min="0.5" max="3" step="0.1" value="1" style="width: 100%;">
@@ -255,26 +213,21 @@ name: gw2 maps
         <div class="section">
             <h3>Screenshot</h3>
             <select id="screenshotMode">
-                <option value="full">Full Map</option>
+                <option value="full">Current View</option>
                 <option value="rectangle">Select Rectangle</option>
             </select>
             <select id="screenshotZoom">
-                <option value="7" selected>Zoom 7 (Max Detail)</option>
+                <option value="7" selected>Zoom 7 (Max)</option>
                 <option value="6">Zoom 6</option>
                 <option value="5">Zoom 5</option>
                 <option value="4">Zoom 4</option>
                 <option value="3">Zoom 3</option>
                 <option value="2">Zoom 2</option>
-                <option value="1">Zoom 1</option>
-                <option value="0">Zoom 0 (Min Detail)</option>
             </select>
             <select id="screenshotFloor">
-                <option value="0">Floor 0</option>
                 <option value="1" selected>Floor 1</option>
-                <option value="2">Floor 2</option>
-                <option value="3">Floor 3</option>
             </select>
-            <button id="screenshotBtn">📷 Capture</button>
+            <button id="screenshotBtn">📥 Download</button>
         </div>
     </div>
 
@@ -283,15 +236,17 @@ name: gw2 maps
         <canvas id="markerCanvas"></canvas>
         <canvas id="selectionCanvas"></canvas>
         
-        <div id="markerDropdownToggle">
-            <img src="icons/eye.png" alt="Toggle markers">
+        <div id="markerControls">
+            <div id="markerDropdownToggle" title="Click to Toggle All Labels / Hover for Menu">
+                <img src="icons/eye.png" id="eyeIcon" alt="Toggle markers">
+            </div>
+            <div id="markerDropdown">
+                <div style="margin-bottom: 10px; font-weight: bold; color: #d4af37;">Marker Visibility</div>
+                <div id="markerToggles"></div>
+            </div>
         </div>
         
-        <div id="markerDropdown">
-            <div style="margin-bottom: 10px; font-weight: bold; color: #d4af37;">Marker Visibility</div>
-            <div id="markerToggles"></div>
-        </div>
-        
+        <div id="inspector"></div>
         <div id="info">Select a map • Drag to pan • Scroll to zoom</div>
     </div>
 
@@ -301,10 +256,18 @@ name: gw2 maps
             2: { dims: [16384, 16384], maxZoom: 6 }
         };
 
-        // Local icon paths
+        const MAP_TYPES = {
+            'Public': ['Public'],
+            'Instance': ['Instance'],
+            'WvW': ['Center', 'BlueHome', 'GreenHome', 'RedHome', 'EdgeOfTheMists', 'JumpPuzzle'],
+            'PvP': ['Pvp'],
+            'Tutorial': ['Tutorial'],
+            'All': ['Public', 'Instance', 'Center', 'BlueHome', 'GreenHome', 'RedHome', 'EdgeOfTheMists', 'JumpPuzzle', 'Pvp', 'Tutorial', 'Unknown', 'Tournament']
+        };
+
         const ICONS = {
             waypoint: 'icons/waypoint.png',
-			poi: 'icons/poi.png',
+            poi: 'icons/poi.png',
             vista: 'icons/vista.png',
             heart: 'icons/heart.png',
             heartZone: 'icons/heart2.png',
@@ -321,78 +284,28 @@ name: gw2 maps
             mastery8: 'icons/mastery8.png'
         };
 
-        // Mastery type to icon mapping
-        const MASTERY_ICONS = {
-            'Tyria': 'mastery1',      // Core Tyria (red)
-            'Maguuma': 'mastery2',    // Heart of Thorns (green)
-            'Desert': 'mastery3',     // Path of Fire (purple)
-            'Tundra': 'mastery4',     // Icebrood Saga (blue)
-            'Jade': 'mastery5',       // End of Dragons (jade)
-            'Sky': 'mastery6',        // Secrets of the Obscure (sky)
-            'Lowland': 'mastery7',    // Janthir Wilds (lowland)
-            'Magic': 'mastery8'       // Visions of Eternity (magic)
-        };
-
-        // Expansion zones (for hero point detection)
-        const EXPANSION_MAPS = [
-            // Heart of Thorns
-            1043, 1045, 1052, 1165, 1041, 1175, 1178, 1185, 1195, 1203,
-            // Path of Fire
-            1210, 1211, 1228, 1226, 1248, 1263, 1271, 1288, 1301, 1310, 1317,
-			// Icebrood Saga
-			1330, 1343, 1371,
-            // End of Dragons
-            1422, 1438, 1442, 1452, 1490, 1420,
-            // Secrets of the Obscure
-            1510, 1517, 1526, 1509,
-            // Janthir Wilds
-            1550, 1554, 1575, 1574,
-			// Visions of Eternity
-			1593, 1595,
-        ];
-
-        let maps = [];
-        let currentMap = null;
+        let allMaps = [];
+        let floorCache = {}; 
+        let currentTarget = null;
         let currentFloor = 1;
-        let floorData = null;
-        let isWorldView = false;
+        let compositeFloor1 = null; 
+        let activeFloorData = null; 
+        let tileFloorIndex = 1;     
         
-        let viewState = {
-            zoom: 7,
-            offsetX: 0,
-            offsetY: 0,
-            scale: 1,
-            dragging: false,
-            lastX: 0,
-            lastY: 0
-        };
-
+        let viewState = { zoom: 5.0, offsetX: 0, offsetY: 0, dragging: false, lastX: 0, lastY: 0 };
+        let currentMouseWorldCoords = null; 
+        let clickedMapData = null; 
+        
+        let globalVisibility = true; 
         let markerVisibility = {
-            waypoints: true,
-            landmarks: true,
-            vistas: true,
-			pois: true,
-            hearts: true,
-            heartZones: true,
-            heroPoints: true,
-            sectors: true,
-            masteryPoints: true,
-            adventures: true,
-            regions: true
+            regionLabels: true, regionLimits: false,
+            zoneNames: true, zoneLimits: true,
+            sectors: false, waypoints: false, pois: false, vistas: false, hearts: false, heartZones: false,
+            heroPoints: false, masteryPoints: false, adventures: false
         };
-
-        let displayScale = {
-            icons: 1.0,
-            text: 1.0
-        };
-
-        let screenshotState = {
-            active: false,
-            selection: null
-        };
-
-        let mapBounds = null;
-        let baseImage = null;
+        
+        let displayScale = { icons: 1.0, text: 1.0 };
+        let tileCache = {}; 
         let loadedIcons = {};
 
         const canvas = document.getElementById('canvas');
@@ -401,11 +314,7 @@ name: gw2 maps
         const markerCtx = markerCanvas.getContext('2d');
         const selCanvas = document.getElementById('selectionCanvas');
         const selCtx = selCanvas.getContext('2d');
-        const viewer = document.getElementById('viewer');
-        const markerDropdown = document.getElementById('markerDropdown');
-        const markerToggle = document.getElementById('markerDropdownToggle');
 
-        // Preload icons
         function preloadIcons() {
             Object.entries(ICONS).forEach(([key, path]) => {
                 const img = new Image();
@@ -415,656 +324,767 @@ name: gw2 maps
         }
 
         function resizeCanvases() {
-            canvas.width = markerCanvas.width = selCanvas.width = viewer.clientWidth;
-            canvas.height = markerCanvas.height = selCanvas.height = viewer.clientHeight;
-            if (currentMap || isWorldView) render();
+            canvas.width = markerCanvas.width = selCanvas.width = document.getElementById('viewer').clientWidth;
+            canvas.height = markerCanvas.height = selCanvas.height = document.getElementById('viewer').clientHeight;
+            if (currentTarget) render();
         }
         window.addEventListener('resize', resizeCanvases);
         resizeCanvases();
 
-        // Marker dropdown toggle
-        markerToggle.onclick = () => {
-            markerDropdown.classList.toggle('show');
+        document.getElementById('markerDropdownToggle').onclick = () => {
+            globalVisibility = !globalVisibility;
+            document.getElementById('eyeIcon').style.opacity = globalVisibility ? '1' : '0.4';
+            render();
         };
 
-        document.addEventListener('click', (e) => {
-            if (!markerDropdown.contains(e.target) && !markerToggle.contains(e.target)) {
-                markerDropdown.classList.remove('show');
-            }
-        });
+        document.getElementById('iconScale').oninput = (e) => {
+            displayScale.icons = parseFloat(e.target.value);
+            document.getElementById('iconSizeValue').textContent = displayScale.icons + 'x';
+            render();
+        };
 
-        // Create marker toggles
+        document.getElementById('textScale').oninput = (e) => {
+            displayScale.text = parseFloat(e.target.value);
+            document.getElementById('textSizeValue').textContent = displayScale.text + 'x';
+            render();
+        };
+
         function createMarkerToggles() {
             const toggles = [
+                { key: 'regionLabels', label: 'Region Labels', icon: null },
+                { key: 'regionLimits', label: 'Region Limits', icon: null },
+                { key: 'zoneNames', label: 'Zone Names', icon: null },
+                { key: 'zoneLimits', label: 'Zone Limits', icon: null },
+                { key: 'sectors', label: 'Sectors', icon: null },
                 { key: 'waypoints', label: 'Waypoints', icon: 'waypoint' },
-				{ key: 'pois', label: 'Points of Interest', icon: 'poi' },
+                { key: 'pois', label: 'Points of Interest', icon: 'poi' },
                 { key: 'vistas', label: 'Vistas', icon: 'vista' },
                 { key: 'hearts', label: 'Hearts', icon: 'heart' },
-                { key: 'heartZones', label: 'Heart Zones', icon: 'heartZone' },
                 { key: 'heroPoints', label: 'Hero Points', icon: 'heroBase' },
-                { key: 'sectors', label: 'Sector Labels', icon: null },
-                { key: 'masteryPoints', label: 'Mastery Points', icon: 'mastery1' },
-                { key: 'adventures', label: 'Adventures', icon: 'adventure' },
-                { key: 'regions', label: 'Region Labels', icon: null }
+                { key: 'adventures', label: 'Adventures', icon: 'adventure' }
             ];
-
             const container = document.getElementById('markerToggles');
+            container.innerHTML = '';
+            
             toggles.forEach(t => {
                 const div = document.createElement('div');
                 div.className = 'marker-toggle';
-                div.innerHTML = `
-                    <input type="checkbox" id="toggle_${t.key}" ${markerVisibility[t.key] ? 'checked' : ''}>
-                    ${t.icon ? `<img class="marker-icon" src="${ICONS[t.icon]}">` : ''}
-                    <label for="toggle_${t.key}">${t.label}</label>
-                `;
+                div.innerHTML = `<input type="checkbox" id="toggle_${t.key}" ${markerVisibility[t.key] ? 'checked' : ''}>${t.icon ? `<img class="marker-icon" src="${ICONS[t.icon]}">` : ''}<label for="toggle_${t.key}">${t.label}</label>`;
                 div.onclick = (e) => {
                     if (e.target.tagName !== 'INPUT') {
-                        const checkbox = document.getElementById(`toggle_${t.key}`);
-                        checkbox.checked = !checkbox.checked;
+                        const cb = document.getElementById(`toggle_${t.key}`);
+                        cb.checked = !cb.checked;
+                        markerVisibility[t.key] = cb.checked;
+                    } else {
+                         markerVisibility[t.key] = e.target.checked;
                     }
-                    markerVisibility[t.key] = document.getElementById(`toggle_${t.key}`).checked;
                     render();
                 };
                 container.appendChild(div);
             });
         }
 
-        // Load maps
-        async function loadMaps() {
+        async function fetchFloorData(continentId, floorId) {
+            const key = `${continentId}_${floorId}`;
+            if (floorCache[key]) return floorCache[key];
             try {
-                const res = await fetch('https://api.guildwars2.com/v2/maps?ids=all');
-                maps = (await res.json()).filter(m => m.type === 'Public').sort((a, b) => a.name.localeCompare(b.name));
-                displayMaps(maps);
+                const res = await fetch(`https://api.guildwars2.com/v2/continents/${continentId}/floors/${floorId}`);
+                const data = await res.json();
+                floorCache[key] = data;
+                return data;
             } catch (err) {
-                document.getElementById('mapList').textContent = 'Error loading maps';
-                console.error(err);
+                console.error("Error fetching floor data:", err);
+                return null;
             }
         }
 
-        function displayMaps(list) {
+        async function buildCompositeFloor1() {
+            if (compositeFloor1) return compositeFloor1;
+
+            const [f1, f49] = await Promise.all([
+                fetchFloorData(1, 1),
+                fetchFloorData(1, 49)
+            ]);
+            
+            if (!f1) return null;
+            
+            const patched = JSON.parse(JSON.stringify(f1));
+            
+            // Region 12 = Crystal Desert
+            if (f49 && f49.regions['12']) {
+                patched.regions['12'] = JSON.parse(JSON.stringify(f49.regions['12']));
+                
+                Object.values(f49.regions['12'].maps).forEach(f49Map => {
+                    const existingIndex = allMaps.findIndex(m => m.id === f49Map.id);
+                    if (existingIndex !== -1 && f49Map.continent_rect) {
+                         allMaps[existingIndex].continent_rect = f49Map.continent_rect;
+                    }
+                });
+            }
+            compositeFloor1 = patched;
+            return patched;
+        }
+
+        async function init() {
+            preloadIcons();
+            createMarkerToggles();
+            
+            try {
+                const res = await fetch('https://api.guildwars2.com/v2/maps?ids=all');
+                allMaps = await res.json();
+                allMaps.forEach(m => {
+                    if (m.name.includes('(') || m.name.includes(')')) m.type = 'Instance';
+                });
+                allMaps.sort((a, b) => a.name.localeCompare(b.name));
+            } catch (err) { console.error(err); }
+
+            activeFloorData = await buildCompositeFloor1();
+            filterAndRenderSidebar();
+            selectWorld();
+        }
+
+        function filterAndRenderSidebar() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const allowedTypes = MAP_TYPES[typeFilter] || MAP_TYPES['All'];
+
+            const filteredMaps = allMaps.filter(m => {
+                const matchesSearch = m.name.toLowerCase().includes(search);
+                const matchesType = allowedTypes.includes(m.type);
+                return matchesSearch && matchesType;
+            });
+
             const container = document.getElementById('mapList');
             container.innerHTML = '';
-            list.forEach(map => {
-                const div = document.createElement('div');
-                div.className = 'map-item';
-                div.textContent = `${map.name} (${map.min_level}-${map.max_level})`;
-                div.onclick = () => selectMap(map);
-                container.appendChild(div);
+
+            const worldBtn = document.createElement('button');
+            worldBtn.className = 'world-btn';
+            worldBtn.textContent = '🌍 View Full World (Tyria)';
+            worldBtn.onclick = () => selectWorld();
+            container.appendChild(worldBtn);
+
+            if (!activeFloorData) { container.textContent = "Loading..."; return; }
+
+            const regionMap = {};
+            Object.values(activeFloorData.regions).forEach(r => {
+                regionMap[r.id] = { name: r.name, maps: [], raw: r };
+            });
+            regionMap['unknown'] = { name: 'Unmapped / Instances', maps: [], raw: null };
+
+            filteredMaps.forEach(map => {
+                if (map.region_id && regionMap[map.region_id]) regionMap[map.region_id].maps.push(map);
+                else regionMap['unknown'].maps.push(map);
+            });
+
+            Object.values(regionMap).sort((a,b) => a.name.localeCompare(b.name)).forEach(group => {
+                if (group.maps.length === 0) return;
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'region-group';
+                
+                const header = document.createElement('div');
+                header.className = 'region-header';
+                header.innerHTML = `<span>${group.name}</span> <span style="font-size:10px; opacity:0.7">(${group.maps.length})</span>`;
+                if (group.raw) {
+                    header.onclick = (e) => {
+                        selectRegion(group);
+                        document.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+                        header.classList.add('active');
+                    };
+                }
+                groupDiv.appendChild(header);
+
+                group.maps.forEach(map => {
+                    const mapDiv = document.createElement('div');
+                    mapDiv.className = 'map-item';
+                    mapDiv.textContent = map.name;
+                    mapDiv.onclick = (e) => {
+                        e.stopPropagation();
+                        selectMap(map);
+                        document.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+                        mapDiv.classList.add('active');
+                    };
+                    groupDiv.appendChild(mapDiv);
+                });
+                container.appendChild(groupDiv);
             });
         }
 
-        document.getElementById('search').oninput = (e) => {
-            const q = e.target.value.toLowerCase();
-            displayMaps(maps.filter(m => m.name.toLowerCase().includes(q)));
-        };
+        document.getElementById('search').oninput = filterAndRenderSidebar;
+        document.getElementById('typeFilter').onchange = filterAndRenderSidebar;
 
-        document.getElementById('floorSelect').onchange = (e) => {
-            currentFloor = parseInt(e.target.value);
-            if (currentMap) loadMapData(currentMap);
-            else if (isWorldView) renderWorld();
-        };
+        function centerView(rect, zoom) {
+			// Ensure zoom is at least 1.0
+			viewState.zoom = Math.max(1.0, zoom);
+			
+			const maxZoom = CONTINENTS[currentTarget.continentId].maxZoom;
+			const globalScale = Math.pow(2, viewState.zoom - maxZoom);
+			const [[x1, y1], [x2, y2]] = rect;
+			
+			const cx = (x1 + x2) / 2;
+			const cy = (y1 + y2) / 2;
+			
+			viewState.offsetX = (canvas.width / 2) - (cx * globalScale);
+			viewState.offsetY = (canvas.height / 2) - (cy * globalScale);
+		}
 
-        document.getElementById('iconScale').oninput = (e) => {
-            displayScale.icons = parseFloat(e.target.value);
-            document.getElementById('iconSizeValue').textContent = displayScale.icons.toFixed(1) + 'x';
-            render();
-        };
+        async function selectWorld() {
+			clickedMapData = null; 
+			currentTarget = {
+				type: 'world',
+				name: 'Tyria',
+				rect: [[0,0], [CONTINENTS[1].dims[0], CONTINENTS[1].dims[1]]],
+				continentId: 1
+			};
+			
+			activeFloorData = compositeFloor1;
+			tileFloorIndex = 1; 
+			currentFloor = 1;
+			
+			centerView(currentTarget.rect, 1.0);  // ← Mudado de 2 para 1.0
+			updateInspector();
+			render();
+		}
 
-        document.getElementById('textScale').oninput = (e) => {
-            displayScale.text = parseFloat(e.target.value);
-            document.getElementById('textSizeValue').textContent = displayScale.text.toFixed(1) + 'x';
-            render();
-        };
-
-        // Render full world
-        //document.getElementById('renderWorldBtn').onclick = async () => {
-        //    isWorldView = true;
-        //    currentMap = null;
-        //    document.querySelectorAll('.map-item').forEach(el => el.classList.remove('active'));
+        async function selectRegion(group) {
+            clickedMapData = null; 
+            // Use composite data to resolve correct rect for Crystal Desert
+            const regionData = compositeFloor1.regions[group.raw.id];
             
-        //    viewState.zoom = 1;
-        //    viewState.offsetX = 0;
-        //    viewState.offsetY = 0;
-            
-        //    await renderWorld();
-        //};
-
-        async function renderWorld() {
-            const continentId = 1; // Tyria
-            const continent = CONTINENTS[continentId];
-            const [width, height] = continent.dims;
-            const maxZoom = continent.maxZoom;
-            
-            const unitsPerTile = 256;
-            const startTileX = 0;
-            const startTileY = 0;
-            const endTileX = Math.ceil(width / unitsPerTile);
-            const endTileY = Math.ceil(height / unitsPerTile);
-            
-            const tilesWide = endTileX - startTileX;
-            const tilesHigh = endTileY - startTileY;
-            
-            mapBounds = { x1: 0, y1: 0, x2: width, y2: height, width: width, height: height };
-            
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = tilesWide * 256;
-            tempCanvas.height = tilesHigh * 256;
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            let loaded = 0;
-            const total = tilesWide * tilesHigh;
-            
-            for (let ty = 0; ty < tilesHigh; ty++) {
-                for (let tx = 0; tx < tilesWide; tx++) {
-                    const url = `https://tiles.guildwars2.com/${continentId}/${currentFloor}/${maxZoom}/${tx}/${ty}.jpg`;
-                    
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => {
-                        tempCtx.drawImage(img, tx * 256, ty * 256);
-                        loaded++;
-                        if (loaded === total) {
-                            baseImage = tempCanvas;
-                            render();
-                        }
-                    };
-                    img.onerror = () => { loaded++; };
-                    img.src = url;
-                }
+            let rect = [[0,0],[1000,1000]];
+            if (regionData && regionData.continent_rect) {
+                rect = regionData.continent_rect;
+            } else if (group.raw.continent_rect) {
+                rect = group.raw.continent_rect;
             }
+
+            const pad = 1024;
+            currentTarget = {
+                type: 'region',
+                name: group.name,
+                rect: [[rect[0][0] - pad, rect[0][1] - pad], [rect[1][0] + pad, rect[1][1] + pad]],
+                continentId: 1,
+                id: group.raw.id 
+            };
             
-            try {
-                const res = await fetch(`https://api.guildwars2.com/v2/continents/${continentId}/floors/${currentFloor}`);
-                floorData = await res.json();
-                if (loaded === total) render();
-            } catch (err) {
-                console.error('Error loading floor data:', err);
-            }
+            activeFloorData = compositeFloor1;
+            tileFloorIndex = 1;
+            currentFloor = 1;
+
+            centerView(currentTarget.rect, 5);
+            updateInspector();
+            render();
         }
 
         async function selectMap(map) {
-            isWorldView = false;
-            currentMap = map;
-            document.querySelectorAll('.map-item').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            viewState.zoom = 7;
-            viewState.offsetX = 0;
-            viewState.offsetY = 0;
-            
-            await loadMapData(map);
-        }
+			clickedMapData = null;
+			currentTarget = {
+				type: 'map',
+				name: map.name,
+				rect: map.continent_rect,
+				continentId: map.continent_id,
+				floors: map.floors || [map.default_floor],
+				defaultFloor: map.default_floor,
+				id: map.id,
+				regionId: map.region_id
+			};
 
-        async function loadMapData(map) {
-            const continent = CONTINENTS[map.continent_id];
-            const maxZoom = continent.maxZoom;
-            
-            const [[x1, y1], [x2, y2]] = map.continent_rect;
-            mapBounds = { x1, y1, x2, y2, width: x2 - x1, height: y2 - y1 };
-            
-            const unitsPerTile = 256;
-            const startTileX = Math.floor(x1 / unitsPerTile);
-            const startTileY = Math.floor(y1 / unitsPerTile);
-            const endTileX = Math.ceil(x2 / unitsPerTile);
-            const endTileY = Math.ceil(y2 / unitsPerTile);
-            
-            const tilesWide = endTileX - startTileX;
-            const tilesHigh = endTileY - startTileY;
-            
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = tilesWide * 256;
-            tempCanvas.height = tilesHigh * 256;
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            let loaded = 0;
-            const total = tilesWide * tilesHigh;
-            
-            for (let ty = 0; ty < tilesHigh; ty++) {
-                for (let tx = 0; tx < tilesWide; tx++) {
-                    const tileX = startTileX + tx;
-                    const tileY = startTileY + ty;
-                    const url = `https://tiles.guildwars2.com/${map.continent_id}/${currentFloor}/${maxZoom}/${tileX}/${tileY}.jpg`;
-                    
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => {
-                        tempCtx.drawImage(img, tx * 256, ty * 256);
-                        loaded++;
-                        if (loaded === total) {
-                            baseImage = tempCanvas;
-                            render();
-                        }
-                    };
-                    img.onerror = () => { loaded++; };
-                    img.src = url;
-                }
-            }
-            
-            try {
-                const res = await fetch(`https://api.guildwars2.com/v2/continents/${map.continent_id}/floors/${currentFloor}`);
-                floorData = await res.json();
-                if (loaded === total) render();
-            } catch (err) {
-                console.error('Error loading floor data:', err);
-            }
-        }
+			const floorSelect = document.getElementById('floorSelect');
+			floorSelect.innerHTML = '';
+			(currentTarget.floors.sort((a,b)=>a-b)).forEach(f => floorSelect.add(new Option(`Floor ${f}`, f)));
+			
+			// Always use floor 1 for region 12 (Crystal Desert) - data is in composite
+			if (map.region_id === 12) {
+				currentFloor = 1;
+				activeFloorData = compositeFloor1; // Use composite that already has floor 49 data patched in
+				tileFloorIndex = 1; // Force tiles to use floor 1
+			} else {
+				currentFloor = currentTarget.defaultFloor;
+				activeFloorData = await fetchFloorData(map.continent_id, currentFloor);
+				tileFloorIndex = currentFloor;
+			}
+			
+			floorSelect.value = currentFloor;
 
-        function clampView() {
-            if (!mapBounds) return;
-            
-            const [[x1, y1], [x2, y2]] = isWorldView ? 
-                [[0, 0], [mapBounds.x2, mapBounds.y2]] : 
-                [[mapBounds.x1, mapBounds.y1], [mapBounds.x2, mapBounds.y2]];
-            
-            const width = (x2 - x1) * viewState.scale / 256;
-            const height = (y2 - y1) * viewState.scale / 256;
-            
-            // Clamp to prevent seeing void
-            const maxOffsetX = 0;
-            const minOffsetX = canvas.width - width;
-            const maxOffsetY = 0;
-            const minOffsetY = canvas.height - height;
-            
-            if (width > canvas.width) {
-                viewState.offsetX = Math.max(minOffsetX, Math.min(maxOffsetX, viewState.offsetX));
-            } else {
-                viewState.offsetX = (canvas.width - width) / 2;
-            }
-            
-            if (height > canvas.height) {
-                viewState.offsetY = Math.max(minOffsetY, Math.min(maxOffsetY, viewState.offsetY));
-            } else {
-                viewState.offsetY = (canvas.height - height) / 2;
-            }
-        }
+			centerView(currentTarget.rect, 6);
+			updateInspector();
+			render();
+		}
+        
+        document.getElementById('floorSelect').onchange = async (e) => {
+    currentFloor = parseInt(e.target.value);
+    
+    // For region 12 maps, always use composite floor 1 with patched data
+    if (currentTarget.regionId === 12 && currentFloor === 1) {
+        activeFloorData = compositeFloor1;
+        tileFloorIndex = 1;
+    } else {
+        activeFloorData = await fetchFloorData(currentTarget.continentId, currentFloor);
+        tileFloorIndex = currentFloor;
+    }
+    
+    render();
+};
 
         function render() {
-            if (!baseImage) return;
-            
-            viewState.scale = Math.pow(2, viewState.zoom);
-            
-            const [[x1, y1], [x2, y2]] = isWorldView ? 
-                [[0, 0], [mapBounds.x2, mapBounds.y2]] : 
-                [[mapBounds.x1, mapBounds.y1], [mapBounds.x2, mapBounds.y2]];
-            
-            const width = (x2 - x1) * viewState.scale / 256;
-            const height = (y2 - y1) * viewState.scale / 256;
-            
-            if (viewState.offsetX === 0 && viewState.offsetY === 0) {
-                viewState.offsetX = (canvas.width - width) / 2;
-                viewState.offsetY = (canvas.height - height) / 2;
-            }
-            
-            clampView();
-            
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            markerCtx.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
-            
-            ctx.drawImage(baseImage, viewState.offsetX, viewState.offsetY, width, height);
-            
-            drawMarkers();
-            
-            const mapName = isWorldView ? 'Full World (Tyria)' : (currentMap ? currentMap.name : 'Select a map');
-            document.getElementById('info').textContent = 
-                `${mapName} • Floor ${currentFloor} • Zoom ${viewState.zoom}`;
-        }
+			if (!currentTarget) return;
+
+			const continentId = currentTarget.continentId;
+			const maxZoom = CONTINENTS[continentId].maxZoom;
+			const continentDims = CONTINENTS[continentId].dims;
+			
+			const tileGridZoom = Math.floor(viewState.zoom); 
+			const unitsPerTile = 256 * Math.pow(2, maxZoom - tileGridZoom); 
+			const globalScale = Math.pow(2, viewState.zoom - maxZoom);
+			const zoomFraction = viewState.zoom - tileGridZoom;
+			const renderScale = Math.pow(2, zoomFraction); 
+			const drawSize = Math.ceil(256 * renderScale);
+
+			ctx.fillStyle = '#000';
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			markerCtx.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
+
+			const startTileX = Math.max(0, Math.floor(((-viewState.offsetX) / globalScale) / unitsPerTile));
+			const startTileY = Math.max(0, Math.floor(((-viewState.offsetY) / globalScale) / unitsPerTile));
+			
+			// Calculate maximum tiles based on continent dimensions
+			const maxTileX = Math.ceil(continentDims[0] / unitsPerTile);
+			const maxTileY = Math.ceil(continentDims[1] / unitsPerTile);
+			
+			const cols = Math.ceil(canvas.width / drawSize) + 1;
+			const rows = Math.ceil(canvas.height / drawSize) + 1;
+
+			for (let ty = 0; ty < rows; ty++) {
+				for (let tx = 0; tx < cols; tx++) {
+					const absTx = startTileX + tx;
+					const absTy = startTileY + ty;
+					
+					// IMPORTANT: Skip tiles outside continent bounds
+					if (absTx < 0 || absTy < 0 || absTx >= maxTileX || absTy >= maxTileY) {
+						continue;
+					}
+					
+					const url = `https://tiles.guildwars2.com/${continentId}/${tileFloorIndex}/${tileGridZoom}/${absTx}/${absTy}.jpg`;
+					
+					const tileWorldX = absTx * unitsPerTile;
+					const tileWorldY = absTy * unitsPerTile;
+					
+					const screenX = Math.floor(viewState.offsetX + (tileWorldX * globalScale));
+					const screenY = Math.floor(viewState.offsetY + (tileWorldY * globalScale));
+					
+					if (screenX > canvas.width || screenY > canvas.height || screenX + drawSize < 0 || screenY + drawSize < 0) continue;
+
+					if (!tileCache[url]) {
+						tileCache[url] = new Image();
+						tileCache[url].crossOrigin = 'anonymous';
+						tileCache[url].loaded = false;
+						tileCache[url].onload = () => { tileCache[url].loaded = true; render(); };
+						tileCache[url].src = url;
+					}
+					if (tileCache[url].loaded) {
+						ctx.drawImage(tileCache[url], screenX, screenY, drawSize, drawSize);
+					}
+				}
+			}
+
+			if (globalVisibility) {
+				drawMarkers();
+			}
+
+			document.getElementById('info').textContent = `${currentTarget.name} • Floor ${currentFloor} • Zoom ${viewState.zoom.toFixed(2)}`;
+		}
 
         function toScreen(coord) {
-            const [[x1, y1]] = isWorldView ? [[0, 0]] : [[mapBounds.x1, mapBounds.y1]];
-            const x = ((coord[0] - x1) * viewState.scale / 256) + viewState.offsetX;
-            const y = ((coord[1] - y1) * viewState.scale / 256) + viewState.offsetY;
+            const continentId = currentTarget ? currentTarget.continentId : 1;
+            const maxZoom = CONTINENTS[continentId].maxZoom;
+            const globalScale = Math.pow(2, viewState.zoom - maxZoom);
+            const x = (coord[0] * globalScale) + viewState.offsetX;
+            const y = (coord[1] * globalScale) + viewState.offsetY;
             return [x, y];
         }
 
         function drawMarkers() {
-            if (!floorData) return;
-            
-            for (const region of Object.values(floorData.regions || {})) {
-                // Draw region label
-                if (markerVisibility.regions && region.label_coord) {
-                    const [x, y] = toScreen(region.label_coord);
-                    markerCtx.save();
-                    markerCtx.font = `${20 * displayScale.text}px Menomonia, Arial`;
-                    markerCtx.fillStyle = 'rgba(212, 175, 55, 0.9)';
-                    markerCtx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
-                    markerCtx.lineWidth = 3 * displayScale.text;
-                    markerCtx.textAlign = 'center';
-                    markerCtx.strokeText(region.name, x, y);
-                    markerCtx.fillText(region.name, x, y);
-                    markerCtx.restore();
-                }
+			if (!activeFloorData) return;
+			
+			const zoomFactor = Math.max(0.4, viewState.zoom / 7);
+			const typeFilter = document.getElementById('typeFilter').value;
+			const allowedTypes = MAP_TYPES[typeFilter] || MAP_TYPES['All'];
+
+			const drawnRegions = new Set(); // Track drawn regions
+
+            Object.values(activeFloorData.regions).forEach(region => {
+				if (drawnRegions.has(region.id)) return;
+                if (currentTarget.type === 'region' && region.id !== currentTarget.id) return;
+				
+				drawnRegions.add(region.id);
                 
-                for (const mapData of Object.values(region.maps || {})) {
-                    // Skip if not in world view and not current map
-                    if (!isWorldView && currentMap && mapData.id !== currentMap.id) continue;
+                if (markerVisibility.regionLimits && region.continent_rect) {
+                    const [sx1, sy1] = toScreen(region.continent_rect[0]);
+                    const [sx2, sy2] = toScreen(region.continent_rect[1]);
                     
-                    const mapId = parseInt(Object.keys(region.maps).find(key => region.maps[key] === mapData));
-                    const isExpansionMap = EXPANSION_MAPS.includes(mapId);
-                    
-                    // Heart zones
-                    if (markerVisibility.heartZones && mapData.tasks) {
-                        markerCtx.fillStyle = 'rgba(255, 105, 180, 0.15)';
-                        markerCtx.strokeStyle = 'rgba(255, 105, 180, 0.5)';
-                        markerCtx.lineWidth = 1;
+                    markerCtx.strokeStyle = 'rgba(255, 69, 0, 0.6)'; 
+                    markerCtx.lineWidth = 4 * zoomFactor;
+                    markerCtx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+                }
+
+                if (markerVisibility.regionLabels && region.label_coord) {
+                     const [scx, scy] = toScreen(region.label_coord);
+                     if (scx > -200 && scy > -200 && scx < canvas.width + 200 && scy < canvas.height + 200) {
+                         const regFontSize = 24 * displayScale.text * zoomFactor;
+                         markerCtx.save();
+                         markerCtx.font = `bold ${regFontSize}px Menomonia, serif`;
+                         markerCtx.fillStyle = '#d4af37'; 
+                         markerCtx.strokeStyle = '#000';
+                         markerCtx.lineWidth = 4;
+                         markerCtx.textAlign = 'center';
+                         markerCtx.shadowColor = "black";
+                         markerCtx.shadowBlur = 4;
+                         markerCtx.strokeText(region.name, scx, scy);
+                         markerCtx.fillText(region.name, scx, scy);
+                         markerCtx.restore();
+                     }
+                }
+
+                Object.values(region.maps).forEach(mapData => {
+                    const fullMap = allMaps.find(m => m.id === mapData.id);
+                    if (!fullMap || !fullMap.continent_rect) return;
+                    if (!allowedTypes.includes(fullMap.type)) return;
+                    if (currentTarget.type === 'map' && mapData.id !== currentTarget.id) return;
+
+                    if (markerVisibility.zoneLimits) {
+                        const [[rx1, ry1], [rx2, ry2]] = fullMap.continent_rect;
+                        const [sx1, sy1] = toScreen([rx1, ry1]);
+                        const [sx2, sy2] = toScreen([rx2, ry2]);
+                        markerCtx.strokeStyle = 'rgba(212, 175, 55, 0.5)';
+                        markerCtx.lineWidth = 2 * zoomFactor; 
+                        markerCtx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+                    }
+
+                    if (markerVisibility.zoneNames) {
+                        const [[rx1, ry1], [rx2, ry2]] = fullMap.continent_rect;
+                        const cx = (rx1 + rx2) / 2;
+                        const cy = (ry1 + ry2) / 2;
+                        const [scx, scy] = toScreen([cx, cy]);
+                        const fontSize = 16 * displayScale.text * zoomFactor;
                         
-                        Object.values(mapData.tasks).forEach(task => {
-                            if (task.bounds && task.bounds.length > 0) {
+                        markerCtx.font = `bold ${fontSize}px Menomonia, serif`;
+                        markerCtx.fillStyle = '#fff';
+                        markerCtx.strokeStyle = '#000';
+                        markerCtx.lineWidth = 3;
+                        markerCtx.textAlign = 'center';
+                        markerCtx.strokeText(mapData.name, scx, scy);
+                        markerCtx.fillText(mapData.name, scx, scy);
+                    }
+
+                    if (markerVisibility.sectors && mapData.sectors) {
+                        markerCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                        markerCtx.lineWidth = 1 * zoomFactor;
+                        markerCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                        markerCtx.textAlign = 'center';
+                        markerCtx.font = `italic ${12 * displayScale.text * zoomFactor}px Arial`;
+
+                        Object.values(mapData.sectors).forEach(sector => {
+                            if (sector.bounds && sector.bounds.length > 0) {
                                 markerCtx.beginPath();
-                                const [fx, fy] = toScreen(task.bounds[0]);
-                                markerCtx.moveTo(fx, fy);
-                                for (let i = 1; i < task.bounds.length; i++) {
-                                    const [tx, ty] = toScreen(task.bounds[i]);
-                                    markerCtx.lineTo(tx, ty);
+                                const [startX, startY] = toScreen(sector.bounds[0]);
+                                markerCtx.moveTo(startX, startY);
+                                for (let i = 1; i < sector.bounds.length; i++) {
+                                    const [px, py] = toScreen(sector.bounds[i]);
+                                    markerCtx.lineTo(px, py);
                                 }
                                 markerCtx.closePath();
-                                markerCtx.fill();
                                 markerCtx.stroke();
                             }
-                        });
-                    }
-                    
-                    // Sector labels
-                    if (markerVisibility.sectors && mapData.sectors) {
-                        markerCtx.save();
-                        markerCtx.font = `${14 * displayScale.text}px Menomonia, Arial`;
-                        markerCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                        markerCtx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
-                        markerCtx.lineWidth = 2 * displayScale.text;
-                        markerCtx.textAlign = 'center';
-                        
-                        Object.values(mapData.sectors).forEach(sector => {
                             if (sector.coord) {
-                                const [x, y] = toScreen(sector.coord);
-                                markerCtx.strokeText(sector.name, x, y);
-                                markerCtx.fillText(sector.name, x, y);
+                                const [lx, ly] = toScreen(sector.coord);
+                                markerCtx.fillText(sector.name, lx, ly);
                             }
                         });
-                        markerCtx.restore();
                     }
-                    
-                    // POIs
+
+                    const s = displayScale.icons * zoomFactor;
+
                     if (mapData.points_of_interest) {
                         Object.values(mapData.points_of_interest).forEach(poi => {
                             if (!poi.coord) return;
                             const [x, y] = toScreen(poi.coord);
-                            const iconSize = displayScale.icons;
-                            
-                            if (poi.type === 'waypoint' && markerVisibility.waypoints && loadedIcons.waypoint) {
-                                const w = 24 * iconSize;
-                                const h = 24 * iconSize;
-                                markerCtx.drawImage(loadedIcons.waypoint, x - w/2, y - h/2, w, h);
-                            } else if (poi.type === 'vista' && markerVisibility.vistas && loadedIcons.vista) {
-                                const w = 20 * iconSize;
-                                const h = 20 * iconSize;
-                                markerCtx.drawImage(loadedIcons.vista, x - w/2, y - h/2, w, h);
-                            } else if (poi.type === 'landmark' && markerVisibility.vistas && loadedIcons.vista) {
-                                const w = 20 * iconSize;
-                                const h = 20 * iconSize;
-                                markerCtx.drawImage(loadedIcons.poi, x - w/2, y - h/2, w, h);
-							}
+                            if (x < -50 || y < -50 || x > canvas.width + 50 || y > canvas.height + 50) return;
+
+                            if (poi.type === 'waypoint' && markerVisibility.waypoints) drawIcon('waypoint', x, y, 24*s);
+                            else if (poi.type === 'vista' && markerVisibility.vistas) drawIcon('vista', x, y, 20*s);
+                            else if (poi.type === 'landmark' && markerVisibility.pois) drawIcon('poi', x, y, 20*s);
                         });
                     }
                     
-                    // Hearts
-                    if (markerVisibility.hearts && mapData.tasks && loadedIcons.heart) {
-                        Object.values(mapData.tasks).forEach(task => {
-                            if (task.coord) {
-                                const [x, y] = toScreen(task.coord);
-                                const w = 20 * displayScale.icons;
-                                const h = 20 * displayScale.icons;
-                                markerCtx.drawImage(loadedIcons.heart, x - w/2, y - h/2, w, h);
-                            }
+                    if (mapData.tasks && markerVisibility.hearts) {
+                         Object.values(mapData.tasks).forEach(task => {
+                            const [x, y] = toScreen(task.coord);
+                             drawIcon('heart', x, y, 24 * s);
+                         });
+                    }
+                    
+                    if (mapData.skill_challenges && markerVisibility.heroPoints) {
+                        mapData.skill_challenges.forEach(hp => {
+                            const [x, y] = toScreen(hp.coord);
+                            drawIcon('heroBase', x, y, 20 * s);
+                        });
+                    }
+
+                    if (mapData.mastery_points && markerVisibility.masteryPoints) {
+                        mapData.mastery_points.forEach(mp => {
+                             const [x, y] = toScreen(mp.coord);
+                             drawIcon('mastery1', x, y, 24 * s);
                         });
                     }
                     
-                    // Hero Points (conditional icon based on expansion)
-                    if (markerVisibility.heroPoints && mapData.skill_challenges) {
-                        const heroIcon = isExpansionMap ? loadedIcons.heroExpansion : loadedIcons.heroBase;
-                        if (heroIcon) {
-                            mapData.skill_challenges.forEach(sc => {
-                                if (sc.coord) {
-                                    const [x, y] = toScreen(sc.coord);
-                                    const w = 20 * displayScale.icons;
-                                    const h = 20 * displayScale.icons;
-                                    markerCtx.drawImage(heroIcon, x - w/2, y - h/2, w, h);
-                                }
-                            });
-                        }
-                    }
-                    
-                    // Mastery Points (conditional icon based on type)
-                    if (markerVisibility.masteryPoints && mapData.training_points) {
-                        mapData.training_points.forEach(mp => {
-                            if (mp.coord) {
-                                const iconKey = MASTERY_ICONS[mp.type] || 'mastery8';
-                                const icon = loadedIcons[iconKey];
-                                if (icon) {
-                                    const [x, y] = toScreen(mp.coord);
-                                    const w = 20 * displayScale.icons;
-                                    const h = 20 * displayScale.icons;
-                                    markerCtx.drawImage(icon, x - w/2, y - h/2, w, h);
-                                }
-                            }
-                        });
-                    }
-                    
-                    // Adventures
-                    if (markerVisibility.adventures && mapData.adventures && loadedIcons.adventure) {
+                    if (mapData.adventures && markerVisibility.adventures) {
                         mapData.adventures.forEach(adv => {
-                            if (adv.coord) {
-                                const [x, y] = toScreen(adv.coord);
-                                const w = 20 * displayScale.icons;
-                                const h = 20 * displayScale.icons;
-                                markerCtx.drawImage(loadedIcons.adventure, x - w/2, y - h/2, w, h);
-                            }
+                             const [x, y] = toScreen(adv.coord);
+                             drawIcon('adventure', x, y, 24 * s);
                         });
                     }
-                }
-            }
+                });
+            });
         }
 
-        // Mouse handlers
-        let mouseHandler = {
-            startX: 0,
-            startY: 0,
-            isPanning: false,
-            isSelecting: false
-        };
+        function drawIcon(name, x, y, size) {
+            if (loadedIcons[name]) markerCtx.drawImage(loadedIcons[name], x - size/2, y - size/2, size, size);
+        }
 
-        canvas.addEventListener('mousedown', (e) => {
-            if (screenshotState.active && document.getElementById('screenshotMode').value === 'rectangle') {
-                mouseHandler.isSelecting = true;
-                const rect = canvas.getBoundingClientRect();
-                mouseHandler.startX = e.clientX - rect.left;
-                mouseHandler.startY = e.clientY - rect.top;
+        function updateInspector() {
+            const el = document.getElementById('inspector');
+            if (!currentTarget) { el.style.display = 'none'; return; }
+            
+            if (clickedMapData) {
+                const w = clickedMapData.rect[1][0] - clickedMapData.rect[0][0];
+                const h = clickedMapData.rect[1][1] - clickedMapData.rect[0][1];
+                const area = w * h;
+                const ratio = (w / h).toFixed(2);
+
+                el.innerHTML = `
+                    <div>Selected: <span class="map-highlight">MAP</span></div>
+                    <div style="font-size:13px; color:#fff; margin-bottom:4px;">${clickedMapData.name}</div>
+                    <div>Dims: <span class="value-highlight">${w} x ${h}</span></div>
+                    <div>Area: <span class="value-highlight">${area.toLocaleString()}</span> units²</div>
+                    <div>Ratio: <span class="value-highlight">${ratio}</span></div>
+                    <div style="margin-top:4px; border-top:1px solid #444; padding-top:4px; font-size:10px; color:#999;">
+                        Cursor: <span class="value-highlight">[${currentMouseWorldCoords ? currentMouseWorldCoords[0] : 0}, ${currentMouseWorldCoords ? currentMouseWorldCoords[1] : 0}]</span>
+                    </div>`;
+                el.style.display = 'block';
                 return;
             }
+
+            let content = `<div>Target: <span class="value-highlight">${currentTarget.type.toUpperCase()}</span></div>
+                           <div style="font-size:13px; color:#fff; margin-bottom:4px;">${currentTarget.name}</div>`;
             
-            mouseHandler.isPanning = true;
-            mouseHandler.startX = e.clientX;
-            mouseHandler.startY = e.clientY;
+            const w = currentTarget.rect[1][0] - currentTarget.rect[0][0];
+            const h = currentTarget.rect[1][1] - currentTarget.rect[0][1];
+            content += `<div>Dims: <span class="value-highlight">${w} x ${h}</span></div>`;
+
+            if (currentTarget.type === 'map') {
+                const area = w * h;
+                const ratio = (w / h).toFixed(2);
+                content += `<div>Area: <span class="value-highlight">${area.toLocaleString()}</span> units²</div>`;
+                content += `<div>Ratio: <span class="value-highlight">${ratio}</span></div>`;
+            }
+
+            if (currentMouseWorldCoords) {
+                content += `<div style="margin-top:4px; border-top:1px solid #444; padding-top:4px; font-size:10px; color:#999;">
+                            Cursor: <span class="value-highlight">[${currentMouseWorldCoords[0]}, ${currentMouseWorldCoords[1]}]</span>
+                            </div>`;
+            }
+
+            el.innerHTML = content;
+            el.style.display = 'block';
+        }
+
+        canvas.addEventListener('mousedown', e => {
+            viewState.dragging = true;
             viewState.lastX = e.clientX;
             viewState.lastY = e.clientY;
+            viewState.startClickX = e.clientX;
+            viewState.startClickY = e.clientY;
         });
 
-        canvas.addEventListener('mousemove', (e) => {
-            if (mouseHandler.isSelecting) {
-                const rect = canvas.getBoundingClientRect();
-                const currentX = e.clientX - rect.left;
-                const currentY = e.clientY - rect.top;
-                
-                selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
-                selCtx.strokeStyle = '#d4af37';
-                selCtx.lineWidth = 2;
-                selCtx.setLineDash([5, 5]);
-                selCtx.strokeRect(mouseHandler.startX, mouseHandler.startY, 
-                    currentX - mouseHandler.startX, currentY - mouseHandler.startY);
-                selCtx.fillStyle = 'rgba(212, 175, 55, 0.1)';
-                selCtx.fillRect(mouseHandler.startX, mouseHandler.startY, 
-                    currentX - mouseHandler.startX, currentY - mouseHandler.startY);
-                return;
+        canvas.addEventListener('mouseup', e => {
+            viewState.dragging = false;
+            if (Math.abs(e.clientX - viewState.startClickX) < 5 && Math.abs(e.clientY - viewState.startClickY) < 5) {
+                handleCanvasClick(e.clientX, e.clientY);
             }
+        });
+
+        // --- UPDATED CLICK HANDLER WITH FILTER ---
+        function handleCanvasClick(cx, cy) {
+            if (!currentMouseWorldCoords || !activeFloorData) return;
+            const [wx, wy] = currentMouseWorldCoords;
+            let found = null;
             
-            if (mouseHandler.isPanning) {
+            // Get Current Filter
+            const typeFilter = document.getElementById('typeFilter').value;
+            const allowedTypes = MAP_TYPES[typeFilter] || MAP_TYPES['All'];
+
+            const regionIds = Object.keys(activeFloorData.regions);
+            for (let rId of regionIds) {
+                const region = activeFloorData.regions[rId];
+                const mapIds = Object.keys(region.maps);
+                for (let mId of mapIds) {
+                    const mapData = region.maps[mId];
+                    // Get full map object to check type
+                    const fullMap = allMaps.find(m => m.id == mId);
+                    
+                    // Skip if filtered out
+                    if (!fullMap || !allowedTypes.includes(fullMap.type)) continue;
+
+                    let rect = mapData.continent_rect;
+                    if (!rect && fullMap) rect = fullMap.continent_rect;
+                    
+                    if (rect) {
+                        const [[x1, y1], [x2, y2]] = rect;
+                        if (wx >= x1 && wx <= x2 && wy >= y1 && wy <= y2) {
+                            found = { name: mapData.name, rect: rect };
+                            break;
+                        }
+                    }
+                }
+                if (found) break;
+            }
+
+            if (found) { clickedMapData = found; updateInspector(); } 
+            else { clickedMapData = null; updateInspector(); }
+        }
+
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            
+            const continentId = currentTarget ? currentTarget.continentId : 1;
+            const maxZoom = CONTINENTS[continentId].maxZoom;
+            const globalScale = Math.pow(2, viewState.zoom - maxZoom);
+            const worldX = (mx - viewState.offsetX) / globalScale;
+            const worldY = (my - viewState.offsetY) / globalScale;
+            currentMouseWorldCoords = [Math.round(worldX), Math.round(worldY)];
+            
+            if (viewState.dragging) {
                 viewState.offsetX += e.clientX - viewState.lastX;
                 viewState.offsetY += e.clientY - viewState.lastY;
                 viewState.lastX = e.clientX;
                 viewState.lastY = e.clientY;
                 render();
-            }
-        });
-
-        canvas.addEventListener('mouseup', (e) => {
-            if (mouseHandler.isSelecting) {
-                const rect = canvas.getBoundingClientRect();
-                const endX = e.clientX - rect.left;
-                const endY = e.clientY - rect.top;
-                
-                screenshotState.selection = {
-                    x: Math.min(mouseHandler.startX, endX),
-                    y: Math.min(mouseHandler.startY, endY),
-                    w: Math.abs(endX - mouseHandler.startX),
-                    h: Math.abs(endY - mouseHandler.startY)
-                };
-                
-                mouseHandler.isSelecting = false;
-                captureScreenshot();
-                return;
-            }
-            
-            mouseHandler.isPanning = false;
-        });
-
-        canvas.addEventListener('mouseleave', () => {
-            mouseHandler.isPanning = false;
-            mouseHandler.isSelecting = false;
-        });
-
-        canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const maxZoom = isWorldView ? 7 : (currentMap ? CONTINENTS[currentMap.continent_id].maxZoom : 7);
-            
-            if (e.deltaY < 0 && viewState.zoom < maxZoom) {
-                viewState.zoom++;
-                viewState.offsetX = e.offsetX - (e.offsetX - viewState.offsetX) * 2;
-                viewState.offsetY = e.offsetY - (e.offsetY - viewState.offsetY) * 2;
-            } else if (e.deltaY > 0 && viewState.zoom > 0) {
-                viewState.zoom--;
-                viewState.offsetX = e.offsetX - (e.offsetX - viewState.offsetX) * 0.5;
-                viewState.offsetY = e.offsetY - (e.offsetY - viewState.offsetY) * 0.5;
-            }
-            render();
-        });
-
-        // Screenshot
-        document.getElementById('screenshotBtn').onclick = () => {
-            const mode = document.getElementById('screenshotMode').value;
-            
-            if (mode === 'full') {
-                captureScreenshot();
             } else {
-                screenshotState.active = !screenshotState.active;
-                const btn = document.getElementById('screenshotBtn');
-                btn.classList.toggle('active');
-                btn.textContent = screenshotState.active ? '❌ Cancel' : '📷 Capture';
-                
-                if (screenshotState.active) {
-                    canvas.style.cursor = 'crosshair';
-                } else {
-                    canvas.style.cursor = '';
-                    selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
-                    screenshotState.selection = null;
-                }
+                if (currentTarget) updateInspector();
             }
+        });
+        
+        canvas.addEventListener('wheel', e => {
+			e.preventDefault();
+			const continentId = currentTarget ? currentTarget.continentId : 1;
+			const maxZoom = CONTINENTS[continentId].maxZoom;
+			
+			const rect = canvas.getBoundingClientRect();
+			const mouseX = e.clientX - rect.left;
+			const mouseY = e.clientY - rect.top;
+			
+			const oldScale = Math.pow(2, viewState.zoom - maxZoom);
+			
+			const worldMouseX = (mouseX - viewState.offsetX) / oldScale;
+			const worldMouseY = (mouseY - viewState.offsetY) / oldScale;
+
+			const delta = -Math.sign(e.deltaY) * 0.15;
+			let newZoom = viewState.zoom + delta;
+			
+			// LIMIT: Minimum zoom 1.0, Maximum zoom based on continent
+			if (newZoom < 1.0) newZoom = 1.0;  // ← NOVO LIMITE
+			if (newZoom > maxZoom) newZoom = maxZoom;
+			
+			viewState.zoom = newZoom;
+
+			const newScale = Math.pow(2, newZoom - maxZoom);
+			viewState.offsetX = mouseX - (worldMouseX * newScale);
+			viewState.offsetY = mouseY - (worldMouseY * newScale);
+
+			render();
+			updateInspector(); 
+		});
+
+        document.getElementById('screenshotBtn').onclick = () => {
+            captureScreenshot();
         };
 
         async function captureScreenshot() {
-            if (!currentMap && !isWorldView) return;
-            
+            if (!currentTarget) return;
             const zoom = parseInt(document.getElementById('screenshotZoom').value);
-            const floor = parseInt(document.getElementById('screenshotFloor').value);
-            const mode = document.getElementById('screenshotMode').value;
+            const continentId = currentTarget.continentId;
+            const maxZoom = CONTINENTS[continentId].maxZoom;
+            const [[x1, y1], [x2, y2]] = currentTarget.rect;
             
-            const [[x1, y1], [x2, y2]] = isWorldView ? 
-                [[0, 0], [CONTINENTS[1].dims[0], CONTINENTS[1].dims[1]]] : 
-                [currentMap.continent_rect[0], currentMap.continent_rect[1]];
-            
-            const continentId = isWorldView ? 1 : currentMap.continent_id;
-            const unitsPerTile = 256;
+            const unitsPerTile = 256 * Math.pow(2, maxZoom - zoom);
             const startTileX = Math.floor(x1 / unitsPerTile);
             const startTileY = Math.floor(y1 / unitsPerTile);
             const endTileX = Math.ceil(x2 / unitsPerTile);
             const endTileY = Math.ceil(y2 / unitsPerTile);
             
-            const tilesWide = endTileX - startTileX;
-            const tilesHigh = endTileY - startTileY;
-            
+            const tilesWide = endTileX - startTileX + 1;
+            const tilesHigh = endTileY - startTileY + 1;
+
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = tilesWide * 256;
             tempCanvas.height = tilesHigh * 256;
             const tempCtx = tempCanvas.getContext('2d');
             
-            document.getElementById('screenshotBtn').textContent = 'Loading...';
-            
             let loaded = 0;
             const total = tilesWide * tilesHigh;
-            
+            document.getElementById('screenshotBtn').textContent = `Loading ${total} tiles...`;
+
             for (let ty = 0; ty < tilesHigh; ty++) {
                 for (let tx = 0; tx < tilesWide; tx++) {
-                    const tileX = startTileX + tx;
-                    const tileY = startTileY + ty;
-                    const url = `https://tiles.guildwars2.com/${continentId}/${floor}/${zoom}/${tileX}/${tileY}.jpg`;
-                    
+                    const absTx = startTileX + tx;
+                    const absTy = startTileY + ty;
+                    const url = `https://tiles.guildwars2.com/${continentId}/${tileFloorIndex}/${zoom}/${absTx}/${absTy}.jpg`;
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
                     img.onload = () => {
                         tempCtx.drawImage(img, tx * 256, ty * 256);
                         loaded++;
-                        if (loaded === total) {
-                            let finalCanvas = tempCanvas;
-                            
-                            if (mode === 'rectangle' && screenshotState.selection) {
-                                const sel = screenshotState.selection;
-                                const cropCanvas = document.createElement('canvas');
-                                cropCanvas.width = sel.w;
-                                cropCanvas.height = sel.h;
-                                const cropCtx = cropCanvas.getContext('2d');
-                                
-                                const scaleX = tempCanvas.width / canvas.width;
-                                const scaleY = tempCanvas.height / canvas.height;
-                                
-                                cropCtx.drawImage(tempCanvas, 
-                                    sel.x * scaleX, sel.y * scaleY, sel.w * scaleX, sel.h * scaleY,
-                                    0, 0, sel.w, sel.h);
-                                finalCanvas = cropCanvas;
-                            }
-                            
-                            finalCanvas.toBlob((blob) => {
-                                navigator.clipboard.write([
-                                    new ClipboardItem({ 'image/png': blob })
-                                ]).then(() => {
-                                    alert('Copied to clipboard!');
-                                    document.getElementById('screenshotBtn').textContent = '📷 Capture';
-                                    screenshotState.active = false;
-                                    screenshotState.selection = null;
-                                    selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
-                                    document.getElementById('screenshotBtn').classList.remove('active');
-                                    canvas.style.cursor = '';
-                                });
-                            });
-                        }
+                        if(loaded === total) finalize();
                     };
-                    img.onerror = () => { loaded++; };
+                    img.onerror = () => { loaded++; if(loaded === total) finalize(); };
                     img.src = url;
                 }
             }
+
+            function finalize() {
+                const scaleFactor = Math.pow(2, zoom - maxZoom);
+                const rectW = (x2-x1) * scaleFactor;
+                const rectH = (y2-y1) * scaleFactor;
+                const mapLeft = x1 * scaleFactor;
+                const tileGridLeft = startTileX * unitsPerTile * scaleFactor;
+                const cropX = mapLeft - tileGridLeft;
+                const mapTop = y1 * scaleFactor;
+                const tileGridTop = startTileY * unitsPerTile * scaleFactor;
+                const cropY = mapTop - tileGridTop;
+
+                const finalC = document.createElement('canvas');
+                finalC.width = rectW;
+                finalC.height = rectH;
+                finalC.getContext('2d').drawImage(tempCanvas, cropX, cropY, rectW, rectH, 0,0, rectW, rectH);
+
+                const filename = currentTarget.type === 'region' 
+                    ? `region-${currentTarget.name.replace(/\s+/g, '-').toLowerCase()}.png`
+                    : `zone-${currentTarget.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+
+                finalC.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = url;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    document.getElementById('screenshotBtn').textContent = '📥 Download';
+                });
+            }
         }
 
-        // Initialize
-        preloadIcons();
-        createMarkerToggles();
-        loadMaps();
+        init();
     </script>
 </body>
 </html>

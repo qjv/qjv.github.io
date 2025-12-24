@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snow Crows Content Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Snow Crows Content Editor</h1>
+        </div>
+
+        <div class="editor-wrapper">
+            <div class="editor-panel">
+                <div class="panel-header">Markdown Editor</div>
+                <div style="position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    
+                    <textarea id="markdown-input" spellcheck="false"># Snow Crows Editor
+
+Welcome to the **Snow Crows Content Editor**!
+
+## Features
+1. **Formatting**: Standard markdown support.
+2. **Armory**: Use the buttons below.
+3. **Safe Mode (Active)**: 
+   - Suggestions only appear for text inside brackets: <Slash>, <Viper>.
+   - Ambiguous terms turn yellow (hover to fix).
+   - Unique terms auto-replace if enabled.
+
+Try it: <Consume Shadows>, <Nika's Mask>, <Slash></textarea>
+
+                    <div id="review-overlay" class="review-overlay" style="display: none;"></div>
+                    
+                    <div id="suggestion-tooltip" class="suggestion-tooltip"></div>
+
+                </div>
+
+                <div class="toolbar">
+                    <div id="status-bar" class="status-bar">Ready</div>
+                    
+                    <div class="toolbar-separator"></div>
+
+                    <button class="toolbar-btn" onclick="insertMarkdown('**', '**')" title="Bold">B</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('*', '*')" title="Italic">I</button>
+                    
+                    <div class="toolbar-separator"></div>
+                    
+                    <button class="toolbar-btn" onclick="openArmoryModal()" title="Insert SC Armory Tag">Armory</button>
+                    <button class="toolbar-btn" onclick="openGW2Modal()" title="Insert GW2 API Tag" style="border-color: #047857;">GW2</button>
+                    <button class="toolbar-btn" onclick="toggleSuggestions()" title="Auto-Suggestions" style="border-color: #b45309;">✨ Suggestions</button>
+                </div>
+            </div>
+
+            <div class="preview-panel">
+                <div class="panel-header">Live Preview</div>
+                <div class="preview-content" id="preview"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="armory-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Insert Armory Tag</h2>
+                <button class="modal-close" onclick="closeArmoryModal()">×</button>
+            </div>
+            <div class="modal-search">
+                <input type="text" id="armory-search" placeholder="Search..." oninput="filterArmory()">
+            </div>
+            <div class="modal-list" id="armory-list"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="gw2-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Insert GW2 Tag</h2>
+                <button class="modal-close" onclick="closeGW2Modal()">×</button>
+            </div>
+            <div class="modal-search">
+                <input type="text" id="gw2-search" placeholder="Search..." oninput="filterGW2()">
+                <select id="gw2-type-filter" onchange="filterGW2()" style="margin-top: 0.5rem; width: 100%; padding: 0.5rem; background: #0f0f0f; border: 1px solid #2a2a2a; color: #e5e5e5;">
+                    <option value="all">All Types</option>
+                    <option value="skills">Skills</option>
+                    <option value="items">Items</option>
+                    <option value="traits">Traits</option>
+                </select>
+            </div>
+            <div class="modal-list" id="gw2-list"></div>
+        </div>
+    </div>
+
+    <div id="suggestions-panel" class="suggestions-panel">
+        <div class="suggestions-header">
+            <h3>Auto-Suggestions</h3>
+            <button onclick="toggleSuggestions()" style="background: transparent; border: none; color: #999; font-size: 1.2rem; cursor: pointer;">×</button>
+        </div>
+        <div class="suggestions-content">
+            <div style="margin-bottom: 1rem; color: #999; font-size: 0.85rem;">
+                Configure text scanning.
+            </div>
+            
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
+                <input type="checkbox" id="scan-as-type" checked>
+                <strong>Scan as you type</strong>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
+                <input type="checkbox" id="auto-replace" checked>
+                <strong>Automatic Replace</strong>
+            </label>
+            <div style="font-size: 0.8rem; color: #666; margin-left: 1.5rem; margin-bottom: 1rem;">
+                Replaces unique matches instantly.
+            </div>
+
+            <hr style="border-top: 1px solid #2a2a2a; margin: 1rem 0;">
+
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
+                <input type="checkbox" id="safe-mode" checked>
+                <strong>Safe Mode</strong> <span style="color: #999; font-size: 0.85rem;">(only &lt;&gt; tags)</span>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
+                <input type="checkbox" id="suggest-skills" checked> <span style="color: #6366f1;">■</span> Skills
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
+                <input type="checkbox" id="suggest-items" checked> <span style="color: #10b981;">■</span> Items
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
+                <input type="checkbox" id="suggest-traits" checked> <span style="color: #f59e0b;">■</span> Traits
+            </label>
+            
+            <div id="scan-actions">
+                <button onclick="manualScan()" style="width: 100%; margin-top: 1rem; padding: 0.75rem; background: #6366f1; border: none; border-radius: 4px; color: white; font-weight: 600; cursor: pointer;">
+                    Manual Scan
+                </button>
+                <button onclick="clearCache()" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: #450a0a; border: none; border-radius: 4px; color: #fca5a5; font-weight: 600; cursor: pointer;">
+                    Clear Cache
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.gw2ArmoryOptions = { hideDefaultBadge: true };
+    </script>
+    <script src="armory.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

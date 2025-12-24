@@ -28,171 +28,67 @@
                 <div class="panel-header">Markdown Editor</div>
                 <div style="position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
                     
-                    <textarea id="markdown-input" spellcheck="false">
+                    <textarea id="markdown-input" spellcheck="false"># Snow Crows Formatting Examples
 
-# Snow Crows Editor - Formatting Guide
+Quick reference for all available formatting options.
 
-Welcome to the **Snow Crows Content Editor**! This guide shows all available formatting options.
+## Text Styles
 
-## Text Formatting
-
-You can make text **bold**, *italic*, strikethrough, or use inline code for technical terms.
-
-### Combining Formats
-
-***Bold and italic*** work together, and you can have **bold with code inside**!
-
-## Headings
-
-# H1 - Main Title
-
-## H2 - Section Header
-
-### H3 - Subsection
-
-#### H4 - Minor Heading
-
----
+**Bold text**, *italic text*, ~~strikethrough~~, and `inline code` for technical terms.
 
 ## Lists
 
-### Unordered Lists
-
-- First item
-
-- Second item with **bold**
-
+**Unordered:**
+- First item with [sc:2]Alacrity[/sc]
+- Second item with [sc:7]Quickness[/sc]
 - Third item
 
-    - Nested item 1
-
-    - Nested item 2
-
-        - Deeply nested
-
-- Back to main level
-
-### Numbered Lists
-
-1. Complete [sc:1414]Hero Points[/sc] in the zone
-
+**Ordered:**
+1. Gather [sc:1414]Hero Points[/sc]
 2. Unlock [sc:1310]Glider[/sc] mastery
+3. Train elite specialization
 
-3. Gather [sc:1347]Mastery Points[/sc]
+## Links & Images
 
-    1. From story achievements
+Visit the [official wiki](https://wiki.guildwars2.com) for more information.
 
-    2. From exploration
-
-4. Train your elite specialization
-
----
-
-## Links and Images
-
-Check out the [official wiki](https://wiki.guildwars2.com) for more info!
-
-![Example Image](https://via.placeholder.com/400x200)
-
----
-
-## Blockquotes
-
-> This is a tip or important note!
-
-> 
-
-> You can have multiple paragraphs in blockquotes.
-
----
+![Snow Crows Logo](https://snowcrows.com/assets/logotype_white.png)
 
 ## SC Armory Tags
 
-Snow Crows custom tags display with orange icons:
+Common boons: [sc:1]Aegis[/sc], [sc:2]Alacrity[/sc], [sc:7]Quickness[/sc], [sc:5]Might[/sc]
 
-- [sc:1]Aegis[/sc] - Boon that blocks attacks
+Professions: [sc:28]Guardian[/sc], [sc:48]Firebrand[/sc], [sc:874]Willbender[/sc]
 
-- [sc:2]Alacrity[/sc] - Essential boon for cooldown reduction
+## GW2 API Tags (Skills & Items)
 
-- [sc:7]Quickness[/sc] - Required for fast skill usage
+Skills work best with angle brackets: <Whirling Wrath>, <Symbol of Resolution>
 
-- [sc:14]Burning[/sc], [sc:15]Chilled[/sc], [sc:16]Blind[/sc] - Conditions
+Direct tags: [gw2:9168:skill] or [gw2:30704:item]
 
-- [sc:28]Guardian[/sc], [sc:48]Firebrand[/sc], [sc:874]Willbender[/sc] - Professions
+## Waypoints
 
-**Trait Lines:**
+Navigate the map:
+- [wp:[&BO8GAAA=]]Palace of Gathering Waypoint[/wp]
+- [wp:[&BPAGAAA=]]Trade Commons Waypoint[/wp]
 
-- [sc:427]Virtues[/sc]
+## Traitlines
 
-- [sc:1086]Firebrand Trait Line[/sc]
+Example traitline (Water):
 
-- [sc:1085]Willbender Trait Line[/sc]
+[traitline:17:363:349:2028]
 
----
+## Blockquote
 
-## GW2 API Tags
-
-These pull live data from the Guild Wars 2 API and display with game icons.
-
-### Skills (use safe mode: &lt;skill name&gt;)
-
-Type in angle brackets for auto-suggestions: <Whirling Wrath>, <Symbol of Resolution>
-
-### Traits
-
-<Radiant Fire>, <Symbolic Exposure>, <Eternal Armory>
-
-### Items
-
-<Berserker's Insignia>, <Superior Sigil of Force>, <Bowl of Fruit Salad with Mint Garnish>
+> **Pro Tip:** Always maintain [sc:1]Aegis[/sc] before big attacks!
 
 ---
 
-## Practical Example: Build Section
-
-### Core Rotation
-
-1. Start with [gw2:9168:skill] to apply [sc:14]Burning[/sc]
-
-2. Use [gw2:9153:skill] for damage
-
-3. Maintain [sc:2]Alacrity[/sc] and [sc:7]Quickness[/sc]
-
-4. Apply [sc:18]Vulnerability[/sc] with symbols
-
-### Gear Requirements
-
-**Armor:**
-
-- Full [sc:1235]Berserker's Insignia[/sc] with [sc:954]Scepter[/sc]/[gw2:30704:item]
-
-**Consumables:**
-
-- Food: Any power-based option
-
-- Utility: [sc:1017]Nourishment[/sc] from the [sc:1197]Wizard's Vault[/sc]
-
-### Tips and Tricks
-
-> **Pro Tip:** Always maintain your [sc:1]Aegis[/sc] before dangerous attacks!
-
-Remember to dodge with proper timing and watch for these mechanics:
-
-- Red circles = [sc:207]Dodge[/sc] immediately
-
-- Orange telegraphs = [sc:166]Block[/sc] or evade
-
-- Green circles = Stack for healing
-
----
-
-## Code Blocks (Future Feature)
-
-Currently use inline code like this for technical terms, waypoint codes like [&BGAJAAA=], or build templates.
-
----
-
-**Happy editing!** Use the toolbar buttons or type markdown directly. Enable **Suggestions** in the right panel for auto-tagging!</textarea>
+**Quick Reference:**
+- `[sc:id]Name[/sc]` - SC armory
+- `<Name>` or `[gw2:id:type]` - GW2 API
+- `[wp:[&code]]Name[/wp]` - Waypoints
+- `[traitline:spec:t1:t2:t3]` - Traitlines</textarea>
 
                     <div id="review-overlay" class="review-overlay" style="display: none;"></div>
                     
@@ -227,6 +123,11 @@ Currently use inline code like this for technical terms, waypoint codes like [&B
                     
                     <div class="toolbar-separator"></div>
                     
+                    <button class="toolbar-btn" onclick="insertWaypoint()" title="Insert Waypoint">📍 WP</button>
+                    <button class="toolbar-btn" onclick="insertTraitline()" title="Insert Traitline">🎯 Traits</button>
+                    
+                    <div class="toolbar-separator"></div>
+                    
                     <button class="toolbar-btn" onclick="openArmoryModal()" title="Insert SC Armory Tag" style="border-color: #f59e0b;">SC</button>
                     <button class="toolbar-btn" onclick="openGW2Modal()" title="Insert GW2 API Tag" style="border-color: #047857;">GW2</button>
                     <button class="toolbar-btn" onclick="toggleSuggestions()" title="Auto-Suggestions" style="border-color: #b45309;">✨ Suggestions</button>
@@ -252,7 +153,73 @@ Currently use inline code like this for technical terms, waypoint codes like [&B
             <div class="modal-list" id="armory-list"></div>
         </div>
     </div>
+	<div class="modal" id="waypoint-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Insert Waypoint</h2>
+                <button class="modal-close" onclick="closeWaypointModal()">×</button>
+            </div>
+            <div class="modal-search">
+                <input type="text" id="waypoint-search" placeholder="Search waypoints..." oninput="filterWaypoints()">
+                <select id="waypoint-map-filter" onchange="filterWaypoints()" style="margin-top: 0.5rem; width: 100%; padding: 0.5rem; background: #0f0f0f; border: 1px solid #2a2a2a; color: #e5e5e5; border-radius: 6px;">
+                    <option value="all">All Maps</option>
+                </select>
+            </div>
+            <div class="modal-list" id="waypoint-list"></div>
+        </div>
+    </div>
 
+    <div class="modal" id="traitline-modal">
+		<div class="modal-content" style="overflow: visible;"> <div class="modal-header">
+				<h2>Insert Traitline</h2>
+				<button class="modal-close" onclick="closeTraitlineModal()">×</button>
+			</div>
+			
+			<div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+				
+				<div class="dropdown-container">
+					<label class="dropdown-label">Specialization</label>
+					<div class="custom-dropdown" id="spec-dropdown">
+						<input type="text" class="dropdown-search" id="spec-input" placeholder="Select Specialization..." autocomplete="off">
+						<div class="dropdown-options" id="spec-options"></div>
+					</div>
+				</div>
+
+				<div id="traits-container" style="display: none; flex-direction: column; gap: 1rem;">
+					
+					<div class="dropdown-container">
+						<label class="dropdown-label">Adept Trait (Tier 1)</label>
+						<div class="custom-dropdown" id="trait1-dropdown">
+							<input type="text" class="dropdown-search" id="trait1-input" placeholder="Select Adept Trait..." autocomplete="off">
+							<div class="dropdown-options" id="trait1-options"></div>
+						</div>
+					</div>
+
+					<div class="dropdown-container">
+						<label class="dropdown-label">Master Trait (Tier 2)</label>
+						<div class="custom-dropdown" id="trait2-dropdown">
+							<input type="text" class="dropdown-search" id="trait2-input" placeholder="Select Master Trait..." autocomplete="off">
+							<div class="dropdown-options" id="trait2-options"></div>
+						</div>
+					</div>
+
+					<div class="dropdown-container">
+						<label class="dropdown-label">Grandmaster Trait (Tier 3)</label>
+						<div class="custom-dropdown" id="trait3-dropdown">
+							<input type="text" class="dropdown-search" id="trait3-input" placeholder="Select Grandmaster Trait..." autocomplete="off">
+							<div class="dropdown-options" id="trait3-options"></div>
+						</div>
+					</div>
+
+				</div>
+
+				<button onclick="insertTraitlineFromModal()" id="insert-trait-btn" style="margin-top: 1rem; padding: 0.75rem; background: #6366f1; border: none; border-radius: 4px; color: white; font-weight: 600; cursor: pointer; display: none;">
+					Insert Traitline
+				</button>
+			</div>
+		</div>
+	</div>
+	
     <div class="modal" id="gw2-modal">
         <div class="modal-content">
             <div class="modal-header">

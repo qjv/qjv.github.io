@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GW2 Armory Generator (Continents API)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+            color: #e5e5e5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .container {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 650px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        h1 { color: #fff; margin-bottom: 0.5rem; font-size: 1.8rem; }
+        .subtitle { color: #888; margin-bottom: 2rem; font-size: 0.9rem; }
+        
+        .upload-section {
+            border: 2px dashed #333;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .upload-section:hover { border-color: #6366f1; background: #202020; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: #111;
+            padding: 0.75rem;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        .stat-val { display: block; font-size: 1.2rem; font-weight: bold; color: #fff; }
+        .stat-label { font-size: 0.75rem; color: #888; }
+        .stat-new { font-size: 0.7rem; color: #10b981; height: 1rem; }
+
+        .progress-container {
+            background: #111;
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            width: 0%;
+            transition: width 0.2s;
+        }
+        .status-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #bbb;
+            margin-bottom: 1.5rem;
+            min-height: 1.2em;
+        }
+        .buttons { display: flex; gap: 1rem; }
+        button {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover:not(:disabled) { background: #4f46e5; }
+        .btn-secondary { background: #333; color: #ccc; }
+        .btn-secondary:hover:not(:disabled) { background: #444; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GW2 Armory Generator</h1>
+        <p class="subtitle">Generates armory-gw2.js using the Continents API for reliable Waypoints.</p>
+
+        <div class="upload-section" onclick="document.getElementById('file-input').click()">
+            <input type="file" id="file-input" accept=".js" onchange="handleFile(this.files[0])">
+            <div>📂 Upload existing <strong>armory-gw2.js</strong> (optional)</div>
+            <div id="file-name" style="color: #6366f1; font-size: 0.85rem; margin-top: 5px;"></div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-val" id="count-items">0</span>
+                <span class="stat-label">Items</span>
+                <div class="stat-new" id="new-items"></div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="count-skills">0</span>
+                <span class="stat-label">Skills</span>
+                <div class="stat-new" id="new-skills"></div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="count-traits">0</span>
+                <span class="stat-label">Traits</span>
+                <div class="stat-new" id="new-traits"></div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="count-specs">0</span>
+                <span class="stat-label">Specs</span>
+                <div class="stat-new" id="new-specs"></div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-val" id="count-wps">0</span>
+                <span class="stat-label">Waypoints</span>
+                <div class="stat-new" id="new-wps"></div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="status-text" id="status-text">Ready to start.</div>
+
+        <div class="buttons">
+            <button class="btn-primary" id="btn-gen" onclick="startProcess(false)">Generate New</button>
+            <button class="btn-secondary" id="btn-update" onclick="startProcess(true)" disabled>Update Existing</button>
+        </div>
+    </div>
+
+    <script>
+        let existingData = null;
+        const DOM = {
+            counts: {
+                items: document.getElementById('count-items'),
+                skills: document.getElementById('count-skills'),
+                traits: document.getElementById('count-traits'),
+                specs: document.getElementById('count-specs'),
+                wps: document.getElementById('count-wps')
+            },
+            new: {
+                items: document.getElementById('new-items'),
+                skills: document.getElementById('new-skills'),
+                traits: document.getElementById('new-traits'),
+                specs: document.getElementById('new-specs'),
+                wps: document.getElementById('new-wps')
+            },
+            progress: document.getElementById('progress-bar'),
+            status: document.getElementById('status-text'),
+            btnGen: document.getElementById('btn-gen'),
+            btnUpdate: document.getElementById('btn-update')
+        };
+
+        function handleFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    const match = content.match(/const gw2ArmoryData = ({[\s\S]*?});/);
+                    if (!match) throw new Error("Invalid format");
+                    existingData = eval('(' + match[1] + ')');
+                    
+                    document.getElementById('file-name').textContent = `Loaded: ${file.name}`;
+                    updateStats(
+                        existingData.items?.length || 0,
+                        existingData.skills?.length || 0,
+                        existingData.traits?.length || 0,
+                        existingData.specializations?.length || 0,
+                        existingData.waypoints?.length || 0
+                    );
+                    DOM.btnUpdate.disabled = false;
+                    DOM.status.textContent = "File loaded. Click 'Update Existing' to merge.";
+                } catch (err) {
+                    DOM.status.textContent = "Error parsing file.";
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function updateStats(i, s, t, sp, w, ni=0, ns=0, nt=0, nsp=0, nw=0) {
+            DOM.counts.items.textContent = i.toLocaleString();
+            DOM.counts.skills.textContent = s.toLocaleString();
+            DOM.counts.traits.textContent = t.toLocaleString();
+            DOM.counts.specs.textContent = sp.toLocaleString();
+            DOM.counts.wps.textContent = w.toLocaleString();
+            
+            if(ni) DOM.new.items.textContent = `+${ni}`;
+            if(ns) DOM.new.skills.textContent = `+${ns}`;
+            if(nt) DOM.new.traits.textContent = `+${nt}`;
+            if(nsp) DOM.new.specs.textContent = `+${nsp}`;
+            if(nw) DOM.new.wps.textContent = `+${nw}`;
+        }
+
+        // Helper: Generate Chat Link from ID (Base64 encoding logic for GW2)
+        function generateChatLink(id) {
+            // Header for waypoint is 0x04
+            const buffer = new ArrayBuffer(5);
+            const view = new DataView(buffer);
+            view.setUint8(0, 0x04); // Type: Waypoint
+            view.setUint32(1, id, true); // ID (Little Endian)
+            
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return `[&${btoa(binary)}]`;
+        }
+
+        async function fetchInBatches(ids, endpoint, onProgress) {
+            const batchSize = 200;
+            const results = [];
+            for (let i = 0; i < ids.length; i += batchSize) {
+                const chunk = ids.slice(i, i + batchSize);
+                try {
+                    const response = await fetch(`${endpoint}?ids=${chunk.join(',')}`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    results.push(...data);
+                } catch (e) {
+                    console.warn(`Failed chunk ${i}-${i+batchSize}`, e);
+                }
+                if (onProgress) onProgress(results.length, ids.length);
+            }
+            return results;
+        }
+
+        async function startProcess(isUpdate) {
+            DOM.btnGen.disabled = true;
+            DOM.btnUpdate.disabled = true;
+            DOM.status.textContent = "Fetching ID lists...";
+            DOM.progress.style.width = '5%';
+
+            try {
+                // 1. Get all IDs for standard endpoints
+                const [itemIds, skillIds, traitIds, specIds] = await Promise.all([
+                    fetch('https://api.guildwars2.com/v2/items').then(r => r.json()),
+                    fetch('https://api.guildwars2.com/v2/skills').then(r => r.json()),
+                    fetch('https://api.guildwars2.com/v2/traits').then(r => r.json()),
+                    fetch('https://api.guildwars2.com/v2/specializations').then(r => r.json())
+                ]);
+
+                // 2. Prepare Storage
+                const data = {
+                    items: isUpdate ? [...(existingData.items || [])] : [],
+                    skills: isUpdate ? [...(existingData.skills || [])] : [],
+                    traits: isUpdate ? [...(existingData.traits || [])] : [],
+                    specs: isUpdate ? [...(existingData.specializations || [])] : [],
+                    waypoints: isUpdate ? [...(existingData.waypoints || [])] : []
+                };
+
+                const existing = {
+                    items: new Set(data.items.map(x => x.id)),
+                    skills: new Set(data.skills.map(x => x.id)),
+                    traits: new Set(data.traits.map(x => x.id)),
+                    specs: new Set(data.specs.map(x => x.id)),
+                    waypoints: new Set(data.waypoints.map(x => x.id))
+                };
+
+                // 3. Diff IDs
+                const toFetch = {
+                    items: itemIds.filter(id => !existing.items.has(id)),
+                    skills: skillIds.filter(id => !existing.skills.has(id)),
+                    traits: traitIds.filter(id => !existing.traits.has(id)),
+                    specs: specIds.filter(id => !existing.specs.has(id))
+                };
+
+                // Estimate operations for progress bar
+                // Items/Skills/Traits + (2 continents * approx floors)
+                let totalOps = toFetch.items.length + toFetch.skills.length + toFetch.traits.length + toFetch.specs.length + 5000; // 5000 arbitrary weight for map processing
+                let currentOp = 0;
+
+                const updateProg = (added) => {
+                    currentOp += added;
+                    DOM.progress.style.width = `${Math.min(95, (currentOp / totalOps) * 100)}%`;
+                };
+
+                // --- BATCH FETCHING ITEMS/SKILLS/TRAITS ---
+                async function runBatch(ids, endpoint, storage, mapper) {
+                     if (!ids.length) return;
+                     DOM.status.textContent = `Fetching ${ids.length} entries from ${endpoint}...`;
+                     await fetchInBatches(ids, endpoint, (done, total) => {
+                         updateProg(200); // approximate visual progress
+                     }).then(results => {
+                         const mapped = mapper ? results.map(mapper) : results;
+                         storage.push(...mapped);
+                     });
+                }
+
+                await runBatch(toFetch.items, 'https://api.guildwars2.com/v2/items', data.items, 
+                    i => ({ id: i.id, name: i.name, icon: i.icon, rarity: i.rarity, type: i.type }));
+
+                await runBatch(toFetch.skills, 'https://api.guildwars2.com/v2/skills', data.skills, 
+                    s => ({ id: s.id, name: s.name, icon: s.icon, description: s.description }));
+
+                await runBatch(toFetch.traits, 'https://api.guildwars2.com/v2/traits', data.traits, 
+                    t => ({ id: t.id, name: t.name, icon: t.icon, description: t.description }));
+
+                await runBatch(toFetch.specs, 'https://api.guildwars2.com/v2/specializations', data.specs, 
+                    s => ({ id: s.id, name: s.name, icon: s.icon, profession: s.profession, elite: s.elite }));
+
+                // --- CONTINENTS & WAYPOINTS ---
+                // We always fetch continents to ensure we get all waypoints, filtering for existing if update mode
+                // This is safer than relying on diffs because waypoint IDs aren't listed in a simple index endpoint
+                DOM.status.textContent = `Scanning Continents for Waypoints...`;
+                
+                // Fetch Continent 1 (Tyria) and 2 (Mists)
+                const continentsToScan = [1, 2];
+                let newWps = 0;
+
+                for (const continentId of continentsToScan) {
+                    try {
+                        DOM.status.textContent = `Scanning Continent ${continentId}...`;
+                        // Get floors
+                        const floors = await fetch(`https://api.guildwars2.com/v2/continents/${continentId}/floors`).then(r => r.json());
+                        
+                        // Iterate floors
+                        for (const floorId of floors) {
+                            try {
+                                DOM.status.textContent = `Scanning Continent ${continentId}, Floor ${floorId}...`;
+                                const floorData = await fetch(`https://api.guildwars2.com/v2/continents/${continentId}/floors/${floorId}`).then(r => r.json());
+                                
+                                // Traverse: Regions -> Maps -> POIs
+                                for (const regionId in floorData.regions) {
+                                    const region = floorData.regions[regionId];
+                                    for (const mapId in region.maps) {
+                                        const map = region.maps[mapId];
+                                        if (map.points_of_interest) {
+                                            for (const poiId in map.points_of_interest) {
+                                                const poi = map.points_of_interest[poiId];
+                                                if (poi.type === 'waypoint') {
+                                                    // Check if we already have this waypoint
+                                                    if (!existing.waypoints.has(poi.id)) {
+                                                        data.waypoints.push({
+                                                            id: poi.id,
+                                                            name: poi.name,
+                                                            chat_link: poi.chat_link || generateChatLink(poi.id),
+                                                            map_id: parseInt(mapId),
+                                                            map_name: map.name,
+                                                            floor: floorId,
+                                                            continent: continentId,
+                                                            coord: poi.coord
+                                                        });
+                                                        existing.waypoints.add(poi.id);
+                                                        newWps++;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                updateProg(200); // Visual step
+                            } catch (e) {
+                                console.warn(`Failed floor ${floorId}`, e);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`Failed continent ${continentId}`, e);
+                    }
+                }
+
+                // Final Sort
+                data.items.sort((a,b) => a.id - b.id);
+                data.skills.sort((a,b) => a.id - b.id);
+                data.traits.sort((a,b) => a.id - b.id);
+                data.waypoints.sort((a,b) => a.id - b.id);
+                data.specs.sort((a,b) => a.id - b.id);
+
+                updateStats(data.items.length, data.skills.length, data.traits.length, data.specs.length, data.waypoints.length,
+                    toFetch.items.length, toFetch.skills.length, toFetch.traits.length, toFetch.specs.length, newWps);
+
+                DOM.progress.style.width = '100%';
+                DOM.status.textContent = "Generating File...";
+
+                // Generate File
+                const content = `// GW2 Armory Data - Generated ${new Date().toISOString()}
+const gw2ArmoryData = {
+  metadata: {
+    generated: "${new Date().toISOString()}",
+    counts: {
+        items: ${data.items.length},
+        skills: ${data.skills.length},
+        traits: ${data.traits.length},
+        specs: ${data.specs.length},
+        waypoints: ${data.waypoints.length}
+    }
+  },
+  items: ${JSON.stringify(data.items)},
+  skills: ${JSON.stringify(data.skills)},
+  traits: ${JSON.stringify(data.traits)},
+  specializations: ${JSON.stringify(data.specs)},
+  waypoints: ${JSON.stringify(data.waypoints)}
+};
+
+if (typeof module !== 'undefined' && module.exports) module.exports = gw2ArmoryData;
+`;
+
+                const blob = new Blob([content], { type: 'text/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'armory-gw2.js';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                DOM.status.textContent = "Done! File downloaded.";
+                DOM.btnGen.disabled = false;
+                DOM.btnUpdate.disabled = false;
+
+            } catch (error) {
+                console.error(error);
+                DOM.status.textContent = "Error: " + error.message;
+                DOM.btnGen.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -8,6 +8,17 @@
 </head>
 <body>
     <div class="container">
+        <div id="update-warning" class="update-warning" style="display: none;">
+            <div class="update-warning-content">
+                <span class="update-warning-icon">⚠️</span>
+                <div class="update-warning-text">
+                    <strong>Armory Update Available!</strong>
+                    <span id="update-details"></span>
+                </div>
+                <button class="update-warning-close" onclick="dismissWarning()">×</button>
+            </div>
+        </div>
+
         <div class="header">
             <h1>Snow Crows Content Editor</h1>
         </div>
@@ -17,19 +28,171 @@
                 <div class="panel-header">Markdown Editor</div>
                 <div style="position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
                     
-                    <textarea id="markdown-input" spellcheck="false"># Snow Crows Editor
+                    <textarea id="markdown-input" spellcheck="false">
 
-Welcome to the **Snow Crows Content Editor**!
+# Snow Crows Editor - Formatting Guide
 
-## Features
-1. **Formatting**: Standard markdown support.
-2. **Armory**: Use the buttons below.
-3. **Safe Mode (Active)**: 
-   - Suggestions only appear for text inside brackets: <Slash>, <Viper>.
-   - Ambiguous terms turn yellow (hover to fix).
-   - Unique terms auto-replace if enabled.
+Welcome to the **Snow Crows Content Editor**! This guide shows all available formatting options.
 
-Try it: <Consume Shadows>, <Nika's Mask>, <Slash></textarea>
+## Text Formatting
+
+You can make text **bold**, *italic*, strikethrough, or use inline code for technical terms.
+
+### Combining Formats
+
+***Bold and italic*** work together, and you can have **bold with code inside**!
+
+## Headings
+
+# H1 - Main Title
+
+## H2 - Section Header
+
+### H3 - Subsection
+
+#### H4 - Minor Heading
+
+---
+
+## Lists
+
+### Unordered Lists
+
+- First item
+
+- Second item with **bold**
+
+- Third item
+
+    - Nested item 1
+
+    - Nested item 2
+
+        - Deeply nested
+
+- Back to main level
+
+### Numbered Lists
+
+1. Complete [sc:1414]Hero Points[/sc] in the zone
+
+2. Unlock [sc:1310]Glider[/sc] mastery
+
+3. Gather [sc:1347]Mastery Points[/sc]
+
+    1. From story achievements
+
+    2. From exploration
+
+4. Train your elite specialization
+
+---
+
+## Links and Images
+
+Check out the [official wiki](https://wiki.guildwars2.com) for more info!
+
+![Example Image](https://via.placeholder.com/400x200)
+
+---
+
+## Blockquotes
+
+> This is a tip or important note!
+
+> 
+
+> You can have multiple paragraphs in blockquotes.
+
+---
+
+## SC Armory Tags
+
+Snow Crows custom tags display with orange icons:
+
+- [sc:1]Aegis[/sc] - Boon that blocks attacks
+
+- [sc:2]Alacrity[/sc] - Essential boon for cooldown reduction
+
+- [sc:7]Quickness[/sc] - Required for fast skill usage
+
+- [sc:14]Burning[/sc], [sc:15]Chilled[/sc], [sc:16]Blind[/sc] - Conditions
+
+- [sc:28]Guardian[/sc], [sc:48]Firebrand[/sc], [sc:874]Willbender[/sc] - Professions
+
+**Trait Lines:**
+
+- [sc:427]Virtues[/sc]
+
+- [sc:1086]Firebrand Trait Line[/sc]
+
+- [sc:1085]Willbender Trait Line[/sc]
+
+---
+
+## GW2 API Tags
+
+These pull live data from the Guild Wars 2 API and display with game icons.
+
+### Skills (use safe mode: &lt;skill name&gt;)
+
+Type in angle brackets for auto-suggestions: <Whirling Wrath>, <Symbol of Resolution>
+
+### Traits
+
+<Radiant Fire>, <Symbolic Exposure>, <Eternal Armory>
+
+### Items
+
+<Berserker's Insignia>, <Superior Sigil of Force>, <Bowl of Fruit Salad with Mint Garnish>
+
+---
+
+## Practical Example: Build Section
+
+### Core Rotation
+
+1. Start with [gw2:9168:skill] to apply [sc:14]Burning[/sc]
+
+2. Use [gw2:9153:skill] for damage
+
+3. Maintain [sc:2]Alacrity[/sc] and [sc:7]Quickness[/sc]
+
+4. Apply [sc:18]Vulnerability[/sc] with symbols
+
+### Gear Requirements
+
+**Armor:**
+
+- Full [sc:1235]Berserker's Insignia[/sc] with [sc:954]Scepter[/sc]/[gw2:30704:item]
+
+**Consumables:**
+
+- Food: Any power-based option
+
+- Utility: [sc:1017]Nourishment[/sc] from the [sc:1197]Wizard's Vault[/sc]
+
+### Tips and Tricks
+
+> **Pro Tip:** Always maintain your [sc:1]Aegis[/sc] before dangerous attacks!
+
+Remember to dodge with proper timing and watch for these mechanics:
+
+- Red circles = [sc:207]Dodge[/sc] immediately
+
+- Orange telegraphs = [sc:166]Block[/sc] or evade
+
+- Green circles = Stack for healing
+
+---
+
+## Code Blocks (Future Feature)
+
+Currently use inline code like this for technical terms, waypoint codes like [&BGAJAAA=], or build templates.
+
+---
+
+**Happy editing!** Use the toolbar buttons or type markdown directly. Enable **Suggestions** in the right panel for auto-tagging!</textarea>
 
                     <div id="review-overlay" class="review-overlay" style="display: none;"></div>
                     
@@ -42,12 +205,29 @@ Try it: <Consume Shadows>, <Nika's Mask>, <Slash></textarea>
                     
                     <div class="toolbar-separator"></div>
 
-                    <button class="toolbar-btn" onclick="insertMarkdown('**', '**')" title="Bold">B</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('*', '*')" title="Italic">I</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('# ', '')" title="Heading 1">H1</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('## ', '')" title="Heading 2">H2</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('### ', '')" title="Heading 3">H3</button>
                     
                     <div class="toolbar-separator"></div>
                     
-                    <button class="toolbar-btn" onclick="openArmoryModal()" title="Insert SC Armory Tag">Armory</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('**', '**')" title="Bold">B</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('*', '*')" title="Italic">I</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('~~', '~~')" title="Strikethrough">S</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('`', '`')" title="Inline Code">&lt;/&gt;</button>
+                    
+                    <div class="toolbar-separator"></div>
+                    
+                    <button class="toolbar-btn" onclick="insertMarkdown('[', '](url)')" title="Link">🔗</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('![alt](', ')')" title="Image">🖼️</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('- ', '')" title="Bullet List">• List</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('1. ', '')" title="Numbered List">1. List</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('> ', '')" title="Blockquote">❝ Quote</button>
+                    <button class="toolbar-btn" onclick="insertMarkdown('---\n', '')" title="Horizontal Rule">— Line</button>
+                    
+                    <div class="toolbar-separator"></div>
+                    
+                    <button class="toolbar-btn" onclick="openArmoryModal()" title="Insert SC Armory Tag" style="border-color: #f59e0b;">SC</button>
                     <button class="toolbar-btn" onclick="openGW2Modal()" title="Insert GW2 API Tag" style="border-color: #047857;">GW2</button>
                     <button class="toolbar-btn" onclick="toggleSuggestions()" title="Auto-Suggestions" style="border-color: #b45309;">✨ Suggestions</button>
                 </div>
@@ -63,11 +243,11 @@ Try it: <Consume Shadows>, <Nika's Mask>, <Slash></textarea>
     <div class="modal" id="armory-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Insert Armory Tag</h2>
+                <h2>Insert SC Armory Tag</h2>
                 <button class="modal-close" onclick="closeArmoryModal()">×</button>
             </div>
             <div class="modal-search">
-                <input type="text" id="armory-search" placeholder="Search..." oninput="filterArmory()">
+                <input type="text" id="armory-search" placeholder="Search Snow Crows armory..." oninput="filterArmory()">
             </div>
             <div class="modal-list" id="armory-list"></div>
         </div>
@@ -80,7 +260,7 @@ Try it: <Consume Shadows>, <Nika's Mask>, <Slash></textarea>
                 <button class="modal-close" onclick="closeGW2Modal()">×</button>
             </div>
             <div class="modal-search">
-                <input type="text" id="gw2-search" placeholder="Search..." oninput="filterGW2()">
+                <input type="text" id="gw2-search" placeholder="Search GW2 API..." oninput="filterGW2()">
                 <select id="gw2-type-filter" onchange="filterGW2()" style="margin-top: 0.5rem; width: 100%; padding: 0.5rem; background: #0f0f0f; border: 1px solid #2a2a2a; color: #e5e5e5;">
                     <option value="all">All Types</option>
                     <option value="skills">Skills</option>
@@ -99,7 +279,7 @@ Try it: <Consume Shadows>, <Nika's Mask>, <Slash></textarea>
         </div>
         <div class="suggestions-content">
             <div style="margin-bottom: 1rem; color: #999; font-size: 0.85rem;">
-                Configure text scanning.
+                Configure intelligent text scanning for both SC and GW2 tags.
             </div>
             
             <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
@@ -122,22 +302,32 @@ Try it: <Consume Shadows>, <Nika's Mask>, <Slash></textarea>
                 <strong>Safe Mode</strong> <span style="color: #999; font-size: 0.85rem;">(only &lt;&gt; tags)</span>
             </label>
 
-            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
-                <input type="checkbox" id="suggest-skills" checked> <span style="color: #6366f1;">■</span> Skills
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
-                <input type="checkbox" id="suggest-items" > <span style="color: #10b981;">■</span> Items
-            </label>
-            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
-                <input type="checkbox" id="suggest-traits" checked> <span style="color: #f59e0b;">■</span> Traits
-            </label>
+            <div style="margin: 1rem 0; padding: 0.75rem; background: #0f0f0f; border-radius: 4px; border-left: 3px solid #f59e0b;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem; color: #f59e0b;">SC Armory Tags</div>
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; cursor: pointer; font-size: 0.85rem;">
+                    <input type="checkbox" id="suggest-sc" checked> <span style="color: #f59e0b;">■</span> Enable SC suggestions
+                </label>
+            </div>
+
+            <div style="margin: 1rem 0; padding: 0.75rem; background: #0f0f0f; border-radius: 4px; border-left: 3px solid #047857;">
+                <div style="font-weight: 600; margin-bottom: 0.5rem; color: #047857;">GW2 API Tags</div>
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; cursor: pointer; font-size: 0.85rem;">
+                    <input type="checkbox" id="suggest-skills" checked> <span style="color: #6366f1;">■</span> Skills
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; cursor: pointer; font-size: 0.85rem;">
+                    <input type="checkbox" id="suggest-items"> <span style="color: #10b981;">■</span> Items
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; cursor: pointer; font-size: 0.85rem;">
+                    <input type="checkbox" id="suggest-traits" checked> <span style="color: #f59e0b;">■</span> Traits
+                </label>
+            </div>
             
             <div id="scan-actions">
                 <button onclick="manualScan()" style="width: 100%; margin-top: 1rem; padding: 0.75rem; background: #6366f1; border: none; border-radius: 4px; color: white; font-weight: 600; cursor: pointer;">
                     Manual Scan
                 </button>
                 <button onclick="clearCache()" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: #450a0a; border: none; border-radius: 4px; color: #fca5a5; font-weight: 600; cursor: pointer;">
-                    Clear Cache
+                    Clear GW2 Cache
                 </button>
             </div>
         </div>
@@ -147,6 +337,7 @@ Try it: <Consume Shadows>, <Nika's Mask>, <Slash></textarea>
         window.gw2ArmoryOptions = { hideDefaultBadge: true };
     </script>
     <script src="armory.js"></script>
+    <script src="armory-gw2.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

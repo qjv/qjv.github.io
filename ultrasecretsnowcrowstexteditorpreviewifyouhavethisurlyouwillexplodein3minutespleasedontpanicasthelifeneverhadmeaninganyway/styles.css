@@ -27,13 +27,79 @@ body {
     gap: 1rem;
 }
 
+.update-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border-bottom: 1px solid #f59e0b;
+    padding: 0.75rem 1.5rem;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.update-warning-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.update-warning-icon {
+    font-size: 1.5rem;
+}
+
+.update-warning-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.update-warning-text strong {
+    color: #1a1a1a;
+    font-size: 1rem;
+}
+
+.update-warning-text span {
+    color: #422006;
+    font-size: 0.85rem;
+}
+
+.update-warning-close {
+    background: transparent;
+    border: none;
+    color: #1a1a1a;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.update-warning-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
 .header h1 {
     font-size: 1.5rem;
     font-weight: 700;
     color: #fff;
 }
 
-/* Status Bar moved to LEFT of toolbar */
 .status-bar {
     font-size: 0.8rem;
     color: #999;
@@ -103,6 +169,11 @@ body {
     left: 0;
     z-index: 5;
     background: #0f0f0f;
+    cursor: pointer;
+}
+
+.review-overlay:hover {
+    opacity: 0.95;
 }
 
 .hidden-bracket {
@@ -134,6 +205,11 @@ body {
 .review-highlight.resolved {
     border-bottom-color: #10b981;
     background-color: rgba(16, 185, 129, 0.1);
+}
+
+.review-highlight.sc-tag {
+    border-bottom-color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.15);
 }
 
 .suggestion-tooltip {
@@ -173,6 +249,11 @@ body {
 .tooltip-option:hover {
     background: #333;
     color: #fff;
+}
+
+.tooltip-option button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 .tooltip-option.selected {
@@ -257,16 +338,44 @@ body {
 .preview-content hr { border: none; border-top: 1px solid #2a2a2a; margin: 2rem 0; }
 .preview-content br { display: block; content: ""; line-height: 0.5; }
 
-/* FIX: Inline embed style */
-span[data-armory-embed], 
-.sc-armory-custom { 
-    display: inline-block !important; 
-    vertical-align: middle; 
-    line-height: inherit;
+/* FIXED: Perfect inline alignment for GW2 embeds and SC tags */
+.preview-content span[data-armory-embed] {
+    display: inline-flex !important;
+    align-items: center !important;
+    vertical-align: middle !important;
+    line-height: 1 !important;
+    margin: 0 !important;
 }
 
-.text-orange-200 { color: #fbbf24; font-weight: 500; }
-gw2-item, gw2-skill, gw2-trait { display: inline-block; vertical-align: middle; }
+.preview-content span[data-armory-embed] img {
+    margin: 0 !important;
+    vertical-align: middle !important;
+    display: inline-block !important;
+}
+
+.preview-content gw2-item,
+.preview-content gw2-skill,
+.preview-content gw2-trait {
+    display: inline-flex !important;
+    align-items: center !important;
+    vertical-align: middle !important;
+    line-height: inherit !important;
+}
+
+.sc-armory-custom { 
+    display: inline-flex !important;
+    align-items: center !important;
+    vertical-align: middle !important; 
+    line-height: inherit !important;
+}
+
+.text-orange-200 { 
+    color: #fbbf24; 
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+}
+
 .w-5 { width: 1.25rem; }
 .h-5 { height: 1.25rem; }
 .inline-block { display: inline-block; }
@@ -297,4 +406,4 @@ gw2-item, gw2-skill, gw2-trait { display: inline-block; vertical-align: middle; 
 .suggestions-panel { position: fixed; right: -300px; top: 0; bottom: 0; width: 280px; background: #1a1a1a; border-left: 1px solid #2a2a2a; z-index: 500; transition: right 0.3s ease; display: flex; flex-direction: column; }
 .suggestions-panel.active { right: 0; }
 .suggestions-header { padding: 1rem 1.5rem; border-bottom: 1px solid #2a2a2a; display: flex; justify-content: space-between; align-items: center; }
-.suggestions-content { padding: 1.5rem; font-size: 0.9rem; }
+.suggestions-content { padding: 1.5rem; font-size: 0.9rem; overflow-y: auto; }

@@ -1,7 +1,3 @@
----
-layout: default
-name: gw2 map
----
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -229,7 +225,7 @@ name: gw2 map
                 <option value="2">Zoom 2</option>
             </select>
             <select id="screenshotFloor">
-                <option value="1" selected>Floor 1</option>
+                <option value="1">Floor 1 (Loading...)</option>
             </select>
             <button id="screenshotBtn">📥 Download</button>
         </div>
@@ -294,7 +290,7 @@ name: gw2 map
         let currentFloor = 1;
         let compositeFloor1 = null; 
         let activeFloorData = null; 
-        let tileFloorIndex = 1;     
+        let tileFloorIndex = 1;      
         
         let viewState = { zoom: 5.0, offsetX: 0, offsetY: 0, dragging: false, lastX: 0, lastY: 0 };
         let currentMouseWorldCoords = null; 
@@ -302,11 +298,16 @@ name: gw2 map
         
         let globalVisibility = true; 
         let markerVisibility = {
-            regionLabels: true, regionLimits: false,
+            regionLabels: true,
             zoneNames: true, zoneLimits: true,
             sectors: false, waypoints: false, pois: false, vistas: false, hearts: false, heartZones: false,
             heroPoints: false, masteryPoints: false, adventures: false
         };
+        
+        let selectionMode = false;
+        let selectionStart = null;
+        let selectionEnd = null;
+        let selectionRect = null;
         
         let displayScale = { icons: 1.0, text: 1.0 };
         let tileCache = {}; 
@@ -356,7 +357,6 @@ name: gw2 map
         function createMarkerToggles() {
             const toggles = [
                 { key: 'regionLabels', label: 'Region Labels', icon: null },
-                { key: 'regionLimits', label: 'Region Limits', icon: null },
                 { key: 'zoneNames', label: 'Zone Names', icon: null },
                 { key: 'zoneLimits', label: 'Zone Limits', icon: null },
                 { key: 'sectors', label: 'Sectors', icon: null },
@@ -443,6 +443,25 @@ name: gw2 map
             } catch (err) { console.error(err); }
 
             activeFloorData = await buildCompositeFloor1();
+            
+            // Populate screenshot floor selector with all available floors
+            const screenshotFloorSelect = document.getElementById('screenshotFloor');
+            const floorSet = new Set();
+            allMaps.forEach(map => {
+                if (map.floors && Array.isArray(map.floors)) {
+                    map.floors.forEach(f => floorSet.add(f));
+                } else if (map.default_floor !== undefined) {
+                    floorSet.add(map.default_floor);
+                }
+            });
+            const floors = Array.from(floorSet).sort((a, b) => a - b);
+            screenshotFloorSelect.innerHTML = '';
+            floors.forEach(f => {
+                const opt = new Option(`Floor ${f}`, f);
+                if (f === 1) opt.selected = true;
+                screenshotFloorSelect.add(opt);
+            });
+            
             filterAndRenderSidebar();
             selectWorld();
         }
@@ -517,49 +536,88 @@ name: gw2 map
         document.getElementById('typeFilter').onchange = filterAndRenderSidebar;
 
         function centerView(rect, zoom) {
-			// Ensure zoom is at least 1.0
-			viewState.zoom = Math.max(1.0, zoom);
-			
-			const maxZoom = CONTINENTS[currentTarget.continentId].maxZoom;
-			const globalScale = Math.pow(2, viewState.zoom - maxZoom);
-			const [[x1, y1], [x2, y2]] = rect;
-			
-			const cx = (x1 + x2) / 2;
-			const cy = (y1 + y2) / 2;
-			
-			viewState.offsetX = (canvas.width / 2) - (cx * globalScale);
-			viewState.offsetY = (canvas.height / 2) - (cy * globalScale);
-		}
+            viewState.zoom = Math.max(1.0, zoom);
+            
+            const maxZoom = CONTINENTS[currentTarget.continentId].maxZoom;
+            const globalScale = Math.pow(2, viewState.zoom - maxZoom);
+            const [[x1, y1], [x2, y2]] = rect;
+            
+            const cx = (x1 + x2) / 2;
+            const cy = (y1 + y2) / 2;
+            
+            viewState.offsetX = (canvas.width / 2) - (cx * globalScale);
+            viewState.offsetY = (canvas.height / 2) - (cy * globalScale);
+        }
 
         async function selectWorld() {
-			clickedMapData = null; 
-			currentTarget = {
-				type: 'world',
-				name: 'Tyria',
-				rect: [[0,0], [CONTINENTS[1].dims[0], CONTINENTS[1].dims[1]]],
-				continentId: 1
-			};
-			
-			activeFloorData = compositeFloor1;
-			tileFloorIndex = 1; 
-			currentFloor = 1;
-			
-			centerView(currentTarget.rect, 1.0);  // ← Mudado de 2 para 1.0
-			updateInspector();
-			render();
-		}
+            clickedMapData = null; 
+            currentTarget = {
+                type: 'world',
+                name: 'Tyria',
+                rect: [[0,0], [CONTINENTS[1].dims[0], CONTINENTS[1].dims[1]]],
+                continentId: 1
+            };
+            
+            // Collect all unique floors from all maps
+            const floorSet = new Set();
+            allMaps.forEach(map => {
+                if (map.floors && Array.isArray(map.floors)) {
+                    map.floors.forEach(f => floorSet.add(f));
+                } else if (map.default_floor !== undefined) {
+                    floorSet.add(map.default_floor);
+                }
+            });
+            
+            // Populate floor selector with discovered floors
+            const floorSelect = document.getElementById('floorSelect');
+            floorSelect.innerHTML = '';
+            const floors = Array.from(floorSet).sort((a, b) => a - b);
+            floors.forEach(f => {
+                floorSelect.add(new Option(`Floor ${f}`, f));
+            });
+            
+            activeFloorData = compositeFloor1;
+            tileFloorIndex = 1; 
+            currentFloor = 1;
+            floorSelect.value = currentFloor;
+            
+            centerView(currentTarget.rect, 1.0);
+            updateInspector();
+            render();
+        }
 
         async function selectRegion(group) {
             clickedMapData = null; 
-            // Use composite data to resolve correct rect for Crystal Desert
-            const regionData = compositeFloor1.regions[group.raw.id];
             
-            let rect = [[0,0],[1000,1000]];
-            if (regionData && regionData.continent_rect) {
-                rect = regionData.continent_rect;
-            } else if (group.raw.continent_rect) {
-                rect = group.raw.continent_rect;
+            // Compute bounds from ALL maps in the region
+            const regionData = compositeFloor1.regions[group.raw.id];
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            
+            // Collect unique floors from maps in this region
+            const floorSet = new Set();
+            
+            if (regionData && regionData.maps) {
+                Object.values(regionData.maps).forEach(mapData => {
+                    const fullMap = allMaps.find(m => m.id === mapData.id);
+                    if (fullMap && fullMap.continent_rect) {
+                        const [[x1, y1], [x2, y2]] = fullMap.continent_rect;
+                        minX = Math.min(minX, x1);
+                        minY = Math.min(minY, y1);
+                        maxX = Math.max(maxX, x2);
+                        maxY = Math.max(maxY, y2);
+                        
+                        // Collect floors from this map
+                        if (fullMap.floors && Array.isArray(fullMap.floors)) {
+                            fullMap.floors.forEach(f => floorSet.add(f));
+                        } else if (fullMap.default_floor !== undefined) {
+                            floorSet.add(fullMap.default_floor);
+                        }
+                    }
+                });
             }
+            
+            // Fallback to default if no maps found
+            let rect = (minX !== Infinity) ? [[minX, minY], [maxX, maxY]] : [[0,0],[1000,1000]];
 
             const pad = 1024;
             currentTarget = {
@@ -570,9 +628,19 @@ name: gw2 map
                 id: group.raw.id 
             };
             
+            // Populate floor selector with discovered floors
+            const floorSelect = document.getElementById('floorSelect');
+            floorSelect.innerHTML = '';
+            const floors = Array.from(floorSet).sort((a, b) => a - b);
+            if (floors.length === 0) floors.push(1); // Fallback to floor 1
+            floors.forEach(f => {
+                floorSelect.add(new Option(`Floor ${f}`, f));
+            });
+            
             activeFloorData = compositeFloor1;
             tileFloorIndex = 1;
             currentFloor = 1;
+            floorSelect.value = currentFloor;
 
             centerView(currentTarget.rect, 5);
             updateInspector();
@@ -580,122 +648,134 @@ name: gw2 map
         }
 
         async function selectMap(map) {
-			clickedMapData = null;
-			currentTarget = {
-				type: 'map',
-				name: map.name,
-				rect: map.continent_rect,
-				continentId: map.continent_id,
-				floors: map.floors || [map.default_floor],
-				defaultFloor: map.default_floor,
-				id: map.id,
-				regionId: map.region_id
-			};
+            clickedMapData = null;
+            currentTarget = {
+                type: 'map',
+                name: map.name,
+                rect: map.continent_rect,
+                continentId: map.continent_id,
+                floors: map.floors || [map.default_floor],
+                defaultFloor: map.default_floor,
+                id: map.id,
+                regionId: map.region_id
+            };
 
-			const floorSelect = document.getElementById('floorSelect');
-			floorSelect.innerHTML = '';
-			(currentTarget.floors.sort((a,b)=>a-b)).forEach(f => floorSelect.add(new Option(`Floor ${f}`, f)));
-			
-			// Always use floor 1 for region 12 (Crystal Desert) - data is in composite
-			if (map.region_id === 12) {
-				currentFloor = 1;
-				activeFloorData = compositeFloor1; // Use composite that already has floor 49 data patched in
-				tileFloorIndex = 1; // Force tiles to use floor 1
-			} else {
-				currentFloor = currentTarget.defaultFloor;
-				activeFloorData = await fetchFloorData(map.continent_id, currentFloor);
-				tileFloorIndex = currentFloor;
-			}
-			
-			floorSelect.value = currentFloor;
+            const floorSelect = document.getElementById('floorSelect');
+            floorSelect.innerHTML = '';
+            (currentTarget.floors.sort((a,b)=>a-b)).forEach(f => floorSelect.add(new Option(`Floor ${f}`, f)));
+            
+            if (map.region_id === 12) {
+                currentFloor = 1;
+                activeFloorData = compositeFloor1;
+                tileFloorIndex = 1;
+            } else {
+                currentFloor = currentTarget.defaultFloor;
+                activeFloorData = await fetchFloorData(map.continent_id, currentFloor);
+                tileFloorIndex = currentFloor;
+            }
+            
+            floorSelect.value = currentFloor;
 
-			centerView(currentTarget.rect, 6);
-			updateInspector();
-			render();
-		}
+            centerView(currentTarget.rect, 6);
+            updateInspector();
+            render();
+        }
         
         document.getElementById('floorSelect').onchange = async (e) => {
-    currentFloor = parseInt(e.target.value);
-    
-    // For region 12 maps, always use composite floor 1 with patched data
-    if (currentTarget.regionId === 12 && currentFloor === 1) {
-        activeFloorData = compositeFloor1;
-        tileFloorIndex = 1;
-    } else {
-        activeFloorData = await fetchFloorData(currentTarget.continentId, currentFloor);
-        tileFloorIndex = currentFloor;
-    }
-    
-    render();
-};
+            currentFloor = parseInt(e.target.value);
+            
+            // For world or region views, fetch the selected floor data
+            if (currentTarget.type === 'world' || currentTarget.type === 'region') {
+                // Special handling for Crystal Desert region - always use composite for floor 1
+                if (currentTarget.type === 'region' && currentTarget.id === 12 && currentFloor === 1) {
+                    activeFloorData = compositeFloor1;
+                    tileFloorIndex = 1;
+                } else {
+                    activeFloorData = await fetchFloorData(currentTarget.continentId, currentFloor);
+                    tileFloorIndex = currentFloor;
+                }
+            }
+            // For individual maps
+            else if (currentTarget.regionId === 12 && currentFloor === 1) {
+                activeFloorData = compositeFloor1;
+                tileFloorIndex = 1;
+            } else {
+                activeFloorData = await fetchFloorData(currentTarget.continentId, currentFloor);
+                tileFloorIndex = currentFloor;
+            }
+            
+            render();
+        };
 
         function render() {
-			if (!currentTarget) return;
+            if (!currentTarget) return;
 
-			const continentId = currentTarget.continentId;
-			const maxZoom = CONTINENTS[continentId].maxZoom;
-			const continentDims = CONTINENTS[continentId].dims;
-			
-			const tileGridZoom = Math.floor(viewState.zoom); 
-			const unitsPerTile = 256 * Math.pow(2, maxZoom - tileGridZoom); 
-			const globalScale = Math.pow(2, viewState.zoom - maxZoom);
-			const zoomFraction = viewState.zoom - tileGridZoom;
-			const renderScale = Math.pow(2, zoomFraction); 
-			const drawSize = Math.ceil(256 * renderScale);
+            const continentId = currentTarget.continentId;
+            const maxZoom = CONTINENTS[continentId].maxZoom;
+            const continentDims = CONTINENTS[continentId].dims;
+            
+            const tileGridZoom = Math.floor(viewState.zoom); 
+            const unitsPerTile = 256 * Math.pow(2, maxZoom - tileGridZoom); 
+            const globalScale = Math.pow(2, viewState.zoom - maxZoom);
+            const zoomFraction = viewState.zoom - tileGridZoom;
+            const renderScale = Math.pow(2, zoomFraction); 
+            const drawSize = Math.ceil(256 * renderScale);
 
-			ctx.fillStyle = '#000';
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
-			markerCtx.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            markerCtx.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
 
-			const startTileX = Math.max(0, Math.floor(((-viewState.offsetX) / globalScale) / unitsPerTile));
-			const startTileY = Math.max(0, Math.floor(((-viewState.offsetY) / globalScale) / unitsPerTile));
-			
-			// Calculate maximum tiles based on continent dimensions
-			const maxTileX = Math.ceil(continentDims[0] / unitsPerTile);
-			const maxTileY = Math.ceil(continentDims[1] / unitsPerTile);
-			
-			const cols = Math.ceil(canvas.width / drawSize) + 1;
-			const rows = Math.ceil(canvas.height / drawSize) + 1;
+            const startTileX = Math.max(0, Math.floor(((-viewState.offsetX) / globalScale) / unitsPerTile));
+            const startTileY = Math.max(0, Math.floor(((-viewState.offsetY) / globalScale) / unitsPerTile));
+            
+            const maxTileX = Math.ceil(continentDims[0] / unitsPerTile);
+            const maxTileY = Math.ceil(continentDims[1] / unitsPerTile);
+            
+            const cols = Math.ceil(canvas.width / drawSize) + 1;
+            const rows = Math.ceil(canvas.height / drawSize) + 1;
 
-			for (let ty = 0; ty < rows; ty++) {
-				for (let tx = 0; tx < cols; tx++) {
-					const absTx = startTileX + tx;
-					const absTy = startTileY + ty;
-					
-					// IMPORTANT: Skip tiles outside continent bounds
-					if (absTx < 0 || absTy < 0 || absTx >= maxTileX || absTy >= maxTileY) {
-						continue;
-					}
-					
-					const url = `https://tiles.guildwars2.com/${continentId}/${tileFloorIndex}/${tileGridZoom}/${absTx}/${absTy}.jpg`;
-					
-					const tileWorldX = absTx * unitsPerTile;
-					const tileWorldY = absTy * unitsPerTile;
-					
-					const screenX = Math.floor(viewState.offsetX + (tileWorldX * globalScale));
-					const screenY = Math.floor(viewState.offsetY + (tileWorldY * globalScale));
-					
-					if (screenX > canvas.width || screenY > canvas.height || screenX + drawSize < 0 || screenY + drawSize < 0) continue;
+            for (let ty = 0; ty < rows; ty++) {
+                for (let tx = 0; tx < cols; tx++) {
+                    const absTx = startTileX + tx;
+                    const absTy = startTileY + ty;
+                    
+                    if (absTx < 0 || absTy < 0 || absTx >= maxTileX || absTy >= maxTileY) {
+                        continue;
+                    }
+                    
+                    const url = `https://tiles.guildwars2.com/${continentId}/${tileFloorIndex}/${tileGridZoom}/${absTx}/${absTy}.jpg`;
+                    
+                    const tileWorldX = absTx * unitsPerTile;
+                    const tileWorldY = absTy * unitsPerTile;
+                    
+                    const screenX = Math.floor(viewState.offsetX + (tileWorldX * globalScale));
+                    const screenY = Math.floor(viewState.offsetY + (tileWorldY * globalScale));
+                    
+                    if (screenX > canvas.width || screenY > canvas.height || screenX + drawSize < 0 || screenY + drawSize < 0) continue;
 
-					if (!tileCache[url]) {
-						tileCache[url] = new Image();
-						tileCache[url].crossOrigin = 'anonymous';
-						tileCache[url].loaded = false;
-						tileCache[url].onload = () => { tileCache[url].loaded = true; render(); };
-						tileCache[url].src = url;
-					}
-					if (tileCache[url].loaded) {
-						ctx.drawImage(tileCache[url], screenX, screenY, drawSize, drawSize);
-					}
-				}
-			}
+                    if (!tileCache[url]) {
+                        tileCache[url] = new Image();
+                        tileCache[url].crossOrigin = 'anonymous';
+                        tileCache[url].loaded = false;
+                        tileCache[url].onload = () => { tileCache[url].loaded = true; render(); };
+                        tileCache[url].src = url;
+                    }
+                    if (tileCache[url].loaded) {
+                        ctx.drawImage(tileCache[url], screenX, screenY, drawSize, drawSize);
+                    }
+                }
+            }
 
-			if (globalVisibility) {
-				drawMarkers();
-			}
+            if (globalVisibility) {
+                drawMarkers();
+            }
+            
+            if (selectionRect || (selectionMode && selectionStart)) {
+                drawSelection();
+            }
 
-			document.getElementById('info').textContent = `${currentTarget.name} • Floor ${currentFloor} • Zoom ${viewState.zoom.toFixed(2)}`;
-		}
+            document.getElementById('info').textContent = `${currentTarget.name} • Floor ${currentFloor} • Zoom ${viewState.zoom.toFixed(2)}`;
+        }
 
         function toScreen(coord) {
             const continentId = currentTarget ? currentTarget.continentId : 1;
@@ -707,28 +787,19 @@ name: gw2 map
         }
 
         function drawMarkers() {
-			if (!activeFloorData) return;
-			
-			const zoomFactor = Math.max(0.4, viewState.zoom / 7);
-			const typeFilter = document.getElementById('typeFilter').value;
-			const allowedTypes = MAP_TYPES[typeFilter] || MAP_TYPES['All'];
+            if (!activeFloorData) return;
+            
+            const zoomFactor = Math.max(0.4, viewState.zoom / 7);
+            const typeFilter = document.getElementById('typeFilter').value;
+            const allowedTypes = MAP_TYPES[typeFilter] || MAP_TYPES['All'];
 
-			const drawnRegions = new Set(); // Track drawn regions
+            const drawnRegions = new Set();
 
             Object.values(activeFloorData.regions).forEach(region => {
-				if (drawnRegions.has(region.id)) return;
+                if (drawnRegions.has(region.id)) return;
                 if (currentTarget.type === 'region' && region.id !== currentTarget.id) return;
-				
-				drawnRegions.add(region.id);
                 
-                if (markerVisibility.regionLimits && region.continent_rect) {
-                    const [sx1, sy1] = toScreen(region.continent_rect[0]);
-                    const [sx2, sy2] = toScreen(region.continent_rect[1]);
-                    
-                    markerCtx.strokeStyle = 'rgba(255, 69, 0, 0.6)'; 
-                    markerCtx.lineWidth = 4 * zoomFactor;
-                    markerCtx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
-                }
+                drawnRegions.add(region.id);
 
                 if (markerVisibility.regionLabels && region.label_coord) {
                      const [scx, scy] = toScreen(region.label_coord);
@@ -902,6 +973,16 @@ name: gw2 map
         }
 
         canvas.addEventListener('mousedown', e => {
+            const mode = document.getElementById('screenshotMode').value;
+            
+            if (mode === 'rectangle') {
+                const rect = canvas.getBoundingClientRect();
+                selectionStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                selectionEnd = null;
+                selectionMode = true;
+                return;
+            }
+            
             viewState.dragging = true;
             viewState.lastX = e.clientX;
             viewState.lastY = e.clientY;
@@ -910,19 +991,43 @@ name: gw2 map
         });
 
         canvas.addEventListener('mouseup', e => {
+            const mode = document.getElementById('screenshotMode').value;
+            
+            if (mode === 'rectangle' && selectionMode) {
+                const rect = canvas.getBoundingClientRect();
+                selectionEnd = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                
+                const continentId = currentTarget ? currentTarget.continentId : 1;
+                const maxZoom = CONTINENTS[continentId].maxZoom;
+                const globalScale = Math.pow(2, viewState.zoom - maxZoom);
+                
+                const x1 = Math.min(selectionStart.x, selectionEnd.x);
+                const y1 = Math.min(selectionStart.y, selectionEnd.y);
+                const x2 = Math.max(selectionStart.x, selectionEnd.x);
+                const y2 = Math.max(selectionStart.y, selectionEnd.y);
+                
+                const wx1 = Math.round((x1 - viewState.offsetX) / globalScale);
+                const wy1 = Math.round((y1 - viewState.offsetY) / globalScale);
+                const wx2 = Math.round((x2 - viewState.offsetX) / globalScale);
+                const wy2 = Math.round((y2 - viewState.offsetY) / globalScale);
+                
+                selectionRect = [[wx1, wy1], [wx2, wy2]];
+                drawSelection();
+                selectionMode = false;
+                return;
+            }
+            
             viewState.dragging = false;
             if (Math.abs(e.clientX - viewState.startClickX) < 5 && Math.abs(e.clientY - viewState.startClickY) < 5) {
                 handleCanvasClick(e.clientX, e.clientY);
             }
         });
 
-        // --- UPDATED CLICK HANDLER WITH FILTER ---
         function handleCanvasClick(cx, cy) {
             if (!currentMouseWorldCoords || !activeFloorData) return;
             const [wx, wy] = currentMouseWorldCoords;
             let found = null;
             
-            // Get Current Filter
             const typeFilter = document.getElementById('typeFilter').value;
             const allowedTypes = MAP_TYPES[typeFilter] || MAP_TYPES['All'];
 
@@ -932,10 +1037,8 @@ name: gw2 map
                 const mapIds = Object.keys(region.maps);
                 for (let mId of mapIds) {
                     const mapData = region.maps[mId];
-                    // Get full map object to check type
                     const fullMap = allMaps.find(m => m.id == mId);
                     
-                    // Skip if filtered out
                     if (!fullMap || !allowedTypes.includes(fullMap.type)) continue;
 
                     let rect = mapData.continent_rect;
@@ -968,6 +1071,13 @@ name: gw2 map
             const worldY = (my - viewState.offsetY) / globalScale;
             currentMouseWorldCoords = [Math.round(worldX), Math.round(worldY)];
             
+            const mode = document.getElementById('screenshotMode').value;
+            if (mode === 'rectangle' && selectionMode && selectionStart) {
+                selectionEnd = { x: mx, y: my };
+                drawSelection();
+                return;
+            }
+            
             if (viewState.dragging) {
                 viewState.offsetX += e.clientX - viewState.lastX;
                 viewState.offsetY += e.clientY - viewState.lastY;
@@ -979,47 +1089,110 @@ name: gw2 map
             }
         });
         
+        function drawSelection() {
+            selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
+            
+            if (selectionStart && selectionEnd) {
+                const x1 = Math.min(selectionStart.x, selectionEnd.x);
+                const y1 = Math.min(selectionStart.y, selectionEnd.y);
+                const x2 = Math.max(selectionStart.x, selectionEnd.x);
+                const y2 = Math.max(selectionStart.y, selectionEnd.y);
+                
+                selCtx.strokeStyle = '#00ff00';
+                selCtx.lineWidth = 2;
+                selCtx.setLineDash([5, 5]);
+                selCtx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                selCtx.fillStyle = 'rgba(0, 255, 0, 0.1)';
+                selCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
+                selCtx.setLineDash([]);
+            } else if (selectionRect) {
+                const [[wx1, wy1], [wx2, wy2]] = selectionRect;
+                const [sx1, sy1] = toScreen([wx1, wy1]);
+                const [sx2, sy2] = toScreen([wx2, wy2]);
+                
+                selCtx.strokeStyle = '#00ff00';
+                selCtx.lineWidth = 2;
+                selCtx.setLineDash([5, 5]);
+                selCtx.strokeRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+                selCtx.fillStyle = 'rgba(0, 255, 0, 0.1)';
+                selCtx.fillRect(sx1, sy1, sx2 - sx1, sy2 - sy1);
+                selCtx.setLineDash([]);
+            }
+        }
+        
         canvas.addEventListener('wheel', e => {
-			e.preventDefault();
-			const continentId = currentTarget ? currentTarget.continentId : 1;
-			const maxZoom = CONTINENTS[continentId].maxZoom;
-			
-			const rect = canvas.getBoundingClientRect();
-			const mouseX = e.clientX - rect.left;
-			const mouseY = e.clientY - rect.top;
-			
-			const oldScale = Math.pow(2, viewState.zoom - maxZoom);
-			
-			const worldMouseX = (mouseX - viewState.offsetX) / oldScale;
-			const worldMouseY = (mouseY - viewState.offsetY) / oldScale;
+            e.preventDefault();
+            const continentId = currentTarget ? currentTarget.continentId : 1;
+            const maxZoom = CONTINENTS[continentId].maxZoom;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const oldScale = Math.pow(2, viewState.zoom - maxZoom);
+            
+            const worldMouseX = (mouseX - viewState.offsetX) / oldScale;
+            const worldMouseY = (mouseY - viewState.offsetY) / oldScale;
 
-			const delta = -Math.sign(e.deltaY) * 0.15;
-			let newZoom = viewState.zoom + delta;
-			
-			// LIMIT: Minimum zoom 1.0, Maximum zoom based on continent
-			if (newZoom < 1.0) newZoom = 1.0;  // ← NOVO LIMITE
-			if (newZoom > maxZoom) newZoom = maxZoom;
-			
-			viewState.zoom = newZoom;
+            const delta = -Math.sign(e.deltaY) * 0.15;
+            let newZoom = viewState.zoom + delta;
+            
+            if (newZoom < 1.0) newZoom = 1.0;
+            if (newZoom > maxZoom) newZoom = maxZoom;
+            
+            viewState.zoom = newZoom;
 
-			const newScale = Math.pow(2, newZoom - maxZoom);
-			viewState.offsetX = mouseX - (worldMouseX * newScale);
-			viewState.offsetY = mouseY - (worldMouseY * newScale);
+            const newScale = Math.pow(2, newZoom - maxZoom);
+            viewState.offsetX = mouseX - (worldMouseX * newScale);
+            viewState.offsetY = mouseY - (worldMouseY * newScale);
 
-			render();
-			updateInspector(); 
-		});
+            render();
+            updateInspector(); 
+        });
 
-        document.getElementById('screenshotBtn').onclick = () => {
-            captureScreenshot();
+        document.getElementById('screenshotMode').onchange = (e) => {
+            selectionStart = null;
+            selectionEnd = null;
+            selectionRect = null;
+            selectionMode = false;
+            selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
+            
+            if (e.target.value === 'rectangle') {
+                document.getElementById('info').textContent = 'Click and drag to select area for screenshot';
+            } else {
+                document.getElementById('info').textContent = `${currentTarget.name} • Floor ${currentFloor} • Zoom ${viewState.zoom.toFixed(2)}`;
+            }
         };
 
         async function captureScreenshot() {
-            if (!currentTarget) return;
+            const mode = document.getElementById('screenshotMode').value;
+            
+            if (mode === 'rectangle' && !selectionRect) {
+                alert('Please select a rectangle on the map first!');
+                return;
+            }
+            
+            if (!currentTarget && mode === 'full') return;
+            
             const zoom = parseInt(document.getElementById('screenshotZoom').value);
-            const continentId = currentTarget.continentId;
+            const screenshotFloor = parseInt(document.getElementById('screenshotFloor').value);
+            const continentId = currentTarget ? currentTarget.continentId : 1;
             const maxZoom = CONTINENTS[continentId].maxZoom;
-            const [[x1, y1], [x2, y2]] = currentTarget.rect;
+            
+            let targetRect;
+            let filename;
+            
+            if (mode === 'rectangle') {
+                targetRect = selectionRect;
+                filename = `screenshot-custom-${Date.now()}.png`;
+            } else {
+                targetRect = currentTarget.rect;
+                filename = currentTarget.type === 'region' 
+                    ? `region-${currentTarget.name.replace(/\s+/g, '-').toLowerCase()}.png`
+                    : `zone-${currentTarget.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+            }
+            
+            const [[x1, y1], [x2, y2]] = targetRect;
             
             const unitsPerTile = 256 * Math.pow(2, maxZoom - zoom);
             const startTileX = Math.floor(x1 / unitsPerTile);
@@ -1043,7 +1216,7 @@ name: gw2 map
                 for (let tx = 0; tx < tilesWide; tx++) {
                     const absTx = startTileX + tx;
                     const absTy = startTileY + ty;
-                    const url = `https://tiles.guildwars2.com/${continentId}/${tileFloorIndex}/${zoom}/${absTx}/${absTy}.jpg`;
+                    const url = `https://tiles.guildwars2.com/${continentId}/${screenshotFloor}/${zoom}/${absTx}/${absTy}.jpg`;
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
                     img.onload = () => {
@@ -1072,10 +1245,6 @@ name: gw2 map
                 finalC.height = rectH;
                 finalC.getContext('2d').drawImage(tempCanvas, cropX, cropY, rectW, rectH, 0,0, rectW, rectH);
 
-                const filename = currentTarget.type === 'region' 
-                    ? `region-${currentTarget.name.replace(/\s+/g, '-').toLowerCase()}.png`
-                    : `zone-${currentTarget.name.replace(/\s+/g, '-').toLowerCase()}.png`;
-
                 finalC.toBlob(blob => {
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
@@ -1084,9 +1253,18 @@ name: gw2 map
                     link.click();
                     URL.revokeObjectURL(url);
                     document.getElementById('screenshotBtn').textContent = '📥 Download';
+                    
+                    if (mode === 'rectangle') {
+                        selectionRect = null;
+                        selectionStart = null;
+                        selectionEnd = null;
+                        selCtx.clearRect(0, 0, selCanvas.width, selCanvas.height);
+                    }
                 });
             }
         }
+
+        document.getElementById('screenshotBtn').onclick = captureScreenshot;
 
         init();
     </script>

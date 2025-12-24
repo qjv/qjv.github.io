@@ -106,6 +106,7 @@ async function runScan(fromInput = false) {
 
 function performAutoReplacement(matches) {
     let text = input.value;
+    // Ordena de trás para frente para não quebrar índices
     matches.sort((a, b) => b.start - a.start);
     
     matches.forEach(m => {
@@ -117,13 +118,17 @@ function performAutoReplacement(matches) {
     });
 
     const oldLength = input.value.length;
-    input.value = text;
-    const newLength = text.length;
-    
     const cursor = input.selectionStart;
-    if (cursor > matches[matches.length-1].start) {
-        input.setSelectionRange(cursor + (newLength - oldLength), cursor + (newLength - oldLength));
-    }
+
+    // Mágica do Ctrl+Z para substituição em massa:
+    input.focus();
+    input.select(); // Seleciona tudo
+    document.execCommand('insertText', false, text); // Substitui tudo (conta como 1 ação no histórico)
+
+    // Tenta restaurar a posição do cursor
+    const newLength = text.length;
+    const newCursor = cursor + (newLength - oldLength);
+    input.setSelectionRange(newCursor, newCursor);
     
     updatePreview();
 }
@@ -511,7 +516,15 @@ function insertArmoryTag(id, name) {
     const end = input.selectionEnd;
     const text = input.value;
     const sel = text.substring(start, end) || name;
-    input.value = text.substring(0, start) + '[sc:' + id + ']' + sel + '[/sc]' + text.substring(end);
+    
+    const replacement = '[sc:' + id + ']' + sel + '[/sc]';
+    
+    input.focus();
+    input.setSelectionRange(start, end);
+    
+    // Preserva Ctrl+Z
+    document.execCommand('insertText', false, replacement);
+    
     closeArmoryModal();
     updatePreview();
 }
@@ -891,13 +904,28 @@ function insertWaypoint() {
 function insertMarkdown(before, after) {
     const start = input.selectionStart;
     const end = input.selectionEnd;
-    const text = input.value;
-    const selectedText = text.substring(start, end);
-    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
-    input.value = newText;
+    const selectedText = input.value.substring(start, end);
+    const replacement = before + selectedText + after;
+
+    // Foca no input para garantir que o comando funcione
+    input.focus();
+    
+    // Seleciona o texto que será substituído (ou a posição do cursor)
+    input.setSelectionRange(start, end);
+    
+    // Usa execCommand para preservar o histórico do Ctrl+Z
+    // Isso diz ao navegador: "O usuário digitou isso aqui"
+    const success = document.execCommand('insertText', false, replacement);
+    
+    // Fallback caso o navegador não suporte (muito raro hoje em dia)
+    if (!success) {
+        input.value = input.value.substring(0, start) + replacement + input.value.substring(end);
+    }
+
+    // Posiciona o cursor após o texto inserido (ou no meio das tags)
     const newCursorPos = start + before.length + selectedText.length;
     input.setSelectionRange(newCursorPos, newCursorPos);
-    input.focus();
+    
     updatePreview();
 }
 

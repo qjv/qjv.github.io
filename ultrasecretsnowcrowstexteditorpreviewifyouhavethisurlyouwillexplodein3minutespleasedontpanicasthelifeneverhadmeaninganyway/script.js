@@ -311,7 +311,7 @@ async function loadGW2Data() {
         
         // Fetch more items, but still batched
         const batchSize = 200;
-        const limit = 15000;
+        const limit = 30000;
         const idsToFetch = itemIds.slice(0, limit);
         
         for (let i = 0; i < idsToFetch.length; i += batchSize) {
@@ -596,4 +596,5 @@ input.addEventListener('scroll', () => { reviewOverlay.scrollTop = input.scrollT
 window.onload = updatePreview;
 
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
 function escapeHtml(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }

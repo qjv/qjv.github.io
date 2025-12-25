@@ -3,32 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snow Crows Content Editor</title>
+    <title>SC Editor</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div id="update-warning" class="update-warning" style="display: none;">
-            <div class="update-warning-content">
-                <span class="update-warning-icon">⚠️</span>
-                <div class="update-warning-text">
-                    <strong>Armory Update Available!</strong>
-                    <span id="update-details"></span>
-                </div>
-                <button class="update-warning-close" onclick="dismissWarning()">×</button>
-            </div>
-        </div>
 
-        <div class="header">
-            <h1>Snow Crows Content Editor</h1>
+<div class="container">
+    
+    <div id="suggestions-panel" class="suggestions-panel">
+        <div class="suggestion-group">
+            <div class="sg-title">BEHAVIOR</div>
+            <label class="compact-check" title="Scans automatically as you type">
+                <input type="checkbox" id="scan-as-type" checked> <span>Auto-Scan</span>
+            </label>
+            <label class="compact-check" title="Replaces matches immediately if there is only 1 candidate">
+                <input type="checkbox" id="auto-replace"> <span>Auto-Replace</span>
+            </label>
+            <label class="compact-check" title="Only scans text inside <brackets>">
+                <input type="checkbox" id="safe-mode"> <span>Safe Mode</span>
+            </label>
         </div>
+        <div class="sg-separator"></div>
+        <div class="suggestion-group">
+            <div class="sg-title">FILTERS</div>
+            <label class="compact-check"><input type="checkbox" id="suggest-sc" checked> <span style="color:#fdba74">SC Tags</span></label>
+            <label class="compact-check"><input type="checkbox" id="suggest-skills" checked> <span style="color:#fc9f9a">Skills</span></label>
+            <label class="compact-check"><input type="checkbox" id="suggest-traits" checked> <span style="color:#fc9f9a">Traits</span></label>
+            <label class="compact-check"><input type="checkbox" id="suggest-items" checked> <span style="color:#fc9f9a">Items</span></label>
+        </div>
+        <div class="sg-separator"></div>
+        <div class="suggestion-actions">
+            <button onclick="manualScan()" class="sg-btn primary">Scan Now</button>
+            <button onclick="gw2Data = {items:[],skills:[],traits:[],loaded:false}; clearCache();" class="sg-btn danger">Clear Cache</button>
+            <button onclick="toggleSuggestions()" class="sg-close-btn" title="Close Panel">×</button>
+        </div>
+    </div>
 
-        <div class="editor-wrapper">
-            <div class="editor-panel">
-                <div class="panel-header">Markdown Editor</div>
-                <div style="position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-                    
-                    <textarea id="markdown-input" spellcheck="false"># Snow Crows Formatting Examples
+    <div class="header">
+        <h1>SC Editor</h1>
+    </div>
+
+    <div class="editor-wrapper">
+        <div class="editor-panel">
+            <div class="input-container">
+                <textarea id="markdown-input" placeholder="Type here... (Markdown supported)" spellcheck="false"># Snow Crows Formatting Examples
 
 Quick reference for all available formatting options.
 
@@ -62,7 +81,7 @@ Professions: [sc:28]Guardian[/sc], [sc:48]Firebrand[/sc], [sc:874]Willbender[/sc
 
 ## GW2 API Tags (Skills & Items)
 
-Skills work best with angle brackets: <Whirling Wrath>, <Symbol of Resolution>
+Skills work best with angle brackets: <[gw2:9081:skill]>, <[gw2:9146:skill]>
 
 Direct tags: [gw2:9168:skill] or [gw2:30704:item]
 
@@ -74,7 +93,7 @@ Navigate the map:
 
 ## Traitlines
 
-Example traitline (Water):
+Example traitline ([sc:518]Water[/sc]):
 
 [traitline:17:363:349:2028]
 
@@ -87,224 +106,53 @@ Example traitline (Water):
 **Quick Reference:**
 - `[sc:id]Name[/sc]` - SC armory
 - `<Name>` or `[gw2:id:type]` - GW2 API
-- `[wp:[&code]]Name[/wp]` - Waypoints
+- `[wp:[&code]]Name[/wp]` - [sc:994]Waypoint[/sc]
 - `[traitline:spec:t1:t2:t3]` - Traitlines</textarea>
-
-                    <div id="review-overlay" class="review-overlay" style="display: none;"></div>
-                    
-                    <div id="suggestion-tooltip" class="suggestion-tooltip"></div>
-
-                </div>
-
-                <div class="toolbar">
-                    <div id="status-bar" class="status-bar">Ready</div>
-                    
-                    <div class="toolbar-separator"></div>
-
-                    <button class="toolbar-btn" onclick="insertMarkdown('# ', '')" title="Heading 1">H1</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('## ', '')" title="Heading 2">H2</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('### ', '')" title="Heading 3">H3</button>
-                    
-                    <div class="toolbar-separator"></div>
-                    
-                    <button class="toolbar-btn" onclick="insertMarkdown('**', '**')" title="Bold">B</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('*', '*')" title="Italic">I</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('~~', '~~')" title="Strikethrough">S</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('`', '`')" title="Inline Code">&lt;/&gt;</button>
-                    
-                    <div class="toolbar-separator"></div>
-                    
-                    <button class="toolbar-btn" onclick="insertMarkdown('[', '](url)')" title="Link">🔗</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('![alt](', ')')" title="Image">🖼️</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('- ', '')" title="Bullet List">• List</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('1. ', '')" title="Numbered List">1. List</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('> ', '')" title="Blockquote">❝ Quote</button>
-                    <button class="toolbar-btn" onclick="insertMarkdown('---\n', '')" title="Horizontal Rule">— Line</button>
-                    
-                    <div class="toolbar-separator"></div>
-                    
-                    <button class="toolbar-btn" onclick="insertWaypoint()" title="Insert Waypoint">📍 WP</button>
-                    <button class="toolbar-btn" onclick="insertTraitline()" title="Insert Traitline">🎯 Traits</button>
-                    
-                    <div class="toolbar-separator"></div>
-                    
-                    <button class="toolbar-btn" onclick="openArmoryModal()" title="Insert SC Armory Tag" style="border-color: #f59e0b;">SC</button>
-                    <button class="toolbar-btn" onclick="openGW2Modal()" title="Insert GW2 API Tag" style="border-color: #047857;">GW2</button>
-                    <button class="toolbar-btn" onclick="toggleSuggestions()" title="Auto-Suggestions" style="border-color: #b45309;">✨ Suggestions</button>
-                </div>
+                <div id="review-overlay" class="review-overlay"></div>
             </div>
 
-            <div class="preview-panel">
-                <div class="panel-header">Live Preview</div>
-                <div class="preview-content" id="preview"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="armory-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Insert SC Armory Tag</h2>
-                <button class="modal-close" onclick="closeArmoryModal()">×</button>
-            </div>
-            <div class="modal-search">
-                <input type="text" id="armory-search" placeholder="Search Snow Crows armory..." oninput="filterArmory()">
-            </div>
-            <div class="modal-list" id="armory-list"></div>
-        </div>
-    </div>
-	<div class="modal" id="waypoint-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Insert Waypoint</h2>
-                <button class="modal-close" onclick="closeWaypointModal()">×</button>
-            </div>
-            <div class="modal-search">
-                <input type="text" id="waypoint-search" placeholder="Search waypoints..." oninput="filterWaypoints()">
-                <select id="waypoint-map-filter" onchange="filterWaypoints()" style="margin-top: 0.5rem; width: 100%; padding: 0.5rem; background: #0f0f0f; border: 1px solid #2a2a2a; color: #e5e5e5; border-radius: 6px;">
-                    <option value="all">All Maps</option>
-                </select>
-            </div>
-            <div class="modal-list" id="waypoint-list"></div>
-        </div>
-    </div>
-
-    <div class="modal" id="traitline-modal">
-		<div class="modal-content" style="overflow: visible;"> <div class="modal-header">
-				<h2>Insert Traitline</h2>
-				<button class="modal-close" onclick="closeTraitlineModal()">×</button>
-			</div>
-			
-			<div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-				
-				<div class="dropdown-container">
-					<label class="dropdown-label">Specialization</label>
-					<div class="custom-dropdown" id="spec-dropdown">
-						<input type="text" class="dropdown-search" id="spec-input" placeholder="Select Specialization..." autocomplete="off">
-						<div class="dropdown-options" id="spec-options"></div>
-					</div>
-				</div>
-
-				<div id="traits-container" style="display: none; flex-direction: column; gap: 1rem;">
-					
-					<div class="dropdown-container">
-						<label class="dropdown-label">Adept Trait (Tier 1)</label>
-						<div class="custom-dropdown" id="trait1-dropdown">
-							<input type="text" class="dropdown-search" id="trait1-input" placeholder="Select Adept Trait..." autocomplete="off">
-							<div class="dropdown-options" id="trait1-options"></div>
-						</div>
-					</div>
-
-					<div class="dropdown-container">
-						<label class="dropdown-label">Master Trait (Tier 2)</label>
-						<div class="custom-dropdown" id="trait2-dropdown">
-							<input type="text" class="dropdown-search" id="trait2-input" placeholder="Select Master Trait..." autocomplete="off">
-							<div class="dropdown-options" id="trait2-options"></div>
-						</div>
-					</div>
-
-					<div class="dropdown-container">
-						<label class="dropdown-label">Grandmaster Trait (Tier 3)</label>
-						<div class="custom-dropdown" id="trait3-dropdown">
-							<input type="text" class="dropdown-search" id="trait3-input" placeholder="Select Grandmaster Trait..." autocomplete="off">
-							<div class="dropdown-options" id="trait3-options"></div>
-						</div>
-					</div>
-
-				</div>
-
-				<button onclick="insertTraitlineFromModal()" id="insert-trait-btn" style="margin-top: 1rem; padding: 0.75rem; background: #6366f1; border: none; border-radius: 4px; color: white; font-weight: 600; cursor: pointer; display: none;">
-					Insert Traitline
-				</button>
-			</div>
-		</div>
-	</div>
-	
-    <div class="modal" id="gw2-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Insert GW2 Tag</h2>
-                <button class="modal-close" onclick="closeGW2Modal()">×</button>
-            </div>
-            <div class="modal-search">
-                <input type="text" id="gw2-search" placeholder="Search GW2 API..." oninput="filterGW2()">
-                <select id="gw2-type-filter" onchange="filterGW2()" style="margin-top: 0.5rem; width: 100%; padding: 0.5rem; background: #0f0f0f; border: 1px solid #2a2a2a; color: #e5e5e5;">
-                    <option value="all">All Types</option>
-                    <option value="skills">Skills</option>
-                    <option value="items">Items</option>
-                    <option value="traits">Traits</option>
-                </select>
-            </div>
-            <div class="modal-list" id="gw2-list"></div>
-        </div>
-    </div>
-
-    <div id="suggestions-panel" class="suggestions-panel">
-        <div class="suggestions-header">
-            <h3>Auto-Suggestions</h3>
-            <button onclick="toggleSuggestions()" style="background: transparent; border: none; color: #999; font-size: 1.2rem; cursor: pointer;">×</button>
-        </div>
-        <div class="suggestions-content">
-            <div style="margin-bottom: 1rem; color: #999; font-size: 0.85rem;">
-                Configure intelligent text scanning for both SC and GW2 tags.
+            <div class="toolbar">
+                <button onclick="insertMarkdown('**', '**')">B</button>
+                <button onclick="insertMarkdown('*', '*')">I</button>
+                <button onclick="insertMarkdown('~~', '~~')">S</button>
+                <button onclick="insertMarkdown('`', '`')">&lt;/&gt;</button>
+                <div style="width: 1px; height: 16px; background: #3f4454; margin: 0 4px;"></div>
+                <button onclick="insertMarkdown('[', '](url)')">🔗</button>
+                <button onclick="insertMarkdown('![alt]', '(url)')">🖼️</button>
+                <div style="width: 1px; height: 16px; background: #3f4454; margin: 0 4px;"></div>
+                <button onclick="insertMarkdown('- ', '')">• List</button>
+                <button onclick="insertMarkdown('1. ', '')">1. List</button>
+                <button onclick="insertMarkdown('> ', '')">“ Quote</button>
+                <button onclick="insertMarkdown('---', '')">— Line</button>
+                <div style="width: 1px; height: 16px; background: #3f4454; margin: 0 4px;"></div>
+                <button onclick="insertWaypoint()">📍 WP</button>
+                <button onclick="insertTraitline()">🎨 Traits</button>
+                <button onclick="openArmoryModal()">SC</button>
+                <button onclick="openGW2Modal()">GW2</button>
+                <button onclick="toggleSuggestions()" style="color: #fdba74;">✨ Suggestions</button>
+                
+                <div id="status-bar" class="status-bar">Ready</div>
             </div>
             
-            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
-                <input type="checkbox" id="scan-as-type" checked>
-                <strong>Scan as you type</strong>
-            </label>
+            <div id="suggestion-tooltip" class="suggestion-tooltip"></div>
+        </div>
 
-            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
-                <input type="checkbox" id="auto-replace" checked>
-                <strong>Automatic Replace</strong>
-            </label>
-            <div style="font-size: 0.8rem; color: #666; margin-left: 1.5rem; margin-bottom: 1rem;">
-                Replaces unique matches instantly.
-            </div>
-
-            <hr style="border-top: 1px solid #2a2a2a; margin: 1rem 0;">
-
-            <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; cursor: pointer;">
-                <input type="checkbox" id="safe-mode" checked>
-                <strong>Safe Mode</strong> <span style="color: #999; font-size: 0.85rem;">(only &lt;&gt; tags)</span>
-            </label>
-
-            <div style="margin: 1rem 0; padding: 0.75rem; background: #0f0f0f; border-radius: 4px; border-left: 3px solid #f59e0b;">
-                <div style="font-weight: 600; margin-bottom: 0.5rem; color: #f59e0b;">SC Armory Tags</div>
-                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; cursor: pointer; font-size: 0.85rem;">
-                    <input type="checkbox" id="suggest-sc" checked> <span style="color: #f59e0b;">■</span> Enable SC suggestions
-                </label>
-            </div>
-
-            <div style="margin: 1rem 0; padding: 0.75rem; background: #0f0f0f; border-radius: 4px; border-left: 3px solid #047857;">
-                <div style="font-weight: 600; margin-bottom: 0.5rem; color: #047857;">GW2 API Tags</div>
-                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; cursor: pointer; font-size: 0.85rem;">
-                    <input type="checkbox" id="suggest-skills" checked> <span style="color: #6366f1;">■</span> Skills
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; cursor: pointer; font-size: 0.85rem;">
-                    <input type="checkbox" id="suggest-items"> <span style="color: #10b981;">■</span> Items
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; cursor: pointer; font-size: 0.85rem;">
-                    <input type="checkbox" id="suggest-traits" checked> <span style="color: #f59e0b;">■</span> Traits
-                </label>
-            </div>
-            
-            <div id="scan-actions">
-                <button onclick="manualScan()" style="width: 100%; margin-top: 1rem; padding: 0.75rem; background: #6366f1; border: none; border-radius: 4px; color: white; font-weight: 600; cursor: pointer;">
-                    Manual Scan
-                </button>
-                <button onclick="clearCache()" style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: #450a0a; border: none; border-radius: 4px; color: #fca5a5; font-weight: 600; cursor: pointer;">
-                    Clear GW2 Cache
-                </button>
-            </div>
+        <div class="preview-panel">
+            <div class="panel-header" style="padding: 0.5rem 1rem; background: #16181d; border-bottom: 1px solid #2a2a2a; font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase;">Preview</div>
+            <div id="preview"></div>
         </div>
     </div>
+</div>
 
-    <script>
-        window.gw2ArmoryOptions = { hideDefaultBadge: true };
-    </script>
-    <script src="armory.js"></script>
-    <script src="armory-gw2.js"></script>
-    <script src="script.js"></script>
+<div id="armory-modal" class="modal"><div class="modal-content"><div class="modal-header"><span>SC Armory</span><button class="modal-close" onclick="closeArmoryModal()">×</button></div><div class="modal-search"><input type="text" id="armory-search" placeholder="Search SC items..." oninput="filterArmory()"></div><div id="armory-list" class="modal-list"></div></div></div>
+<div id="gw2-modal" class="modal"><div class="modal-content"><div class="modal-header"><span>GW2 API</span><button class="modal-close" onclick="closeGW2Modal()">×</button></div><div class="modal-search" style="display:flex; gap:0.5rem;"><select id="gw2-type-filter" onchange="filterGW2()" style="background:#0f1014; color:#e2e8f0; border:1px solid #3f4454; border-radius:6px; padding:0 0.5rem;"><option value="all">All</option><option value="items">Items</option><option value="skills">Skills</option><option value="traits">Traits</option></select><input type="text" id="gw2-search" class="gw2-search-input" placeholder="Search GW2 database..." oninput="filterGW2()"></div><div id="gw2-list" class="modal-list"></div></div></div>
+<div id="waypoint-modal" class="modal"><div class="modal-content"><div class="modal-header"><span>Insert Waypoint</span><button class="modal-close" onclick="closeWaypointModal()">×</button></div><div class="modal-search" style="display:flex; gap:0.5rem;"><select id="waypoint-map-filter" onchange="filterWaypoints()" style="background:#0f1014; color:#e2e8f0; border:1px solid #3f4454; border-radius:6px; padding:0 0.5rem; max-width: 150px;"><option value="all">All Maps</option></select><input type="text" id="waypoint-search" placeholder="Search waypoint..." oninput="filterWaypoints()"></div><div id="waypoint-list" class="modal-list"></div></div></div>
+<div id="traitline-modal" class="modal"><div class="modal-content" style="width: 600px;"><div class="modal-header"><span>Traitline Generator</span><button class="modal-close" onclick="closeTraitlineModal()">×</button></div><div style="padding: 1.5rem;"><div class="dropdown-container" id="spec-dropdown"><span class="dropdown-label">Specialization</span><div class="custom-dropdown"><input type="text" class="dropdown-search" id="spec-input" placeholder="Select Specialization..." readonly><div class="dropdown-options" id="spec-options"></div></div></div><div id="traits-container" style="display:none; gap:10px; margin-top:1rem;"><div class="dropdown-container" id="trait1-dropdown" style="flex:1;"><span class="dropdown-label">Trait 1</span><div class="custom-dropdown"><input type="text" class="dropdown-search" id="trait1-input" placeholder="Select..." readonly><div class="dropdown-options" id="trait1-options"></div></div></div><div class="dropdown-container" id="trait2-dropdown" style="flex:1;"><span class="dropdown-label">Trait 2</span><div class="custom-dropdown"><input type="text" class="dropdown-search" id="trait2-input" placeholder="Select..." readonly><div class="dropdown-options" id="trait2-options"></div></div></div><div class="dropdown-container" id="trait3-dropdown" style="flex:1;"><span class="dropdown-label">Trait 3</span><div class="custom-dropdown"><input type="text" class="dropdown-search" id="trait3-input" placeholder="Select..." readonly><div class="dropdown-options" id="trait3-options"></div></div></div></div><button id="insert-trait-btn" onclick="insertTraitlineFromModal()" style="display:none; width:100%; margin-top:1.5rem; padding:0.75rem; background:#6366f1; color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Insert Traitline</button></div></div></div>
+
+<script src="armory.js"></script>
+<script src="armory-gw2.js"></script>
+<script src="https://unpkg.com/armory-embeds@^0.x.x/armory-embeds.js"></script>
+<script src="script.js"></script>
+
 </body>
 </html>

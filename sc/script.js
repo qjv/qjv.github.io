@@ -170,7 +170,6 @@ function cancelReviewMode() {
 function findMatches(text, includeSC = true) {
     const allData = [];
     
-    // Add GW2 data
     const suggestSkills = document.getElementById('suggest-skills').checked;
     const suggestItems = document.getElementById('suggest-items').checked;
     const suggestTraits = document.getElementById('suggest-traits').checked;
@@ -181,7 +180,6 @@ function findMatches(text, includeSC = true) {
         if (suggestTraits) gw2Data.traits.forEach(t => allData.push({...t, type: 'trait', source: 'gw2'}));
     }
     
-    // Add SC armory data
     if (includeSC && typeof armoryData !== 'undefined') {
         armoryData.forEach(a => allData.push({...a, type: 'sc', source: 'sc'}));
     }
@@ -190,22 +188,15 @@ function findMatches(text, includeSC = true) {
     allData.forEach(d => {
         if(!d.name) return;
         const normalizedName = d.name.toLowerCase();
-        
-        // GLOBAL SKIP CHECK
         if (sessionIgnoreList.has(normalizedName)) return;
-        
         if (!nameMap.has(d.name)) nameMap.set(d.name, []);
         nameMap.get(d.name).push(d);
     });
 
-    // Identify Forbidden Ranges (Tags)
+    // Identify Forbidden Ranges
     const forbiddenRanges = [];
     const ignorePatterns = [
-        /\[sc:.*?\[\/sc\]/g,
-        /\[gw2:.*?\]/g,
-        /\[wp:.*?\[\/wp\]/g,
-        /\[traitline:.*?\]/g,
-        /`[^`]+`/g // Ignora blocos de código inline também
+        /\[sc:.*?\[\/sc\]/g, /\[gw2:.*?\]/g, /\[wp:.*?\[\/wp\]/g, /\[traitline:.*?\]/g, /`[^`]+`/g
     ];
 
     ignorePatterns.forEach(pattern => {
@@ -227,17 +218,27 @@ function findMatches(text, includeSC = true) {
     const matches = [];
     const safeMode = document.getElementById('safe-mode').checked;
     const sortedNames = Array.from(nameMap.keys()).sort((a, b) => b.length - a.length);
-
-    // Map to track occurrence counts for "Skip Instance" logic
-    // Key: CleanName, Value: Counter
     const occurrenceCounters = new Map();
 
     sortedNames.forEach(name => {
         const candidates = nameMap.get(name);
-        const regexStr = safeMode ? '<(' + escapeRegex(name) + ')>' : '\\b(' + escapeRegex(name) + ')\\b';
+        
+        // --- LOGICA DE PLURAL / SIMILAR ---
+        // Se safeMode OFF: Procura a palavra + opcionais 's', 'es', 'ies'
+        // Ex: "Sword" vai dar match em "Sword", "Swords"
+        // Ex: "Berry" vai dar match em "Berry", "Berrys", "Berries" (regex simplificado)
+        let regexStr;
+        if (safeMode) {
+            regexStr = '<(' + escapeRegex(name) + ')>';
+        } else {
+            // (?: ... )? torna o grupo opcional e não-capturante
+            // Aceita: nome exato OU nome + s/es/ies/ves
+            const baseName = escapeRegex(name);
+            regexStr = '\\b(' + baseName + '(?:s|es|ies|ves)?)\\b';
+        }
+        
         const regex = new RegExp(regexStr, 'gi');
         
-        // Reset counter for this word
         occurrenceCounters.set(name, 0);
 
         let match;
@@ -245,16 +246,12 @@ function findMatches(text, includeSC = true) {
             const start = match.index;
             const end = match.index + match[0].length;
             
-            // Check Forbidden / Overlap
             const overlapsMatch = matches.some(m => (start < m.end && end > m.start));
             const overlapsTag = isForbidden(start, end);
 
-            // Increment occurrence counter for this word
             const currentCount = occurrenceCounters.get(name);
             occurrenceCounters.set(name, currentCount + 1);
 
-            // INSTANCE SKIP CHECK
-            // If this specific occurrence index (0-based) is in the skip list for this word
             const skippedSet = skippedInstances.get(name);
             const isSkippedInstance = skippedSet && skippedSet.has(currentCount);
 
@@ -262,10 +259,10 @@ function findMatches(text, includeSC = true) {
                 matches.push({
                     start,
                     end,
-                    text: match[0],
-                    cleanName: name,
+                    text: match[0], // O texto exato encontrado (ex: "Swords")
+                    cleanName: name, // O nome original do item (ex: "Sword")
                     candidates: candidates,
-                    occurrenceIndex: currentCount // Save which number this is
+                    occurrenceIndex: currentCount
                 });
             }
         }
@@ -426,11 +423,31 @@ function selectCandidate(matchIdx, id, type) {
 // -------------------
 // SCROLL SYNC FIX
 // -------------------
-input.addEventListener('scroll', function() { 
-    // Force sync
+function syncOverlay() {
+    // 1. Sincronizar Scroll
     reviewOverlay.scrollTop = input.scrollTop;
     reviewOverlay.scrollLeft = input.scrollLeft;
-});
+    
+    // 2. Sincronizar Tamanho (Importante se a janela mudar)
+    reviewOverlay.style.width = input.clientWidth + 'px';
+    reviewOverlay.style.height = input.clientHeight + 'px';
+}
+
+// Attach sync to every possible event that moves text
+input.addEventListener('scroll', syncOverlay);
+input.addEventListener('input', () => { updatePreview(); debouncedScan(); syncOverlay(); });
+input.addEventListener('mousemove', syncOverlay); // Caso redimensione o textarea com o mouse
+input.addEventListener('mouseup', syncOverlay);
+window.addEventListener('resize', syncOverlay);
+
+reviewOverlay.addEventListener('click', function() { cancelReviewMode(); input.focus(); });
+
+// Inicialização
+window.onload = function() {
+    updatePreview();
+    syncOverlay();
+    // setTimeout(checkArmoryUpdates, 2000);
+};
 
 // -------------------
 // CACHING & DATA

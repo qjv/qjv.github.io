@@ -42,28 +42,62 @@ body {
 
 /* Input Area */
 #markdown-input {
-    flex: 1; padding: 2rem; background: #0f1014; color: #e2e8f0; border: none; resize: none;
-    font-family: 'Roboto Mono', 'Courier New', monospace; font-size: 0.9rem; line-height: 1.6;
-    outline: none; width: 100%; overflow-y: auto; white-space: pre-wrap;
+    flex: 1; 
+    padding: 2rem; 
+    background: #0f1014; 
+    color: #e2e8f0; 
+    border: none; 
+    resize: none;
+    
+    /* Tipografia Estrita para Alinhamento */
+    font-family: 'Roboto Mono', 'Courier New', monospace; 
+    font-size: 0.9rem; 
+    line-height: 1.6;
+    letter-spacing: normal;
+    
+    outline: none; 
+    width: 100%; 
+    
+    /* Força barra de rolagem sempre visível para alinhar larguras */
+    overflow-y: scroll; 
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
+
 #markdown-input::-webkit-scrollbar { width: 8px; }
 #markdown-input::-webkit-scrollbar-track { background: #0f1014; }
 #markdown-input::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
 
 /* Review Overlay */
 .review-overlay {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5;
-    background: transparent; color: transparent; pointer-events: none;
-    overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;
-    font-family: 'Roboto Mono', 'Courier New', monospace; font-size: 0.9rem; line-height: 1.6; padding: 2rem;
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    bottom: 0; 
+    z-index: 5;
+    
+    background: transparent; 
+    color: transparent; 
+    pointer-events: none;
+    
+    /* Tipografia IDÊNTICA ao Input */
+    font-family: 'Roboto Mono', 'Courier New', monospace; 
+    font-size: 0.9rem; 
+    line-height: 1.6;
+    letter-spacing: normal;
+    
+    padding: 2rem; /* Mesmo padding */
+    
+    /* Mesmo comportamento de scroll */
+    overflow-y: scroll;
+    white-space: pre-wrap; 
+    word-wrap: break-word;
 }
+
+/* Esconde visualmente a barra do overlay, mas mantém o espaço dela */
 .review-overlay::-webkit-scrollbar { width: 8px; background: transparent; }
 .review-overlay::-webkit-scrollbar-thumb { background: transparent; }
-.review-highlight {
-    pointer-events: auto; cursor: pointer; background-color: rgba(99, 102, 241, 0.15);
-    border-bottom: 2px solid #6366f1; border-radius: 3px;
-}
-.review-highlight:hover { background-color: rgba(99, 102, 241, 0.3); }
 
 /* Toolbar */
 .toolbar {

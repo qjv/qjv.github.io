@@ -837,28 +837,57 @@ function insertMarkdown(before, after) {
 function parseNestedLists(lines) {
     const result = [];
     let i = 0;
+    
+    // Regex for: (SpaceIndent)( Bullet or Number )( Content )
+    // Supports: - or * for unordered
+    // Supports: 1. or 23. for ordered
+    const ulRegex = /^( *)[-*] (.+)$/;
+    const olRegex = /^( *)\d+\. (.+)$/;
+
     while (i < lines.length) {
         const line = lines[i];
-        // MODIFIED: Only recognize '-' as unordered list, NOT '*'
-        const unorderedMatch = line.match(/^( *)\* (.+)$/);
-        const orderedMatch = line.match(/^( *)\d+\. (.+)$/);
         
-        if (unorderedMatch || orderedMatch) {
-            const match = unorderedMatch || orderedMatch;
-            const indent = match[1].length;
+        const ulMatch = line.match(ulRegex);
+        const olMatch = line.match(olRegex);
+        
+        if (ulMatch || olMatch) {
             const listItems = [];
-            let currentIndent = indent;
+            // Capture the indentation of the FIRST item to establish the baseline
+            const baseIndent = (ulMatch || olMatch)[1].length;
+
             while (i < lines.length) {
                 const currentLine = lines[i];
-                const currentUnordered = currentLine.match(/^( *)- (.+)$/);
-                const currentOrdered = currentLine.match(/^( *)\d+\. (.+)$/);
-                const currentMatch = currentUnordered || currentOrdered;
-                if (!currentMatch) break;
-                const currentLineIndent = currentMatch[1].length;
-                if (listItems.length > 0 && currentLineIndent < currentIndent) break;
-                const level = Math.floor(currentLineIndent / 4);
-                const content = currentMatch[2];
-                listItems.push({ level, content, type: currentUnordered ? 'ul' : 'ol' });
+                
+                // Check if empty line (break list)
+                if (currentLine.trim() === '') {
+                    // Optional: You can choose to break or skip. 
+                    // Standard markdown breaks lists on double newline, but single is fine.
+                    // For this simple parser, let's break on empty line to be safe.
+                    break;
+                }
+
+                const curUl = currentLine.match(ulRegex);
+                const curOl = currentLine.match(olRegex);
+                const curMatch = curUl || curOl;
+
+                // If line is not a list item, break the list block
+                if (!curMatch) break;
+
+                const curIndent = curMatch[1].length;
+                
+                // If indentation drops BELOW the base, it's a new parent text, break.
+                if (curIndent < baseIndent) break;
+
+                // Calculate nesting level based on 2 or 4 spaces
+                // We use Math.max(0, ...) to ensure no negative levels
+                const level = Math.floor((curIndent - baseIndent) / 2); // Using /2 for more forgiving nesting
+
+                listItems.push({
+                    level: Math.max(0, level), 
+                    content: curMatch[2], 
+                    type: curUl ? 'ul' : 'ol' 
+                });
+                
                 i++;
             }
             result.push(buildNestedList(listItems));

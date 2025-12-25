@@ -109,6 +109,20 @@ body {
     margin: 1rem 0;
 }
 
+#preview ul {
+    list-style-type: disc;
+    padding-left: 2rem;
+}
+
+#preview ol {
+    list-style-type: decimal;
+    padding-left: 2rem;
+}
+
+#preview ul ul { list-style-type: circle; }
+#preview ol ol { list-style-type: lower-alpha; }
+#preview ul ol, #preview ol ul { margin-top: 0.25rem; }
+
 /* ==========================================================================
    GW2 EMBEDS - CORREÇÃO DEFINITIVA
    ========================================================================== */

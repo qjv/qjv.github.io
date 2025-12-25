@@ -44,10 +44,11 @@ body {
 #markdown-input {
     flex: 1; 
     padding: 2rem; 
+    margin: 0; /* Remove margens padrão do navegador */
+    border: none;
+    
     background: #0f1014; 
     color: #e2e8f0; 
-    border: none; 
-    resize: none;
     
     /* Tipografia Estrita para Alinhamento */
     font-family: 'Roboto Mono', 'Courier New', monospace; 
@@ -57,11 +58,14 @@ body {
     
     outline: none; 
     width: 100%; 
+    resize: none;
     
     /* Força barra de rolagem sempre visível para alinhar larguras */
     overflow-y: scroll; 
     white-space: pre-wrap;
     word-wrap: break-word;
+    box-sizing: border-box;
+    display: block;
 }
 
 #markdown-input::-webkit-scrollbar { width: 8px; }
@@ -78,26 +82,42 @@ body {
     z-index: 5;
     
     background: transparent; 
-    color: transparent; 
-    pointer-events: none;
+    color: transparent; /* Texto invisível (vemos o input por baixo) */
+    pointer-events: none; /* Cliques passam para o input... */
     
-    /* Tipografia IDÊNTICA ao Input */
+    /* Métrica IDÊNTICA ao Input */
+    padding: 2rem; 
+    margin: 0;
+    border: none;
+    
     font-family: 'Roboto Mono', 'Courier New', monospace; 
     font-size: 0.9rem; 
     line-height: 1.6;
     letter-spacing: normal;
     
-    padding: 2rem; /* Mesmo padding */
-    
-    /* Mesmo comportamento de scroll */
-    overflow-y: scroll;
+    overflow-y: scroll; /* Scroll idêntico */
     white-space: pre-wrap; 
     word-wrap: break-word;
+    box-sizing: border-box;
 }
 
-/* Esconde visualmente a barra do overlay, mas mantém o espaço dela */
+/* Esconde visualmente a barra do overlay para não duplicar, mas mantém o espaço dela */
 .review-overlay::-webkit-scrollbar { width: 8px; background: transparent; }
 .review-overlay::-webkit-scrollbar-thumb { background: transparent; }
+
+/* Destaque */
+.review-highlight {
+    pointer-events: auto; /* ...exceto nos destaques, que capturam o clique */
+    cursor: pointer;
+    background-color: rgba(99, 102, 241, 0.25); /* Cor mais forte */
+    border-bottom: 2px solid #6366f1;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.review-highlight:hover {
+    background-color: rgba(99, 102, 241, 0.45);
+}
 
 /* Toolbar */
 .toolbar {

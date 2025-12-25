@@ -193,7 +193,7 @@ function findMatches(text, includeSC = true) {
         nameMap.get(d.name).push(d);
     });
 
-    // Identify Forbidden Ranges
+    // Identify Forbidden Ranges (Tags)
     const forbiddenRanges = [];
     const ignorePatterns = [
         /\[sc:.*?\[\/sc\]/g, /\[gw2:.*?\]/g, /\[wp:.*?\[\/wp\]/g, /\[traitline:.*?\]/g, /`[^`]+`/g
@@ -223,22 +223,21 @@ function findMatches(text, includeSC = true) {
     sortedNames.forEach(name => {
         const candidates = nameMap.get(name);
         
-        // --- LOGICA DE PLURAL / SIMILAR ---
-        // Se safeMode OFF: Procura a palavra + opcionais 's', 'es', 'ies'
-        // Ex: "Sword" vai dar match em "Sword", "Swords"
-        // Ex: "Berry" vai dar match em "Berry", "Berrys", "Berries" (regex simplificado)
+        // --- LÓGICA DE PLURAL / SIMILAR ---
         let regexStr;
         if (safeMode) {
+            // Modo Seguro: Apenas a palavra exata
             regexStr = '<(' + escapeRegex(name) + ')>';
         } else {
-            // (?: ... )? torna o grupo opcional e não-capturante
-            // Aceita: nome exato OU nome + s/es/ies/ves
+            // Modo Padrão: Aceita a palavra + sufixos de plural comuns (s, es, ies, ves)
+            // Ex: "Sword" encontra "Swords"
             const baseName = escapeRegex(name);
             regexStr = '\\b(' + baseName + '(?:s|es|ies|ves)?)\\b';
         }
         
         const regex = new RegExp(regexStr, 'gi');
         
+        // Reset counter for this word
         occurrenceCounters.set(name, 0);
 
         let match;
@@ -259,8 +258,8 @@ function findMatches(text, includeSC = true) {
                 matches.push({
                     start,
                     end,
-                    text: match[0], // O texto exato encontrado (ex: "Swords")
-                    cleanName: name, // O nome original do item (ex: "Sword")
+                    text: match[0], // Texto real encontrado (pode estar no plural)
+                    cleanName: name, // Nome original do item (singular)
                     candidates: candidates,
                     occurrenceIndex: currentCount
                 });
@@ -1052,16 +1051,39 @@ const debouncedScan = debounce(function() {
     if (document.getElementById('scan-as-type').checked) runScan(true);
 }, 500);
 
-input.addEventListener('input', function() { updatePreview(); debouncedScan(); });
-reviewOverlay.addEventListener('click', function() { cancelReviewMode(); input.focus(); });
+// -------------------
+// SYNC & EVENTS (Final do Arquivo)
+// -------------------
 
-// Check for armory updates logic removed for brevity (stays same as before)
-// ... (Include your checkArmoryUpdates, showUpdateWarning, dismissWarning functions here if needed)
+function syncOverlay() {
+    // Sincroniza o scroll vertical e horizontal do overlay com o input
+    reviewOverlay.scrollTop = input.scrollTop;
+    reviewOverlay.scrollLeft = input.scrollLeft;
+}
+
+// 1. Sync no Scroll
+input.addEventListener('scroll', syncOverlay);
+
+// 2. Sync na Digitação e Scan
+input.addEventListener('input', () => { 
+    updatePreview(); 
+    debouncedScan(); 
+    // Garante sync após o navegador recalcular layout
+    requestAnimationFrame(syncOverlay);
+});
+
+// 3. Sync no Resize da janela
+window.addEventListener('resize', syncOverlay);
+
+// 4. Fechar overlay ao clicar fora dos destaques
+// reviewOverlay.addEventListener('click', function() { cancelReviewMode(); input.focus(); });
 
 window.onload = function() {
     updatePreview();
+    syncOverlay();
     // setTimeout(checkArmoryUpdates, 2000);
 };
 
+// Helpers
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function escapeHtml(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }

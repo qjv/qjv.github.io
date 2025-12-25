@@ -840,7 +840,7 @@ function parseNestedLists(lines) {
     while (i < lines.length) {
         const line = lines[i];
         // MODIFIED: Only recognize '-' as unordered list, NOT '*'
-        const unorderedMatch = line.match(/^( *)- (.+)$/);
+        const unorderedMatch = line.match(/^( *)\* (.+)$/);
         const orderedMatch = line.match(/^( *)\d+\. (.+)$/);
         
         if (unorderedMatch || orderedMatch) {

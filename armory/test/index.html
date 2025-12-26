@@ -98,6 +98,44 @@
         .status.pending { background: #7a6a2d; color: #f0e68c; }
         .status.error { background: #7a2d2d; color: #ff6b6b; }
 
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: #2a2a2a;
+            border: 2px solid #3a3a3a;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #888;
+            font-weight: 600;
+        }
+
+        .tab:hover {
+            background: #333;
+            border-color: #4a9eff;
+        }
+
+        .tab.active {
+            background: #4a9eff;
+            border-color: #4a9eff;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         .info-box {
             background: #2a3a4a;
             border-left: 4px solid #4a9eff;
@@ -173,6 +211,19 @@
             <p><strong>API Calls:</strong> <span id="api-calls">0</span></p>
         </div>
 
+        <!-- TABS NAVIGATION -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('items')">Items</div>
+            <div class="tab" onclick="switchTab('skills')">Skills</div>
+            <div class="tab" onclick="switchTab('traits')">Traits</div>
+            <div class="tab" onclick="switchTab('specs')">Specializations</div>
+            <div class="tab" onclick="switchTab('amulets')">PvP Amulets</div>
+            <div class="tab" onclick="switchTab('builds')">Build Templates</div>
+            <div class="tab" onclick="switchTab('perf')">Performance</div>
+        </div>
+
+        <!-- ITEMS TAB -->
+        <div id="items-tab" class="tab-content active">
         <!-- ITEMS SECTION -->
         <div class="section">
             <h2>Items</h2>
@@ -243,8 +294,68 @@
                     <span class="status pending">Pending</span>
                 </div>
             </div>
-        </div>
 
+            <h3>Custom Stat (Berserker's)</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-77482-stat="584" (Ascended Greatsword with Berserker stats)</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="77482" data-armory-77482-stat="584"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Custom Skin</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-30699-skin="3709" (Ascended Greatsword with Eternity skin)</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="30699" data-armory-30699-skin="3709"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Custom Upgrades (Sigils)</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-77482-upgrades="24615,24868" (Force + Slaying sigils)</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="77482" data-armory-77482-upgrades="24615,24868"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Custom Infusions</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-77482-infusions="49428,49428" (Power infusions)</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="77482" data-armory-77482-infusions="49428,49428"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Fully Customized Item</h3>
+            <div class="test-row">
+                <div class="test-label">Custom stat, upgrades, and infusions combined</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="77482"
+                         data-armory-77482-stat="584"
+                         data-armory-77482-upgrades="24615,24868"
+                         data-armory-77482-infusions="49428,49428"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>GW2Spidy (Legacy Support)</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-inline-text="gw2spidy" (shows plain text, site defunct)</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="30704" data-armory-inline-text="gw2spidy"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+        </div>
+        </div><!-- End items-tab -->
+
+        <!-- SKILLS TAB -->
+        <div id="skills-tab" class="tab-content">
         <!-- SKILLS SECTION -->
         <div class="section">
             <h2>Skills</h2>
@@ -286,7 +397,10 @@
                 </div>
             </div>
         </div>
+        </div><!-- End skills-tab -->
 
+        <!-- TRAITS TAB -->
+        <div id="traits-tab" class="tab-content">
         <!-- TRAITS SECTION -->
         <div class="section">
             <h2>Traits</h2>
@@ -318,7 +432,10 @@
                 </div>
             </div>
         </div>
+        </div><!-- End traits-tab -->
 
+        <!-- SPECIALIZATIONS TAB -->
+        <div id="specs-tab" class="tab-content">
         <!-- SPECIALIZATIONS SECTION -->
         <div class="section">
             <h2>Specializations</h2>
@@ -422,7 +539,45 @@
                 </div>
             </div>
         </div>
+        </div><!-- End specs-tab -->
 
+        <!-- AMULETS TAB -->
+        <div id="amulets-tab" class="tab-content">
+        <!-- PVP AMULETS SECTION -->
+        <div class="section">
+            <h2>PvP Amulets</h2>
+
+            <h3>Single Amulet</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-embed="amulets" data-armory-ids="4"</div>
+                <div class="test-content">
+                    <div data-armory-embed="amulets" data-armory-ids="4"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Multiple Amulets</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-ids="4,8,9,13"</div>
+                <div class="test-content">
+                    <div data-armory-embed="amulets" data-armory-ids="4,8,9,13"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Inline with Wiki</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-inline-text="wiki"</div>
+                <div class="test-content">
+                    <div data-armory-embed="amulets" data-armory-ids="4" data-armory-inline-text="wiki"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+        </div>
+        </div><!-- End amulets-tab -->
+
+        <!-- BUILDS TAB -->
+        <div id="builds-tab" class="tab-content">
         <!-- BUILD TEMPLATES SECTION -->
         <div class="section">
             <h2>Build Templates</h2>
@@ -499,7 +654,10 @@
                 </div>
             </div>
         </div>
+        </div><!-- End builds-tab -->
 
+        <!-- PERFORMANCE TAB -->
+        <div id="perf-tab" class="tab-content">
         <!-- PERFORMANCE TEST -->
         <div class="section">
             <h2>Performance Test</h2>
@@ -519,7 +677,9 @@
             <h2>Debug Console</h2>
             <div id="debug-console">Initializing...</div>
         </div>
-    </div>
+        </div><!-- End perf-tab -->
+
+    </div><!-- End container -->
 
     <script>
         // Debug logger
@@ -530,6 +690,30 @@
             console.textContent += `[${timestamp}] ${prefix} ${msg}\n`;
             console.scrollTop = console.scrollHeight;
         };
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab content
+            const selectedContent = document.getElementById(tabName + '-tab');
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+            }
+
+            // Add active class to selected tab
+            event.target.classList.add('active');
+
+            debugLog(`Switched to ${tabName} tab`);
+        }
 
         // Clear debug console
         function clearDebug() {

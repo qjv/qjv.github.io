@@ -30,8 +30,42 @@
         debug: true
     };
 
+    // Backward compatibility: Support old GW2A_EMBED_OPTIONS format
+    let userConfig = window.GW2Armory || {};
+
+    if (document.GW2A_EMBED_OPTIONS) {
+        const oldConfig = document.GW2A_EMBED_OPTIONS;
+
+        // Map old config properties to new format
+        const mappedConfig = {
+            lang: oldConfig.lang,
+            cache: {
+                enabled: oldConfig.persistToLocalStorage !== false,
+                duration: defaultConfig.cache.duration,
+                prefix: defaultConfig.cache.prefix
+            }
+        };
+
+        // Handle forceCacheClearOnNextRun
+        if (oldConfig.forceCacheClearOnNextRun) {
+            const cacheKey = 'gw2armory_cache_clear_key';
+            const lastKey = localStorage.getItem(cacheKey);
+
+            if (lastKey !== oldConfig.forceCacheClearOnNextRun) {
+                // Clear cache
+                const keys = Object.keys(localStorage);
+                const removed = keys.filter(k => k.startsWith(defaultConfig.cache.prefix));
+                removed.forEach(k => localStorage.removeItem(k));
+                localStorage.setItem(cacheKey, oldConfig.forceCacheClearOnNextRun);
+                console.log(`[GW2Armory] Cache cleared via forceCacheClearOnNextRun`);
+            }
+        }
+
+        userConfig = Object.assign({}, mappedConfig, userConfig);
+    }
+
     // Merge user config with defaults
-    const config = Object.assign({}, defaultConfig, window.GW2Armory || {});
+    const config = Object.assign({}, defaultConfig, userConfig);
 
     // Debug logger
     function log(message, type = 'info') {
@@ -281,7 +315,8 @@
                             specData,
                             {
                                 selectedTraits: selectedTraitIds.join(','),
-                                traitData: traitsData
+                                traitData: traitsData,
+                                compact: true
                             }
                         );
                         placeholder.replaceWith(specRendered);
@@ -372,6 +407,92 @@
                 switch (embedType) {
                     case 'items':
                         data = await dataFetcher.getItems(validIds);
+
+                        // Parse item-specific attributes for each item
+                        for (const id of validIds) {
+                            const itemData = data[id];
+                            if (!itemData) continue;
+
+                            // Get custom stat ID
+                            const statId = element.getAttribute(`data-armory-${id}-stat`);
+                            if (statId) {
+                                itemData.customStatId = parseInt(statId);
+                            }
+
+                            // Get custom skin ID
+                            const skinId = element.getAttribute(`data-armory-${id}-skin`);
+                            if (skinId) {
+                                itemData.customSkinId = parseInt(skinId);
+                            }
+
+                            // Get custom upgrades
+                            const upgrades = element.getAttribute(`data-armory-${id}-upgrades`);
+                            if (upgrades) {
+                                itemData.customUpgrades = upgrades.split(',').map(u => parseInt(u.trim()));
+                            }
+
+                            // Get custom infusions
+                            const infusions = element.getAttribute(`data-armory-${id}-infusions`);
+                            if (infusions) {
+                                itemData.customInfusions = infusions.split(',').map(i => parseInt(i.trim()));
+                            }
+
+                            // Get upgrade count
+                            const upgradeCount = element.getAttribute(`data-armory-${id}-upgrade-count`);
+                            if (upgradeCount) {
+                                try {
+                                    itemData.customUpgradeCount = JSON.parse(upgradeCount);
+                                } catch (e) {
+                                    log(`Failed to parse upgrade-count for item ${id}: ${e.message}`, 'error');
+                                }
+                            }
+                        }
+
+                        // Fetch additional data (stats, skins, upgrades, infusions)
+                        const statIds = [];
+                        const skinIds = [];
+                        const upgradeIds = [];
+                        const infusionIds = [];
+
+                        for (const id of validIds) {
+                            const itemData = data[id];
+                            if (!itemData) continue;
+
+                            if (itemData.customStatId) statIds.push(itemData.customStatId);
+                            if (itemData.customSkinId) skinIds.push(itemData.customSkinId);
+                            if (itemData.customUpgrades) upgradeIds.push(...itemData.customUpgrades);
+                            if (itemData.customInfusions) infusionIds.push(...itemData.customInfusions);
+                        }
+
+                        // Fetch all additional data in parallel
+                        const [statsData, skinsData, upgradesData, infusionsData] = await Promise.all([
+                            statIds.length > 0 ? dataFetcher.getItemStats(statIds) : Promise.resolve({}),
+                            skinIds.length > 0 ? dataFetcher.getSkins(skinIds) : Promise.resolve({}),
+                            upgradeIds.length > 0 ? dataFetcher.getItems(upgradeIds) : Promise.resolve({}),
+                            infusionIds.length > 0 ? dataFetcher.getItems(infusionIds) : Promise.resolve({})
+                        ]);
+
+                        // Apply custom data to items
+                        for (const id of validIds) {
+                            const itemData = data[id];
+                            if (!itemData) continue;
+
+                            if (itemData.customStatId && statsData[itemData.customStatId]) {
+                                itemData.statData = statsData[itemData.customStatId];
+                            }
+
+                            if (itemData.customSkinId && skinsData[itemData.customSkinId]) {
+                                itemData.skinData = skinsData[itemData.customSkinId];
+                            }
+
+                            if (itemData.customUpgrades) {
+                                itemData.upgradesData = itemData.customUpgrades.map(uid => upgradesData[uid]).filter(Boolean);
+                            }
+
+                            if (itemData.customInfusions) {
+                                itemData.infusionsData = itemData.customInfusions.map(iid => infusionsData[iid]).filter(Boolean);
+                            }
+                        }
                         break;
                     case 'skills':
                         data = await dataFetcher.getSkills(validIds);
@@ -394,6 +515,9 @@
                                 options.traitData = await dataFetcher.getTraits(allTraitIds);
                             }
                         }
+                        break;
+                    case 'amulets':
+                        data = await dataFetcher.getAmulets(validIds);
                         break;
                     default:
                         throw new Error(`Unknown embed type: ${embedType}`);
@@ -425,6 +549,9 @@
                         break;
                     case 'specializations':
                         rendered = renderer.renderSpecialization(element, itemData, options);
+                        break;
+                    case 'amulets':
+                        rendered = renderer.renderAmulet(element, itemData, options);
                         break;
                 }
 

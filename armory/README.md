@@ -117,6 +117,44 @@ window.GW2Armory = {
 };
 ```
 
+## Backward Compatibility
+
+This library is **fully backward compatible** with the original `armory-embeds` library. Sites using the old library can switch to this one without changing their code.
+
+### Old Config Format (Still Supported)
+
+```javascript
+document.GW2A_EMBED_OPTIONS = {
+  lang: 'en',
+  persistToLocalStorage: true,
+  forceCacheClearOnNextRun: '1'
+};
+```
+
+This automatically maps to the new format internally.
+
+### Old CSS Classes (Still Supported)
+
+Both old and new CSS class names work:
+
+```css
+/* Old class names (still work) */
+.gw2a-items-embed {}
+.gw2a-skills-embed {}
+.gw2a-traits-embed {}
+.gw2a-specializations-embed {}
+.gw2a-amulets-embed {}
+
+/* New class names (preferred) */
+.gw2armory-embed {}
+```
+
+### Migration Notes
+
+- All data attributes remain the same
+- `data-armory-inline-text="gw2spidy"` is supported but shows plain text (site defunct)
+- Character embeds from the old library are not supported
+
 ## Browser Support
 
 - Chrome/Edge 90+

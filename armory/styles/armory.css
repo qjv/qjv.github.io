@@ -196,7 +196,7 @@
     font-size: 14px;
     line-height: 1.5;
     box-shadow: 0 4px 12px var(--tooltip-shadow);
-    pointer-events: none;
+    pointer-events: auto;
     max-width: 350px;
     min-height: 120px;
     display: none;
@@ -225,6 +225,18 @@
 
 .gw2armory-tooltip::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
+}
+
+/* Wiki link in tooltips */
+.gw2armory-tooltip a {
+    color: #4a9eff;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.gw2armory-tooltip a:hover {
+    color: #6ab7ff;
+    text-decoration: underline;
 }
 
 .gw2armory-tooltip-header {
@@ -392,6 +404,7 @@
 .gw2armory-trait-group.major {
     flex-direction: column;
     gap: 0.25rem;
+    justify-content: center;
 }
 
 .gw2armory-trait {
@@ -410,6 +423,15 @@
 .gw2armory-trait.selected {
     opacity: 1;
     filter: grayscale(0);
+}
+
+/* Compact mode for build templates - hide non-selected traits */
+.gw2armory-specialization-compact .gw2armory-trait {
+    display: none;
+}
+
+.gw2armory-specialization-compact .gw2armory-trait.selected {
+    display: flex;
 }
 
 .gw2armory-trait.selected .gw2armory-icon {

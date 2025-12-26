@@ -13,6 +13,8 @@
             this.showTimeout = null;
             this.hideTimeout = null;
             this.currentElement = null;
+            this.mouseX = 0;
+            this.mouseY = 0;
             this.init();
         }
 
@@ -24,6 +26,12 @@
             this.tooltip = document.createElement('div');
             this.tooltip.className = 'gw2armory-tooltip';
             document.body.appendChild(this.tooltip);
+
+            // Track mouse position globally
+            document.addEventListener('mousemove', (e) => {
+                this.mouseX = e.clientX;
+                this.mouseY = e.clientY;
+            });
 
             // Handle mouse leaving tooltip
             this.tooltip.addEventListener('mouseenter', () => {
@@ -47,8 +55,16 @@
             this.showTimeout = setTimeout(() => {
                 this.currentElement = element;
                 this.render(data, type);
-                this.position(element);
+
+                // Position off-screen initially to measure without flash
+                this.tooltip.style.top = '-9999px';
+                this.tooltip.style.left = '-9999px';
                 this.tooltip.classList.add('visible');
+
+                // Use requestAnimationFrame to ensure layout is complete before positioning
+                requestAnimationFrame(() => {
+                    this.position(element);
+                });
             }, this.config.tooltip.delay);
         }
 
@@ -82,6 +98,9 @@
                 case 'specializations':
                     content = this.renderSpecialization(data);
                     break;
+                case 'amulets':
+                    content = this.renderAmulet(data);
+                    break;
                 default:
                     content = this.renderGeneric(data);
             }
@@ -93,7 +112,13 @@
          * Render item tooltip
          */
         renderItem(item) {
-            let html = `<div class="gw2armory-tooltip-header" style="color: ${this.getRarityColor(item.rarity)}">${item.name}</div>`;
+            // If custom stat is applied, show the stat name in the item name
+            let itemName = item.name;
+            if (item.statData && item.statData.name) {
+                itemName = `${item.statData.name} ${item.name}`;
+            }
+
+            let html = `<div class="gw2armory-tooltip-header" style="color: ${this.getRarityColor(item.rarity)}">${itemName}</div>`;
 
             // Type and rarity
             html += `<div class="gw2armory-tooltip-type">${item.type} • ${item.rarity}</div>`;
@@ -113,9 +138,15 @@
                 html += `<div style="color: #999; margin-top: 0.5rem; font-size: 0.9em;">Required Level: ${item.level}</div>`;
             }
 
-            // Item ID
+            // Item ID and Wiki Link
             if (item.id) {
-                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">ID: ${item.id}</div>`;
+                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">`;
+                html += `ID: ${item.id}`;
+                if (item.name) {
+                    const wikiUrl = `https://wiki.guildwars2.com/wiki/${encodeURIComponent(item.name.replace(/ /g, '_'))}`;
+                    html += ` • <a href="${wikiUrl}" target="_blank" style="color: #4a9eff; text-decoration: none;">Wiki ↗</a>`;
+                }
+                html += `</div>`;
             }
 
             return html;
@@ -145,17 +176,85 @@
                 </div>`;
             }
 
-            // Attributes from infix upgrade
-            if (details.infix_upgrade && details.infix_upgrade.attributes) {
-                details.infix_upgrade.attributes.forEach(attr => {
+            // Attributes - use custom stat if available, otherwise use infix upgrade
+            let attributes = null;
+            if (item.statData && item.statData.attributes && details.attribute_adjustment) {
+                // Calculate custom stat attributes using multipliers and attribute_adjustment
+                attributes = item.statData.attributes.map(attr => ({
+                    attribute: attr.attribute,
+                    modifier: Math.round(details.attribute_adjustment * attr.multiplier)
+                }));
+            } else if (details.infix_upgrade && details.infix_upgrade.attributes) {
+                // Use default infix upgrade attributes
+                attributes = details.infix_upgrade.attributes;
+            }
+
+            if (attributes) {
+                attributes.forEach(attr => {
+                    const attrName = attr.attribute === 'CritDamage' ? 'Ferocity' : attr.attribute.replace('_', ' ');
                     html += `<div class="gw2armory-tooltip-stat">
-                        <span>+${attr.attribute.replace('_', ' ')}</span>
+                        <span>+${attrName}</span>
                         <span class="gw2armory-tooltip-stat-value">${attr.modifier}</span>
                     </div>`;
                 });
             }
 
             html += '</div>';
+
+            // Upgrades and Infusions section
+            const hasUpgradeSlot = item.type === 'Armor' || item.type === 'Weapon' || item.type === 'Trinket';
+            const hasInfusionSlots = details.infusion_slots && details.infusion_slots.length > 0;
+
+            if (hasUpgradeSlot || hasInfusionSlots) {
+                html += '<div class="gw2armory-tooltip-section">';
+                html += '<div class="gw2armory-tooltip-section-title">Upgrades & Infusions:</div>';
+                html += '<div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">';
+
+                // Upgrade slot (Rune/Sigil) - Square
+                if (hasUpgradeSlot) {
+                    // Check for custom upgrades first, then upgradeData (from suffix_item_id)
+                    const upgradesToShow = item.upgradesData || (item.upgradeData ? [item.upgradeData] : []);
+
+                    if (upgradesToShow.length > 0) {
+                        upgradesToShow.forEach((upgrade, idx) => {
+                            const rarityColor = this.getRarityColor(upgrade.rarity);
+                            const count = item.customUpgradeCount && item.customUpgradeCount[upgrade.id] ? ` x${item.customUpgradeCount[upgrade.id]}` : '';
+                            html += `<div class="gw2armory-upgrade-slot" style="width: 32px; height: 32px; background: url('${upgrade.icon}') center/cover; border: 2px solid ${rarityColor}; border-radius: 2px; cursor: pointer;" title="${upgrade.name}${count}"></div>`;
+                        });
+                    } else {
+                        // Empty upgrade slot - square
+                        html += `<div style="width: 32px; height: 32px; border: 2px dashed #666; border-radius: 2px; background: rgba(0,0,0,0.3);" title="Empty Upgrade Slot"></div>`;
+                    }
+                }
+
+                // Infusion slots - Circles
+                if (hasInfusionSlots) {
+                    // Check for custom infusions first
+                    const infusionsToShow = item.infusionsData || [];
+                    const numSlots = details.infusion_slots.length;
+
+                    for (let i = 0; i < numSlots; i++) {
+                        const slot = details.infusion_slots[i];
+                        const slotType = slot.flags ? slot.flags.join(', ') : 'Unused';
+                        const infusion = infusionsToShow[i];
+
+                        if (infusion && infusion.icon) {
+                            // Show custom infusion with icon
+                            const rarityColor = this.getRarityColor(infusion.rarity);
+                            html += `<div style="width: 16px; height: 16px; background: url('${infusion.icon}') center/cover; border: 2px solid ${rarityColor}; border-radius: 50%;" title="${infusion.name}"></div>`;
+                        } else if (slot.item_id) {
+                            // Has infusion from API data
+                            html += `<div style="width: 16px; height: 16px; border: 2px solid #4a9eff; border-radius: 50%; background: rgba(74, 158, 255, 0.2);" title="Infusion Slot: ${slotType}"></div>`;
+                        } else {
+                            // Empty infusion slot - circle
+                            html += `<div style="width: 16px; height: 16px; border: 2px dashed #666; border-radius: 50%; background: rgba(0,0,0,0.3);" title="Empty Infusion Slot: ${slotType}"></div>`;
+                        }
+                    }
+                }
+
+                html += '</div></div>';
+            }
+
             return html;
         }
 
@@ -231,9 +330,15 @@
                 html += `<div class="gw2armory-tooltip-categories">Categories: ${skill.categories.join(', ')}</div>`;
             }
 
-            // Skill ID
+            // Skill ID and Wiki Link
             if (skill.id) {
-                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">ID: ${skill.id}</div>`;
+                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">`;
+                html += `ID: ${skill.id}`;
+                if (skill.name) {
+                    const wikiUrl = `https://wiki.guildwars2.com/wiki/${encodeURIComponent(skill.name.replace(/ /g, '_'))}`;
+                    html += ` • <a href="${wikiUrl}" target="_blank" style="color: #4a9eff; text-decoration: none;">Wiki ↗</a>`;
+                }
+                html += `</div>`;
             }
 
             return html;
@@ -283,9 +388,15 @@
                 html += '</div></div>';
             }
 
-            // Trait ID
+            // Trait ID and Wiki Link
             if (trait.id) {
-                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">ID: ${trait.id}</div>`;
+                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">`;
+                html += `ID: ${trait.id}`;
+                if (trait.name) {
+                    const wikiUrl = `https://wiki.guildwars2.com/wiki/${encodeURIComponent(trait.name.replace(/ /g, '_'))}`;
+                    html += ` • <a href="${wikiUrl}" target="_blank" style="color: #4a9eff; text-decoration: none;">Wiki ↗</a>`;
+                }
+                html += `</div>`;
             }
 
             return html;
@@ -301,9 +412,50 @@
                 html += `<div class="gw2armory-tooltip-type">${spec.profession} Specialization</div>`;
             }
 
-            // Specialization ID
+            // Specialization ID and Wiki Link
             if (spec.id) {
-                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">ID: ${spec.id}</div>`;
+                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">`;
+                html += `ID: ${spec.id}`;
+                if (spec.name) {
+                    const wikiUrl = `https://wiki.guildwars2.com/wiki/${encodeURIComponent(spec.name.replace(/ /g, '_'))}`;
+                    html += ` • <a href="${wikiUrl}" target="_blank" style="color: #4a9eff; text-decoration: none;">Wiki ↗</a>`;
+                }
+                html += `</div>`;
+            }
+
+            return html;
+        }
+
+        /**
+         * Render amulet tooltip
+         */
+        renderAmulet(amulet) {
+            let html = `<div class="gw2armory-tooltip-header">${amulet.name}</div>`;
+
+            html += `<div class="gw2armory-tooltip-type">PvP Amulet</div>`;
+
+            // Attributes
+            if (amulet.attributes && Object.keys(amulet.attributes).length > 0) {
+                html += '<div class="gw2armory-tooltip-stats">';
+                Object.entries(amulet.attributes).forEach(([attr, value]) => {
+                    const attrName = attr.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    html += `<div class="gw2armory-tooltip-stat">
+                        <span>+${attrName}</span>
+                        <span class="gw2armory-tooltip-stat-value">${value}</span>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+
+            // Amulet ID and Wiki Link
+            if (amulet.id) {
+                html += `<div style="color: #666; margin-top: 0.5rem; font-size: 0.85em; border-top: 1px solid #333; padding-top: 0.5rem;">`;
+                html += `ID: ${amulet.id}`;
+                if (amulet.name) {
+                    const wikiUrl = `https://wiki.guildwars2.com/wiki/${encodeURIComponent(amulet.name.replace(/ /g, '_'))}`;
+                    html += ` • <a href="${wikiUrl}" target="_blank" style="color: #4a9eff; text-decoration: none;">Wiki ↗</a>`;
+                }
+                html += `</div>`;
             }
 
             return html;
@@ -318,10 +470,9 @@
         }
 
         /**
-         * Position tooltip relative to element
+         * Position tooltip relative to mouse cursor
          */
         position(element) {
-            const rect = element.getBoundingClientRect();
             const offset = this.config.tooltip.offset;
             const viewportHeight = window.innerHeight;
             const viewportWidth = window.innerWidth;
@@ -330,53 +481,74 @@
             this.tooltip.style.maxHeight = '';
             const tooltipRect = this.tooltip.getBoundingClientRect();
 
-            // Calculate available space above and below element
-            const spaceBelow = viewportHeight - rect.bottom - offset;
-            const spaceAbove = rect.top - offset;
+            // Use mouse position instead of element position
+            const mouseX = this.mouseX;
+            const mouseY = this.mouseY;
 
-            let top = rect.bottom + offset;
-            let maxHeight = null;
+            // Calculate available space above and below mouse
+            const spaceBelow = viewportHeight - mouseY - offset;
+            const spaceAbove = mouseY - offset;
 
-            // Determine if tooltip should go below or above
+            let top;
+            let maxHeight;
+
+            // Determine if tooltip should go below or above mouse
             if (spaceBelow >= tooltipRect.height) {
-                // Fits below - use default position
-                top = rect.bottom + offset;
+                // Fits below - position below mouse
+                top = mouseY + offset;
                 maxHeight = spaceBelow;
             } else if (spaceAbove >= tooltipRect.height) {
-                // Fits above - position above element
-                top = rect.top - tooltipRect.height - offset;
+                // Fits above - position above mouse
+                top = mouseY - tooltipRect.height - offset;
                 maxHeight = spaceAbove;
             } else {
-                // Doesn't fit either way - use the larger space
+                // Doesn't fit either way - use the larger space and constrain to viewport
                 if (spaceBelow > spaceAbove) {
-                    top = rect.bottom + offset;
+                    // Use space below
+                    top = mouseY + offset;
                     maxHeight = spaceBelow;
                 } else {
+                    // Use space above - position at top of viewport with max available height
                     top = offset;
-                    maxHeight = spaceAbove;
+                    maxHeight = mouseY - (offset * 2);
                 }
             }
 
-            // Ensure top is within viewport
+            // Clamp top position to viewport bounds
             if (top < offset) {
                 top = offset;
                 maxHeight = viewportHeight - (offset * 2);
             }
 
-            // Set max-height if tooltip is taller than available space
+            // Ensure bottom doesn't exceed viewport
+            const maxBottom = viewportHeight - offset;
+            if (top + tooltipRect.height > maxBottom) {
+                // Adjust top to fit within viewport
+                const proposedTop = maxBottom - tooltipRect.height;
+                if (proposedTop >= offset) {
+                    top = proposedTop;
+                    maxHeight = tooltipRect.height;
+                } else {
+                    // Tooltip is taller than viewport, pin to top and scroll
+                    top = offset;
+                    maxHeight = maxBottom - offset;
+                }
+            }
+
+            // Set max-height if tooltip needs to be constrained
             if (maxHeight && tooltipRect.height > maxHeight) {
                 this.tooltip.style.maxHeight = `${maxHeight}px`;
             }
 
-            // Calculate horizontal position
-            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            // Calculate horizontal position (offset to the right of cursor)
+            let left = mouseX + offset;
 
-            // Adjust if tooltip would go off right edge
+            // If tooltip would go off right edge, position to the left of cursor
             if (left + tooltipRect.width > viewportWidth - offset) {
-                left = viewportWidth - tooltipRect.width - offset;
+                left = mouseX - tooltipRect.width - offset;
             }
 
-            // Adjust if tooltip would go off left edge
+            // Ensure tooltip doesn't go off left edge
             if (left < offset) {
                 left = offset;
             }

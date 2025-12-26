@@ -20,9 +20,9 @@
             const inlineText = options.inlineText;
             const isBlank = item.id === -1;
 
-            // Create container
+            // Create container with both new and old (backward compatible) class names
             const container = document.createElement('div');
-            container.className = 'gw2armory-embed';
+            container.className = 'gw2armory-embed gw2a-items-embed';
 
             // Create icon
             const icon = document.createElement('div');
@@ -30,11 +30,26 @@
             icon.setAttribute('data-size', size);
 
             if (!isBlank) {
-                icon.style.backgroundImage = `url(${item.icon})`;
+                // Use custom skin icon if available, otherwise use item icon
+                const iconUrl = (item.skinData && item.skinData.icon) ? item.skinData.icon : item.icon;
+                icon.style.backgroundImage = `url(${iconUrl})`;
                 icon.setAttribute('data-rarity', item.rarity);
 
                 // Add hover events for tooltip
-                icon.addEventListener('mouseenter', () => {
+                icon.addEventListener('mouseenter', async () => {
+                    // Fetch upgrade data if item has one
+                    if (item.details && item.details.suffix_item_id && !item.upgradeData) {
+                        try {
+                            const upgradeId = item.details.suffix_item_id;
+                            const dataFetcher = window.GW2Armory.dataFetcher();
+                            if (dataFetcher) {
+                                const upgradeItems = await dataFetcher.getItems([upgradeId]);
+                                item.upgradeData = upgradeItems[upgradeId];
+                            }
+                        } catch (error) {
+                            // Silently fail - tooltip will show without upgrade data
+                        }
+                    }
                     this.tooltipSystem.show(icon, item, 'items');
                 });
 
@@ -61,6 +76,12 @@
                     link.textContent = item.name;
                     link.setAttribute('data-rarity', item.rarity);
                     container.appendChild(link);
+                } else if (inlineText === 'gw2spidy') {
+                    // gw2spidy is defunct, just show plain text for backward compatibility
+                    const text = document.createElement('span');
+                    text.textContent = item.name;
+                    text.setAttribute('data-rarity', item.rarity);
+                    container.appendChild(text);
                 } else {
                     const text = document.createElement('span');
                     text.textContent = item.name;
@@ -80,7 +101,7 @@
             const inlineText = options.inlineText;
 
             const container = document.createElement('div');
-            container.className = 'gw2armory-embed';
+            container.className = 'gw2armory-embed gw2a-skills-embed';
 
             const icon = document.createElement('div');
             icon.className = 'gw2armory-icon';
@@ -143,7 +164,7 @@
             const inlineText = options.inlineText;
 
             const container = document.createElement('div');
-            container.className = 'gw2armory-embed';
+            container.className = 'gw2armory-embed gw2a-traits-embed';
 
             const icon = document.createElement('div');
             icon.className = 'gw2armory-icon';
@@ -182,6 +203,51 @@
         }
 
         /**
+         * Render amulet embed
+         */
+        renderAmulet(element, amulet, options = {}) {
+            const size = options.size || 40;
+            const inlineText = options.inlineText;
+
+            const container = document.createElement('div');
+            container.className = 'gw2armory-embed gw2a-amulets-embed';
+
+            const icon = document.createElement('div');
+            icon.className = 'gw2armory-icon';
+            icon.setAttribute('data-size', size);
+            icon.style.backgroundImage = `url(${amulet.icon})`;
+
+            // Add hover events
+            icon.addEventListener('mouseenter', () => {
+                this.tooltipSystem.show(icon, amulet, 'amulets');
+            });
+
+            icon.addEventListener('mouseleave', () => {
+                this.tooltipSystem.hide();
+            });
+
+            container.appendChild(icon);
+
+            // Add inline text if requested
+            if (inlineText) {
+                if (inlineText === 'wiki') {
+                    const link = document.createElement('a');
+                    link.className = 'gw2armory-link';
+                    link.href = `https://wiki.guildwars2.com/wiki/${encodeURIComponent(amulet.name)}`;
+                    link.target = '_blank';
+                    link.textContent = amulet.name;
+                    container.appendChild(link);
+                } else {
+                    const text = document.createElement('span');
+                    text.textContent = amulet.name;
+                    container.appendChild(text);
+                }
+            }
+
+            return container;
+        }
+
+        /**
          * Render specialization (traitline) embed
          */
         renderSpecialization(element, spec, options = {}) {
@@ -190,7 +256,9 @@
             const traitData = options.traitData || {};
 
             const container = document.createElement('div');
-            container.className = 'gw2armory-specialization';
+            container.className = options.compact ?
+                'gw2armory-specialization gw2armory-specialization-compact gw2a-specializations-embed' :
+                'gw2armory-specialization gw2a-specializations-embed';
 
             // Create background div
             const backgroundDiv = document.createElement('div');

@@ -283,13 +283,32 @@
 
         /**
          * Get amulets by IDs
+         * Note: PvP amulets endpoint only supports batch requests
          */
         async getAmulets(ids) {
+            return this.fetchBatch('pvp/amulets', ids);
+        }
+
+        /**
+         * Get itemstats by IDs
+         */
+        async getItemStats(ids) {
             if (ids.length === 1) {
-                const data = await this.fetchSingle('pvp/amulets', ids[0]);
+                const data = await this.fetchSingle('itemstats', ids[0]);
                 return { [ids[0]]: data };
             }
-            return this.fetchBatch('pvp/amulets', ids);
+            return this.fetchBatch('itemstats', ids);
+        }
+
+        /**
+         * Get skins by IDs
+         */
+        async getSkins(ids) {
+            if (ids.length === 1) {
+                const data = await this.fetchSingle('skins', ids[0]);
+                return { [ids[0]]: data };
+            }
+            return this.fetchBatch('skins', ids);
         }
 
         /**

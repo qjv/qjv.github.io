@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GW2 Armory Embeds - Test Page</title>
+    <link rel="stylesheet" href="../styles/armory.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #fff;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #3a3a3a;
+        }
+
+        .section h2 {
+            color: #4a9eff;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #4a9eff;
+            padding-bottom: 0.5rem;
+        }
+
+        .section h3 {
+            color: #6ab7ff;
+            margin: 1.5rem 0 0.75rem 0;
+            font-size: 1.2rem;
+        }
+
+        .test-row {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #1f1f1f;
+            border-radius: 4px;
+            border-left: 3px solid #4a9eff;
+        }
+
+        .test-label {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            font-family: monospace;
+        }
+
+        .test-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        code {
+            background: #333;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            color: #ff9d00;
+            font-size: 0.85rem;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: auto;
+        }
+
+        .status.working { background: #2d7a2d; color: #90ee90; }
+        .status.pending { background: #7a6a2d; color: #f0e68c; }
+        .status.error { background: #7a2d2d; color: #ff6b6b; }
+
+        .info-box {
+            background: #2a3a4a;
+            border-left: 4px solid #4a9eff;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 0.5rem 0;
+        }
+
+        .controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #4a9eff;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #3a7fcf;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: #666;
+        }
+
+        button.secondary:hover {
+            background: #555;
+        }
+
+        #debug-console {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #0f0;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GW2 Armory Embeds</h1>
+        <p class="subtitle">Testing & Development Page</p>
+
+        <div class="controls">
+            <button onclick="reinitialize()">Reinitialize Library</button>
+            <button class="secondary" onclick="clearCache()">Clear Cache</button>
+            <button class="secondary" onclick="clearDebug()">Clear Debug</button>
+        </div>
+
+        <div class="info-box">
+            <p><strong>Status:</strong> <span id="lib-status">Loading...</span></p>
+            <p><strong>Cached Items:</strong> <span id="cache-count">0</span></p>
+            <p><strong>API Calls:</strong> <span id="api-calls">0</span></p>
+        </div>
+
+        <!-- ITEMS SECTION -->
+        <div class="section">
+            <h2>Items</h2>
+
+            <h3>Basic Item Embed</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-embed="items" data-armory-ids="30704"</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="30704"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Multiple Items</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-ids="30704,30703,30702"</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="30704,30703,30702"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Inline with Wiki Link</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-inline-text="wiki"</div>
+                <div class="test-content">
+                    Equip your character with <div data-armory-embed="items" data-armory-ids="30704" data-armory-inline-text="wiki"></div> for best results.
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Different Sizes</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-size="32/48/64"</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="30704" data-armory-size="32"></div>
+                    <div data-armory-embed="items" data-armory-ids="30704" data-armory-size="48"></div>
+                    <div data-armory-embed="items" data-armory-ids="30704" data-armory-size="64"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Different Rarities</h3>
+            <div class="test-row">
+                <div class="test-label">Testing rarity color coding</div>
+                <div class="test-content">
+                    <!-- Common -->
+                    <div data-armory-embed="items" data-armory-ids="139"></div>
+                    <!-- Fine -->
+                    <div data-armory-embed="items" data-armory-ids="15"></div>
+                    <!-- Masterwork -->
+                    <div data-armory-embed="items" data-armory-ids="306"></div>
+                    <!-- Rare -->
+                    <div data-armory-embed="items" data-armory-ids="24"></div>
+                    <!-- Exotic -->
+                    <div data-armory-embed="items" data-armory-ids="30704"></div>
+                    <!-- Ascended -->
+                    <div data-armory-embed="items" data-armory-ids="46762"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Blank Slot</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-ids="-1" data-armory-blank-text="Empty Slot"</div>
+                <div class="test-content">
+                    <div data-armory-embed="items" data-armory-ids="-1" data-armory-blank-text="Empty Slot"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SKILLS SECTION -->
+        <div class="section">
+            <h2>Skills</h2>
+
+            <h3>Basic Skill Embed</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-embed="skills" data-armory-ids="5492"</div>
+                <div class="test-content">
+                    <div data-armory-embed="skills" data-armory-ids="5492"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Multiple Skills (Warrior Utilities)</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-ids="5492,14354,14402,14483"</div>
+                <div class="test-content">
+                    <div data-armory-embed="skills" data-armory-ids="5492,14354,14402,14483"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Inline with Wiki</h3>
+            <div class="test-row">
+                <div class="test-label">Inline skill reference</div>
+                <div class="test-content">
+                    Use <div data-armory-embed="skills" data-armory-ids="5492" data-armory-inline-text="wiki"></div> for sustained healing.
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Combo Finisher & Field Test</h3>
+            <div class="test-row">
+                <div class="test-label">Hover to see combo finisher/field in tooltip</div>
+                <div class="test-content">
+                    <div data-armory-embed="skills" data-armory-ids="10375"></div>
+                    <div data-armory-embed="skills" data-armory-ids="5492"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRAITS SECTION -->
+        <div class="section">
+            <h2>Traits</h2>
+
+            <h3>Basic Trait Embed</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-embed="traits" data-armory-ids="1444"</div>
+                <div class="test-content">
+                    <div data-armory-embed="traits" data-armory-ids="1444"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Multiple Traits</h3>
+            <div class="test-row">
+                <div class="test-label">data-armory-ids="1444,1449,1489"</div>
+                <div class="test-content">
+                    <div data-armory-embed="traits" data-armory-ids="1444,1449,1489"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Advanced Trait - Ranger Let Loose (2271)</h3>
+            <div class="test-row">
+                <div class="test-label">Trait with multiple boons and buffs</div>
+                <div class="test-content">
+                    <div data-armory-embed="traits" data-armory-ids="2271"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPECIALIZATIONS SECTION -->
+        <div class="section">
+            <h2>Specializations</h2>
+
+            <h3>Warrior Arms</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 17: Arms (Warrior)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="17" data-armory-traits="363,349,2028"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Warrior Berserker</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 18: Berserker (Warrior Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="18" data-armory-traits="1415,2049,2002"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Guardian Dragonhunter</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 27: Dragonhunter (Guardian Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="27" data-armory-traits="1898,1835,1963"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Ranger Soulbeast</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 55: Soulbeast (Ranger Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="55" data-armory-traits="2071,2085,2128"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Revenant Herald</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 52: Herald (Revenant Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="52" data-armory-traits="1806,1738,1772"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Engineer Holosmith</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 57: Holosmith (Engineer Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="57" data-armory-traits="2106,2152,2103"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Thief Deadeye</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 58: Deadeye (Thief Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="58" data-armory-traits="2145,2093,2160"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Elementalist Weaver</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 56: Weaver (Elementalist Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="56" data-armory-traits="2180,2061,2131"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Mesmer Chronomancer</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 40: Chronomancer (Mesmer Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="40" data-armory-traits="1978,1890,1995"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Necromancer Scourge</h3>
+            <div class="test-row">
+                <div class="test-label">Spec 60: Scourge (Necromancer Elite)</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="60" data-armory-traits="2167,2164,2074"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <h3>Without Selected Traits</h3>
+            <div class="test-row">
+                <div class="test-label">No traits selected</div>
+                <div class="test-content">
+                    <div data-armory-embed="specializations" data-armory-ids="17"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- BUILD TEMPLATES SECTION -->
+        <div class="section">
+            <h2>Build Templates</h2>
+
+            <div class="test-row">
+                <div class="test-label">[&DQgnNTI1QD/nGgAAgAAAAPUAAAB1AQAA6BoAAAAAAAAAAAAAAAAAAAAAAAA=]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQgnNTI1QD/nGgAAgAAAAPUAAAB1AQAA6BoAAAAAAAAAAAAAAAAAAAAAAAA=]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">[&DQIEHyQ2SiVwAAAArQAAAKkAAACvAAAAnAAAAAAAAAAAAAAAAAAAAAAAAAAELwA1AFoABQAA]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQIEHyQ2SiVwAAAArQAAAKkAAACvAAAAnAAAAAAAAAAAAAAAAAAAAAAAAAAELwA1AFoABQAA]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">[&DQMGJyY5SyaEAAAAhgAAAAcBAACTAQAAex0AAAAAAAAAAAAAAAAAAAAAAAACCQE2AAA=]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQMGJyY5SyaEAAAAhgAAAAcBAACTAQAAex0AAAAAAAAAAAAAAAAAAAAAAAACCQE2AAA=]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">[&DQQIFh45Ti9UHQAAgx0AAKwBAABcHQAAWx0AAAY7BQAAAAAAAAAAAAAAAAACIwAFAAA=]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQQIFh45Ti9UHQAAgx0AAKwBAABcHQAAWx0AAAY7BQAAAAAAAAAAAAAAAAACIwAFAAA=]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">[&DQUcGyw2FCsMAQwBCwEzAQ0BWAEvAVYBDgEAAAAAAAAAAAAAAAAAAAAAAAADBQAvADYAAA==]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQUcGyw2FCsMAQwBCwEzAQ0BWAEvAVYBDgEAAAAAAAAAAAAAAAAAAAAAAAADBQAvADYAAA==]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">[&DQYfHSkvMCd0AHQAwxIAAL4BAADLAAAAJgAAAAAAAAAAAAAAAAAAAAAAAAADCQFaAC8AAA==]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQYfHSkvMCd0AHQAwxIAAL4BAADLAAAAJgAAAAAAAAAAAAAAAAAAAAAAAAADCQFaAC8AAA==]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">[&DQcBHQoaSRdtAQAAZh0AAIIBAABpAQAA7RIAAAAAAAAAAAAAAAAAAAAAAAADBQBmAFkAAA==]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQcBHQoaSRdtAQAAZh0AAIIBAABpAQAA7RIAAAAAAAAAAAAAAAAAAAAAAAADBQBmAFkAAA==]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">[&DQEqPhAaPiVLFwAATAEAABUXAAAxAQAAGBYAAAAAAAAAAAAAAAAAAAAAAAA=]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQEqPhAaPiVLFwAATAEAABUXAAAxAQAAGBYAAAAAAAAAAAAAAAAAAAAAAAA=]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="test-row">
+                <div class="test-label">[&DQkDNg8qTzvcEdwR1BHUESsSKxIGEgYSyhHKEQgCAwAGEisS1BEAAAAAAAA=]</div>
+                <div class="test-content">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQkDNg8qTzvcEdwR1BHUESsSKxIGEgYSyhHKEQgCAwAGEisS1BEAAAAAAAA=]"></div>
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PERFORMANCE TEST -->
+        <div class="section">
+            <h2>Performance Test</h2>
+
+            <h3>50 Items at Once</h3>
+            <div class="test-row">
+                <div class="test-label">Testing batch loading and rendering performance</div>
+                <div class="test-content" id="perf-test">
+                    <!-- Will be populated by JS -->
+                    <span class="status pending">Pending</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- DEBUG CONSOLE -->
+        <div class="section">
+            <h2>Debug Console</h2>
+            <div id="debug-console">Initializing...</div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logger
+        const debugLog = (msg, type = 'info') => {
+            const console = document.getElementById('debug-console');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            console.textContent += `[${timestamp}] ${prefix} ${msg}\n`;
+            console.scrollTop = console.scrollHeight;
+        };
+
+        // Clear debug console
+        function clearDebug() {
+            document.getElementById('debug-console').textContent = '';
+            debugLog('Console cleared');
+        }
+
+        // Update status
+        function updateStatus(status) {
+            document.getElementById('lib-status').textContent = status;
+            debugLog(`Status: ${status}`);
+        }
+
+        // Clear cache
+        function clearCache() {
+            try {
+                if (window.GW2Armory && window.GW2Armory.clearCache) {
+                    const count = window.GW2Armory.clearCache();
+                    debugLog(`Cleared ${count} cache entries`, 'success');
+                    document.getElementById('cache-count').textContent = '0';
+                } else {
+                    const keys = Object.keys(localStorage);
+                    const removed = keys.filter(k => k.startsWith('gw2armory_'));
+                    removed.forEach(k => localStorage.removeItem(k));
+                    debugLog(`Cleared ${removed.length} cache entries`, 'success');
+                    document.getElementById('cache-count').textContent = '0';
+                }
+            } catch (e) {
+                debugLog(`Failed to clear cache: ${e.message}`, 'error');
+            }
+        }
+
+        // Reinitialize library
+        function reinitialize() {
+            debugLog('Reinitializing library...');
+            if (window.GW2Armory && window.GW2Armory.init) {
+                // Clear all current embeds
+                document.querySelectorAll('[data-armory-embed]').forEach(el => {
+                    el.innerHTML = '';
+                });
+                window.GW2Armory.init();
+                debugLog('Library reinitialized', 'success');
+            } else {
+                debugLog('Library not loaded yet', 'error');
+            }
+        }
+
+        // Generate performance test items
+        window.addEventListener('DOMContentLoaded', () => {
+            const perfTest = document.getElementById('perf-test');
+            const itemIds = Array.from({length: 50}, (_, i) => 30704 + i).join(',');
+            perfTest.innerHTML = `<div data-armory-embed="items" data-armory-ids="${itemIds}" data-armory-size="32"></div>`;
+
+            debugLog('Test page loaded');
+            debugLog('Waiting for library initialization...');
+        });
+    </script>
+
+    <!-- Load the armory library modules in order -->
+    <script src="../src/palette-mapping.js"></script>
+    <script src="../src/data-fetcher.js"></script>
+    <script src="../src/tooltip.js"></script>
+    <script src="../src/renderer.js"></script>
+    <script src="../src/build-parser.js"></script>
+    <script src="../src/armory.js"></script>
+</body>
+</html>

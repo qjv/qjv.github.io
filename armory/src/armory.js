@@ -502,7 +502,10 @@
                         break;
                     case 'specializations':
                         data = await dataFetcher.getSpecializations(validIds);
-                        options.selectedTraits = element.getAttribute('data-armory-traits');
+
+                        // Get selected traits - try both formats for compatibility
+                        options.selectedTraits = element.getAttribute('data-armory-traits') ||
+                                                element.getAttribute(`data-armory-${validIds[0]}-traits`);
 
                         // Fetch trait data for the specialization (both major and minor)
                         if (data[validIds[0]]) {

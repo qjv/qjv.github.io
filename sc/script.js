@@ -56,15 +56,32 @@ const debouncedPreview = debounce(function() {
     const markdown = input.value;
     const html = parseMarkdown(markdown);
     preview.innerHTML = html;
-    
-    // Re-inject armory script
-    const oldScript = document.getElementById('armory-script-injection');
-    if (oldScript) oldScript.remove();
-    const script = document.createElement('script');
-    script.id = 'armory-script-injection'; 
-    script.async = true;
-    script.src = 'https://unpkg.com/armory-embeds@^0.x.x/armory-embeds.js';
-    document.body.appendChild(script);
+
+    // Re-inject armory scripts in correct order
+    const oldScripts = document.querySelectorAll('[id^="armory-script-"]');
+    oldScripts.forEach(s => s.remove());
+
+    const armoryScripts = [
+        'palette-mapping.js',
+        'data-fetcher.js',
+        'tooltip.js',
+        'renderer.js',
+        'build-parser.js',
+        'armory.js'
+    ];
+
+    // Load scripts sequentially
+    function loadScript(index) {
+        if (index >= armoryScripts.length) return;
+
+        const script = document.createElement('script');
+        script.id = `armory-script-${index}`;
+        script.src = `https://qjv.dev.br/armory/src/${armoryScripts[index]}`;
+        script.onload = () => loadScript(index + 1);
+        document.body.appendChild(script);
+    }
+
+    loadScript(0);
 }, 1000);
 
 function updatePreview() { 

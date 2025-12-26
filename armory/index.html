@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GW2 Armory Embeds - Documentation</title>
+    <link rel="stylesheet" href="styles/armory.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #e2e8f0;
+            background: #0a0e14;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 3rem 0;
+            margin-bottom: 3rem;
+            text-align: center;
+            border-radius: 12px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .version {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            color: white;
+        }
+
+        nav {
+            background: #1a1f2e;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            position: sticky;
+            top: 1rem;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        nav a {
+            color: #a0aec0;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: #2d3748;
+            color: #667eea;
+        }
+
+        section {
+            background: #1a1f2e;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            border: 1px solid #2d3748;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            border-bottom: 2px solid #2d3748;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            color: #a0aec0;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        h3:first-of-type {
+            margin-top: 0;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: #cbd5e0;
+        }
+
+        code {
+            background: #0a0e14;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            color: #f687b3;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #0a0e14;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border: 1px solid #2d3748;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #e2e8f0;
+        }
+
+        .example {
+            background: #0f1419;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .example-title {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .demo {
+            background: #1a1f2e;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        th {
+            background: #0f1419;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        td {
+            color: #cbd5e0;
+        }
+
+        tr:hover {
+            background: #0f1419;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .alert-info {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            color: #a0aec0;
+        }
+
+        .alert-warning {
+            background: rgba(237, 137, 54, 0.1);
+            border-left: 4px solid #ed8936;
+            color: #a0aec0;
+        }
+
+        .alert-success {
+            background: rgba(72, 187, 120, 0.1);
+            border-left: 4px solid #48bb78;
+            color: #a0aec0;
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+            color: #cbd5e0;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .badge-new {
+            background: #48bb78;
+            color: white;
+        }
+
+        .badge-old {
+            background: #718096;
+            color: white;
+        }
+
+        .badge-required {
+            background: #f56565;
+            color: white;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #718096;
+            border-top: 1px solid #2d3748;
+            margin-top: 3rem;
+        }
+
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GW2 Armory Embeds</h1>
+            <p class="subtitle">A modern library for embedding Guild Wars 2 items, skills, traits, and builds</p>
+            <span class="version">v0.2.0</span>
+        </header>
+
+        <nav>
+            <ul>
+                <li><a href="#quick-start">Quick Start</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+                <li><a href="#embeds">Embed Types</a></li>
+                <li><a href="#attributes">Data Attributes</a></li>
+                <li><a href="#compatibility">Backward Compatibility</a></li>
+                <li><a href="#missing">Missing Features</a></li>
+            </ul>
+        </nav>
+
+        <!-- QUICK START -->
+        <section id="quick-start">
+            <h2>Quick Start</h2>
+
+            <h3>1. Include the Library</h3>
+            <p>Add the CSS and JavaScript files to your HTML page:</p>
+
+            <pre><code>&lt;!-- CSS --&gt;
+&lt;link rel="stylesheet" href="https://qjv.dev.br/armory/styles/armory.css"&gt;
+
+&lt;!-- JavaScript (load in this order) --&gt;
+&lt;script src="https://qjv.dev.br/armory/src/palette-mapping.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/data-fetcher.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/tooltip.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/renderer.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/build-parser.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/armory.js"&gt;&lt;/script&gt;</code></pre>
+
+            <h3>2. Add Embeds to Your HTML</h3>
+            <p>Use data attributes to specify what you want to embed:</p>
+
+            <div class="example">
+                <div class="example-title">Single Item</div>
+                <pre><code>&lt;div data-armory-embed="items" data-armory-ids="30704"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="items" data-armory-ids="30704"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Multiple Skills</div>
+                <pre><code>&lt;div data-armory-embed="skills" data-armory-ids="5492,5495,5502"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="skills" data-armory-ids="5492,5495,5502"></div>
+                </div>
+            </div>
+
+            <h3>3. That's It!</h3>
+            <p>The library auto-initializes when the DOM is ready. All embeds will be rendered automatically.</p>
+        </section>
+
+        <!-- CONFIGURATION -->
+        <section id="configuration">
+            <h2>Configuration</h2>
+
+            <h3>New Format (Recommended)</h3>
+            <p>Configure the library before loading it by setting <code>window.GW2Armory</code>:</p>
+
+            <pre><code>&lt;script&gt;
+window.GW2Armory = {
+  // Language (en, fr, de, es, zh, ru)
+  lang: 'en',
+
+  // Cache settings
+  cache: {
+    enabled: true,
+    duration: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    prefix: 'gw2armory_'
+  },
+
+  // API settings
+  api: {
+    base: 'https://api.guildwars2.com/v2',
+    timeout: 10000
+  },
+
+  // Tooltip settings
+  tooltip: {
+    delay: 100,      // ms before showing tooltip
+    maxWidth: 350,   // max width in pixels
+    offset: 10       // offset from cursor in pixels
+  },
+
+  // Debug mode
+  debug: true
+};
+&lt;/script&gt;</code></pre>
+
+            <h3>Old Format (Backward Compatible)</h3>
+            <p>The library also supports the old <code>GW2A_EMBED_OPTIONS</code> format:</p>
+
+            <pre><code>&lt;script&gt;
+document.GW2A_EMBED_OPTIONS = {
+  lang: 'en',
+  persistToLocalStorage: true,
+  forceCacheClearOnNextRun: '1'  // Change this value to clear cache
+};
+&lt;/script&gt;</code></pre>
+
+            <div class="alert alert-info">
+                <strong>Note:</strong> Both formats work simultaneously. The new format takes precedence if both are defined.
+            </div>
+
+            <h3>Configuration Options</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Option</th>
+                        <th>Type</th>
+                        <th>Default</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>lang</code></td>
+                        <td>string</td>
+                        <td>'en'</td>
+                        <td>Language code: en, fr, de, es, zh, ru</td>
+                    </tr>
+                    <tr>
+                        <td><code>cache.enabled</code></td>
+                        <td>boolean</td>
+                        <td>true</td>
+                        <td>Enable/disable localStorage caching</td>
+                    </tr>
+                    <tr>
+                        <td><code>cache.duration</code></td>
+                        <td>number</td>
+                        <td>604800000</td>
+                        <td>Cache duration in milliseconds (7 days)</td>
+                    </tr>
+                    <tr>
+                        <td><code>cache.prefix</code></td>
+                        <td>string</td>
+                        <td>'gw2armory_'</td>
+                        <td>Prefix for localStorage keys</td>
+                    </tr>
+                    <tr>
+                        <td><code>api.base</code></td>
+                        <td>string</td>
+                        <td>GW2 API URL</td>
+                        <td>Base URL for GW2 API</td>
+                    </tr>
+                    <tr>
+                        <td><code>api.timeout</code></td>
+                        <td>number</td>
+                        <td>10000</td>
+                        <td>API request timeout in milliseconds</td>
+                    </tr>
+                    <tr>
+                        <td><code>tooltip.delay</code></td>
+                        <td>number</td>
+                        <td>100</td>
+                        <td>Delay before showing tooltip (ms)</td>
+                    </tr>
+                    <tr>
+                        <td><code>tooltip.maxWidth</code></td>
+                        <td>number</td>
+                        <td>350</td>
+                        <td>Maximum tooltip width in pixels</td>
+                    </tr>
+                    <tr>
+                        <td><code>tooltip.offset</code></td>
+                        <td>number</td>
+                        <td>10</td>
+                        <td>Tooltip offset from cursor (pixels)</td>
+                    </tr>
+                    <tr>
+                        <td><code>debug</code></td>
+                        <td>boolean</td>
+                        <td>true</td>
+                        <td>Enable console logging</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- EMBED TYPES -->
+        <section id="embeds">
+            <h2>Embed Types</h2>
+
+            <!-- ITEMS -->
+            <h3>Items</h3>
+            <p>Embed items with optional customization for stats, skins, upgrades, and infusions.</p>
+
+            <div class="example">
+                <div class="example-title">Basic Item</div>
+                <pre><code>&lt;div data-armory-embed="items" data-armory-ids="30704"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="items" data-armory-ids="30704"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Item with Custom Stat (Berserker's)</div>
+                <pre><code>&lt;div data-armory-embed="items"
+     data-armory-ids="77482"
+     data-armory-77482-stat="584"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="items" data-armory-ids="77482" data-armory-77482-stat="584"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Item with Custom Skin</div>
+                <pre><code>&lt;div data-armory-embed="items"
+     data-armory-ids="30699"
+     data-armory-30699-skin="3709"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="items" data-armory-ids="30699" data-armory-30699-skin="3709"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Fully Customized Item (Stat + Upgrades + Infusions)</div>
+                <pre><code>&lt;div data-armory-embed="items"
+     data-armory-ids="77482"
+     data-armory-77482-stat="584"
+     data-armory-77482-upgrades="24615,24868"
+     data-armory-77482-infusions="49428,49428"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="items" data-armory-ids="77482" data-armory-77482-stat="584" data-armory-77482-upgrades="24615,24868" data-armory-77482-infusions="49428,49428"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Inline with Wiki Link</div>
+                <pre><code>&lt;div data-armory-embed="items"
+     data-armory-ids="30704"
+     data-armory-inline-text="wiki"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="items" data-armory-ids="30704" data-armory-inline-text="wiki"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Blank Slot</div>
+                <pre><code>&lt;div data-armory-embed="items"
+     data-armory-ids="-1"
+     data-armory-blank-text="Empty Slot"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="items" data-armory-ids="-1" data-armory-blank-text="Empty Slot"></div>
+                </div>
+            </div>
+
+            <!-- SKILLS -->
+            <h3>Skills</h3>
+            <p>Embed skills with tooltips showing damage, cooldowns, and other facts.</p>
+
+            <div class="example">
+                <div class="example-title">Multiple Skills</div>
+                <pre><code>&lt;div data-armory-embed="skills"
+     data-armory-ids="5492,5495,5502,5508"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="skills" data-armory-ids="5492,5495,5502,5508"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Finisher</div>
+                <pre><code>&lt;div data-armory-embed="skills"
+     data-armory-ids="5813"
+     data-armory-inline-text="wiki"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="skills" data-armory-ids="5813" data-armory-inline-text="wiki"></div>
+                </div>
+            </div>
+
+            <!-- TRAITS -->
+            <h3>Traits</h3>
+            <p>Embed traits with tooltips showing their effects.</p>
+
+            <div class="example">
+                <div class="example-title">Multiple Traits</div>
+                <pre><code>&lt;div data-armory-embed="traits"
+     data-armory-ids="1069,1846,2143"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="traits" data-armory-ids="1069,1846,2143"></div>
+                </div>
+            </div>
+
+            <!-- SPECIALIZATIONS -->
+            <h3>Specializations (Traitlines)</h3>
+            <p>Embed full traitlines with selected traits highlighted.</p>
+
+            <div class="example">
+                <div class="example-title">Soulbeast Traitline</div>
+                <pre><code>&lt;div data-armory-embed="specializations"
+     data-armory-ids="55"
+     data-armory-55-traits="2071,2085,2128"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="specializations" data-armory-ids="55" data-armory-55-traits="2071,2085,2128"></div>
+                </div>
+            </div>
+
+            <!-- AMULETS -->
+            <h3>PvP Amulets</h3>
+            <p>Embed PvP amulets showing their stat combinations.</p>
+
+            <div class="example">
+                <div class="example-title">PvP Amulets</div>
+                <pre><code>&lt;div data-armory-embed="amulets"
+     data-armory-ids="4,8,9,13"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="amulets" data-armory-ids="4,8,9,13"></div>
+                </div>
+            </div>
+
+            <!-- BUILD TEMPLATES -->
+            <h3>Build Templates <span class="badge badge-new">NEW</span></h3>
+            <p>Embed complete builds from in-game chat codes, showing specializations, skills, and more.</p>
+
+            <div class="example">
+                <div class="example-title">Condi Firebrand Build</div>
+                <pre><code>&lt;div data-armory-embed="builds"
+     data-armory-ids="[&DQMGJyY5SyaEAAAAhgAAAAcBAACTAQAAex0AAAAAAAAAAAAAAAAAAAAAAAACCQE2AAA=]"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQMGJyY5SyaEAAAAhgAAAAcBAACTAQAAex0AAAAAAAAAAAAAAAAAAAAAAAACCQE2AAA=]"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Power Chronomancer Build</div>
+                <pre><code>&lt;div data-armory-embed="builds"
+     data-armory-ids="[&DQQIFh45Ti9UHQAAgx0AAKwBAABcHQAAWx0AAAY7BQAAAAAAAAAAAAAAAAACIwAFAAA=]"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQQIFh45Ti9UHQAAgx0AAKwBAABcHQAAWx0AAAY7BQAAAAAAAAAAAAAAAAACIwAFAAA=]"></div>
+                </div>
+            </div>
+
+            <div class="example">
+                <div class="example-title">Condi Scourge Build</div>
+                <pre><code>&lt;div data-armory-embed="builds"
+     data-armory-ids="[&DQkDNg8qTzvcEdwR1BHUESsSKxIGEgYSyhHKEQgCAwAGEisS1BEAAAAAAAA=]"&gt;&lt;/div&gt;</code></pre>
+                <div class="demo">
+                    <div data-armory-embed="builds" data-armory-ids="[&DQkDNg8qTzvcEdwR1BHUESsSKxIGEgYSyhHKEQgCAwAGEisS1BEAAAAAAAA=]"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DATA ATTRIBUTES -->
+        <section id="attributes">
+            <h2>Data Attributes Reference</h2>
+
+            <h3>Common Attributes (All Types)</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Attribute</th>
+                        <th>Values</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>data-armory-embed</code> <span class="badge badge-required">REQUIRED</span></td>
+                        <td>items, skills, traits, specializations, amulets, builds</td>
+                        <td>Type of embed</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-armory-ids</code> <span class="badge badge-required">REQUIRED</span></td>
+                        <td>Comma-separated IDs or chat code</td>
+                        <td>Item IDs to embed. Use -1 for blank slots</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-armory-size</code></td>
+                        <td>Number (pixels)</td>
+                        <td>Icon size. Default: 40</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-armory-inline-text</code></td>
+                        <td>"wiki", "gw2spidy", or custom text</td>
+                        <td>Show name next to icon. "wiki" creates wiki link</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-armory-blank-text</code></td>
+                        <td>Any text</td>
+                        <td>Custom text for blank slots (id: -1)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Item-Specific Attributes <span class="badge badge-new">NEW</span></h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Attribute</th>
+                        <th>Example</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>data-armory-{ID}-stat</code></td>
+                        <td><code>data-armory-77482-stat="584"</code></td>
+                        <td>Apply custom stat (itemstat ID). 584 = Berserker's</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-armory-{ID}-skin</code></td>
+                        <td><code>data-armory-30699-skin="3709"</code></td>
+                        <td>Apply custom skin (skin ID). Changes icon appearance</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-armory-{ID}-upgrades</code></td>
+                        <td><code>data-armory-77482-upgrades="24615,24868"</code></td>
+                        <td>Pre-populate runes/sigils (item IDs)</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-armory-{ID}-infusions</code></td>
+                        <td><code>data-armory-77482-infusions="49428,49428"</code></td>
+                        <td>Pre-populate infusion slots (item IDs)</td>
+                    </tr>
+                    <tr>
+                        <td><code>data-armory-{ID}-upgrade-count</code></td>
+                        <td><code>data-armory-1379-upgrade-count='{"24815":6}'</code></td>
+                        <td>Specify upgrade quantities (JSON format)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Specialization Attributes</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Attribute</th>
+                        <th>Example</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>data-armory-{ID}-traits</code></td>
+                        <td><code>data-armory-55-traits="2071,2085,2128"</code></td>
+                        <td>Selected trait IDs (3 traits, one per tier)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Finding IDs</h3>
+
+            <ul>
+                <li><strong>Item IDs:</strong> Use <a href="https://www.gw2tp.com" target="_blank">GW2TP</a> or the <a href="https://wiki.guildwars2.com" target="_blank">GW2 Wiki</a></li>
+                <li><strong>Skill/Trait IDs:</strong> Check the <a href="https://wiki.guildwars2.com" target="_blank">GW2 Wiki</a> (shown in API code boxes)</li>
+                <li><strong>Itemstat IDs:</strong> Check <a href="https://api.guildwars2.com/v2/itemstats" target="_blank">GW2 API Itemstats</a> (584=Berserker's, 1163=Viper's, etc.)</li>
+                <li><strong>Skin IDs:</strong> Check <a href="https://api.guildwars2.com/v2/skins" target="_blank">GW2 API Skins</a></li>
+                <li><strong>Build Codes:</strong> Copy from in-game chat using the build template feature</li>
+            </ul>
+        </section>
+
+        <!-- BACKWARD COMPATIBILITY -->
+        <section id="compatibility">
+            <h2>Backward Compatibility</h2>
+
+            <div class="alert alert-success">
+                <strong>100% Compatible!</strong> This library is fully backward compatible with the original <code>armory-embeds</code> library.
+            </div>
+
+            <h3>What Works Out of the Box</h3>
+
+            <ul>
+                <li>✅ All data attributes remain exactly the same</li>
+                <li>✅ Old config format (<code>document.GW2A_EMBED_OPTIONS</code>) still works</li>
+                <li>✅ Old CSS classes (<code>.gw2a-items-embed</code>, etc.) still work</li>
+                <li>✅ <code>data-armory-inline-text="gw2spidy"</code> supported (shows plain text)</li>
+                <li>✅ Same embed types: items, skills, traits, specializations, amulets</li>
+            </ul>
+
+            <h3>CSS Class Aliases</h3>
+
+            <p>Both old and new class names are applied to all embeds:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Embed Type</th>
+                        <th>Old Class <span class="badge badge-old">LEGACY</span></th>
+                        <th>New Class</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Items</td>
+                        <td><code>.gw2a-items-embed</code></td>
+                        <td><code>.gw2armory-embed</code></td>
+                    </tr>
+                    <tr>
+                        <td>Skills</td>
+                        <td><code>.gw2a-skills-embed</code></td>
+                        <td><code>.gw2armory-embed</code></td>
+                    </tr>
+                    <tr>
+                        <td>Traits</td>
+                        <td><code>.gw2a-traits-embed</code></td>
+                        <td><code>.gw2armory-embed</code></td>
+                    </tr>
+                    <tr>
+                        <td>Specializations</td>
+                        <td><code>.gw2a-specializations-embed</code></td>
+                        <td><code>.gw2armory-specialization</code></td>
+                    </tr>
+                    <tr>
+                        <td>Amulets</td>
+                        <td><code>.gw2a-amulets-embed</code></td>
+                        <td><code>.gw2armory-embed</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Migration Guide</h3>
+
+            <p>To migrate from the old library:</p>
+
+            <ol>
+                <li>Replace the old script tag:
+                    <pre><code>&lt;!-- OLD --&gt;
+&lt;script src="https://unpkg.com/armory-embeds@^0.x.x/armory-embeds.js"&gt;&lt;/script&gt;
+
+&lt;!-- NEW --&gt;
+&lt;link rel="stylesheet" href="https://qjv.dev.br/armory/styles/armory.css"&gt;
+&lt;script src="https://qjv.dev.br/armory/src/palette-mapping.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/data-fetcher.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/tooltip.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/renderer.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/build-parser.js"&gt;&lt;/script&gt;
+&lt;script src="https://qjv.dev.br/armory/src/armory.js"&gt;&lt;/script&gt;</code></pre>
+                </li>
+                <li>That's it! All your existing embeds will continue to work.</li>
+                <li>(Optional) Migrate config to new format for better control.</li>
+                <li>(Optional) Update CSS selectors to use new class names.</li>
+            </ol>
+        </section>
+
+        <!-- MISSING FEATURES -->
+        <section id="missing">
+            <h2>Missing Features from Original Library</h2>
+
+            <div class="alert alert-warning">
+                The following features from the original <code>armory-embeds</code> library are <strong>not implemented</strong>:
+            </div>
+
+            <h3>Character Embeds</h3>
+            <p>The original library supported embedding character profiles. This feature is not available in this library.</p>
+            <pre><code>&lt;!-- NOT SUPPORTED --&gt;
+&lt;div data-armory-embed="character" data-armory-name="Character.1234"&gt;&lt;/div&gt;</code></pre>
+
+            <h3>Why Not Included?</h3>
+            <ul>
+                <li>Character embeds required API keys with account access</li>
+                <li>Privacy concerns with displaying account data</li>
+                <li>Complexity of maintaining character state</li>
+                <li>Rarely used feature compared to item/skill embeds</li>
+            </ul>
+
+            <h3>New Features Not in Original</h3>
+
+            <div class="alert alert-info">
+                This library adds several features that the original didn't have:
+            </div>
+
+            <ul>
+                <li>✨ <strong>Build Templates:</strong> Full support for in-game build codes</li>
+                <li>✨ <strong>Custom Stats:</strong> Show items with specific stat combinations</li>
+                <li>✨ <strong>Custom Skins:</strong> Display items with different appearances</li>
+                <li>✨ <strong>Pre-filled Upgrades:</strong> Show items with runes/sigils already equipped</li>
+                <li>✨ <strong>Pre-filled Infusions:</strong> Show items with infusions already slotted</li>
+                <li>✨ <strong>Compact Build Display:</strong> Optimized view for build templates</li>
+                <li>✨ <strong>Copy Build Code:</strong> One-click copy of build templates</li>
+                <li>✨ <strong>Enhanced Tooltips:</strong> Item IDs and wiki links in all tooltips</li>
+            </ul>
+        </section>
+
+        <footer>
+            <p>GW2 Armory Embeds v0.2.0 &bull; Created for the Guild Wars 2 Community</p>
+            <p><a href="https://github.com/madou/armory-embeds" target="_blank">Original Library</a> by madou &bull; This version maintained by Snow Crows</p>
+        </footer>
+    </div>
+
+    <!-- Load the library -->
+    <script src="src/palette-mapping.js"></script>
+    <script src="src/data-fetcher.js"></script>
+    <script src="src/tooltip.js"></script>
+    <script src="src/renderer.js"></script>
+    <script src="src/build-parser.js"></script>
+    <script src="src/armory.js"></script>
+</body>
+</html>

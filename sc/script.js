@@ -475,13 +475,22 @@ function parseNestedLists(lines) {
         if (ulMatch || olMatch) {
             const listItems = [];
             const baseIndent = (ulMatch || olMatch)[1].length;
+            const listType = ulMatch ? 'ul' : 'ol';
+            let emptyLineCount = 0;
             while (i < lines.length) {
                 const currentLine = lines[i];
-                if (currentLine.trim() === '') break;
+                // Allow up to 1 empty line within lists
+                if (currentLine.trim() === '') {
+                    emptyLineCount++;
+                    if (emptyLineCount > 1) break;
+                    i++;
+                    continue;
+                }
                 const curMatch = currentLine.match(ulRegex) || currentLine.match(olRegex);
                 if (!curMatch) break;
                 const curIndent = curMatch[1].length;
                 if (curIndent < baseIndent) break;
+                emptyLineCount = 0;
                 const level = Math.floor((curIndent - baseIndent) / 2);
                 listItems.push({ level: Math.max(0, level), content: curMatch[2], type: currentLine.match(ulRegex) ? 'ul' : 'ol' });
                 i++;
@@ -647,20 +656,22 @@ function filterGW2() {
     const search = document.getElementById('gw2-search').value.toLowerCase();
     const type = document.getElementById('gw2-type-filter').value;
     const list = document.getElementById('gw2-list');
-    
+
     let res = [];
     if(type==='all'||type==='items') gw2Data.items.filter(i=>i.name.toLowerCase().includes(search)).forEach(i => res.push({...i, type:'item'}));
     if(type==='all'||type==='skills') gw2Data.skills.filter(s=>s.name.toLowerCase().includes(search)).forEach(s => res.push({...s, type:'skill'}));
     if(type==='all'||type==='traits') gw2Data.traits.filter(t=>t.name.toLowerCase().includes(search)).forEach(t => res.push({...t, type:'trait'}));
-    
-    list.innerHTML = res.slice(0,50).map(i => 
-        '<div class="armory-item" onclick="insertGW2Tag(' + i.id + ', \'' + i.type + '\')">' +
-        '<div class="armory-item-icon" style="background-image: url(' + (i.icon||'') + ')"></div>' +
-        '<div class="armory-item-info">' +
-        '<div class="armory-item-name">' + i.name + '</div>' +
-        '<div class="armory-item-id">' + i.type + '</div>' +
-        '</div></div>'
-    ).join('');
+
+    list.innerHTML = res.slice(0,50).map(i => {
+        const description = i.description ? escapeHtml(i.description.replace(/<[^>]*>/g, '')) : 'No description available';
+        const tooltip = description.length > 200 ? description.substring(0, 200) + '...' : description;
+        return '<div class="armory-item" onclick="insertGW2Tag(' + i.id + ', \'' + i.type + '\')" title="' + tooltip + '">' +
+            '<div class="armory-item-icon" style="background-image: url(' + (i.icon||'') + ')"></div>' +
+            '<div class="armory-item-info">' +
+            '<div class="armory-item-name">' + i.name + '</div>' +
+            '<div class="armory-item-id">' + i.type + '</div>' +
+            '</div></div>';
+    }).join('');
 }
 
 function insertGW2Tag(id, type) { insertMarkdown('[gw2:' + id + ':' + type + ']', ''); closeGW2Modal(); }
@@ -690,7 +701,19 @@ function insertMarkdown(before, after) {
 // Waypoints & Traits Modals
 async function openWaypointModal() {
     document.getElementById('waypoint-modal').classList.add('active');
-    if (gw2Data.waypoints.length === 0) await loadWaypoints();
+
+    // Ensure GW2 data is loaded first (includes waypoints from local data)
+    if (!gw2Data.loaded) {
+        await loadGW2Data();
+    }
+
+    // If no waypoints in local data, fetch from API
+    if (gw2Data.waypoints.length === 0) {
+        await loadWaypoints();
+    } else {
+        // If waypoints already loaded from local data, populate the map filter
+        populateWaypointMapFilter();
+    }
     filterWaypoints();
 }
 function closeWaypointModal() { document.getElementById('waypoint-modal').classList.remove('active'); }
@@ -767,7 +790,30 @@ function setupDropdown(type, data, cb) {
         });
     };
     input.onfocus = () => { render(input.value); list.classList.add('show'); };
-    input.oninput = () => { render(input.value); list.classList.add('show'); };
+    input.oninput = () => {
+        // Clear selection if user modifies the text
+        if (input.value === '') {
+            input.dataset.id = '';
+            if (type.startsWith('trait')) {
+                const traitNum = type.replace('trait', '');
+                currentTraitSelections['trait' + traitNum] = null;
+            } else if (type === 'spec') {
+                currentTraitSelections.spec = null;
+                currentTraitSelections.trait1 = null;
+                currentTraitSelections.trait2 = null;
+                currentTraitSelections.trait3 = null;
+                // Hide traits container and insert button when spec is cleared
+                document.getElementById('traits-container').style.display = 'none';
+                document.getElementById('insert-trait-btn').style.display = 'none';
+                // Clear trait inputs
+                resetDropdown('trait1-input');
+                resetDropdown('trait2-input');
+                resetDropdown('trait3-input');
+            }
+        }
+        render(input.value);
+        list.classList.add('show');
+    };
     document.addEventListener('click', (e) => { if (!e.target.closest(`#${type}-dropdown`)) list.classList.remove('show'); });
 }
 async function onSpecSelect(spec) {

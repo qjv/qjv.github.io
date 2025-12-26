@@ -353,8 +353,6 @@
     vertical-align: middle;
     position: relative;
     overflow: hidden;
-    width: auto;
-    min-width: 0;
 }
 
 .gw2armory-spec-background {
@@ -371,7 +369,7 @@
 .gw2armory-spec-content {
     position: relative;
     z-index: 1;
-    display: inline-flex;
+    display: flex;
     flex-direction: row;
     align-items: center;
     padding: 0.5rem;

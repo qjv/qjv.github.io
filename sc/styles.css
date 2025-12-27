@@ -465,9 +465,8 @@ body {
 .dropdown-id { color: #64748b; font-size: 0.75rem; font-family: monospace; }
 
 /* --- ARMORY EMBEDS --- */
-/* Prevent traitlines and builds from stretching to fill width */
-.gw2armory-specialization,
-.gw2armory-build {
+/* Prevent traitlines from stretching to fill width */
+.gw2armory-specialization {
     display: inline-block !important;
     width: auto !important;
     max-width: fit-content !important;

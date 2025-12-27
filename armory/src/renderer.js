@@ -270,8 +270,8 @@
                 img.onload = function() {
                     try {
                         // Create canvas to crop the image
-                        const cropWidth = 400;
-                        const cropHeight = 180;
+                        const cropWidth = 600;
+                        const cropHeight = 120;
                         const canvas = document.createElement('canvas');
                         canvas.width = cropWidth;
                         canvas.height = cropHeight;

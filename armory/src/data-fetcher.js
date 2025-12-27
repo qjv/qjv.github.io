@@ -206,33 +206,27 @@
         /**
          * Resolve palette IDs to skill IDs
          * Uses professions API with v=latest to get skills_by_palette mapping
-         * @param {Array<number>} paletteIds - Array of palette IDs to resolve
-         * @param {string} professionName - Profession name (e.g., 'Elementalist', 'Ranger')
          */
-        async resolvePaletteIds(paletteIds, professionName) {
+        async resolvePaletteIds(paletteIds, professionId) {
             try {
-                if (!professionName) {
-                    throw new Error('Profession name is required');
-                }
-
-                this.log(`Resolving ${paletteIds.length} palette IDs for profession ${professionName}: ${paletteIds.join(', ')}`);
+                this.log(`Resolving ${paletteIds.length} palette IDs for profession ${professionId}: ${paletteIds.join(', ')}`);
 
                 // Fetch profession data to get skills_by_palette
-                // v=2019-12-19 (or later) is required to get the skills_by_palette field
-                const url = `${this.apiBase}/professions/${professionName}?v=2019-12-19&lang=${this.lang}`;
+                // v=latest is required to get the skills_by_palette field
+                const url = `${this.apiBase}/professions/${professionId}?v=latest&lang=${this.lang}`;
                 const response = await fetch(url);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status} for ${url}`);
+                    throw new Error(`HTTP ${response.status}`);
                 }
 
                 const profession = await response.json();
-                this.log(`Fetched profession ${professionName}, has skills_by_palette: ${!!profession.skills_by_palette}`);
+                this.log(`Fetched profession ${professionId}, has skills_by_palette: ${!!profession.skills_by_palette}`);
 
                 const resolved = {};
 
                 if (!profession.skills_by_palette) {
-                    this.log(`Profession ${professionName} has no skills_by_palette field`, 'error');
+                    this.log(`Profession ${professionId} has no skills_by_palette field`, 'error');
                     // Fallback to palette ID = skill ID
                     paletteIds.forEach(pid => resolved[pid] = pid > 0 ? pid : null);
                     return resolved;
@@ -315,54 +309,6 @@
                 return { [ids[0]]: data };
             }
             return this.fetchBatch('skins', ids);
-        }
-
-        /**
-         * Fetch all IDs for a given type
-         */
-        async fetchAllIds(type) {
-            const url = `${this.apiBase}/${type}?lang=${this.lang}`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return await response.json();
-        }
-
-        /**
-         * Fetch all specializations
-         */
-        async fetchAllSpecializations() {
-            const ids = await this.fetchAllIds('specializations');
-            const data = await this.fetchBatch('specializations', ids);
-            return Object.values(data);
-        }
-
-        /**
-         * Fetch all skills
-         */
-        async fetchAllSkills() {
-            const ids = await this.fetchAllIds('skills');
-            // Fetch in batches of 200 to avoid overwhelming the API
-            const batchSize = 200;
-            const allData = {};
-
-            for (let i = 0; i < ids.length; i += batchSize) {
-                const batch = ids.slice(i, i + batchSize);
-                const data = await this.fetchBatch('skills', batch);
-                Object.assign(allData, data);
-            }
-
-            return Object.values(allData);
-        }
-
-        /**
-         * Fetch all pets
-         */
-        async fetchAllPets() {
-            const ids = await this.fetchAllIds('pets');
-            const data = await this.fetchBatch('pets', ids);
-            return Object.values(data);
         }
 
         /**

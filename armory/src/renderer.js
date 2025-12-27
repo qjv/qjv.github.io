@@ -271,7 +271,7 @@
                     try {
                         // Create canvas to crop the image
                         const cropWidth = 600;
-                        const cropHeight = 180;
+                        const cropHeight = 150;
                         const canvas = document.createElement('canvas');
                         canvas.width = cropWidth;
                         canvas.height = cropHeight;

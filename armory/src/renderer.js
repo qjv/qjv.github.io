@@ -264,28 +264,112 @@
             const backgroundDiv = document.createElement('div');
             backgroundDiv.className = 'gw2armory-spec-background';
             if (spec.background) {
-                // Crop to 600x180 from bottom-center using canvas
+                // Smart crop: detect colored artwork boundaries
                 const img = new Image();
                 img.crossOrigin = 'anonymous'; // Handle CORS
                 img.onload = function() {
                     try {
-                        // Create canvas to crop the image
-                        const cropWidth = 600;
-                        const cropHeight = 120;
+                        // Create temporary canvas with full image
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = this.width;
+                        tempCanvas.height = this.height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.drawImage(this, 0, 0);
+
+                        // Get image data for pixel analysis
+                        const imageData = tempCtx.getImageData(0, 0, this.width, this.height);
+                        const pixels = imageData.data;
+
+                        // Helper function to check if pixel is black (with small tolerance)
+                        const isBlack = (x, y) => {
+                            const index = (y * this.width + x) * 4;
+                            const r = pixels[index];
+                            const g = pixels[index + 1];
+                            const b = pixels[index + 2];
+                            const threshold = 20; // Tolerance for "blackness"
+                            return r < threshold && g < threshold && b < threshold;
+                        };
+
+                        // Scan from left to find first non-black column
+                        let leftBound = 0;
+                        for (let x = 0; x < this.width; x++) {
+                            let hasColor = false;
+                            for (let y = 0; y < this.height; y++) {
+                                if (!isBlack(x, y)) {
+                                    hasColor = true;
+                                    break;
+                                }
+                            }
+                            if (hasColor) {
+                                leftBound = x;
+                                break;
+                            }
+                        }
+
+                        // Scan from right to find last non-black column
+                        let rightBound = this.width - 1;
+                        for (let x = this.width - 1; x >= 0; x--) {
+                            let hasColor = false;
+                            for (let y = 0; y < this.height; y++) {
+                                if (!isBlack(x, y)) {
+                                    hasColor = true;
+                                    break;
+                                }
+                            }
+                            if (hasColor) {
+                                rightBound = x;
+                                break;
+                            }
+                        }
+
+                        // Scan from bottom to find first non-black row
+                        let bottomBound = this.height - 1;
+                        for (let y = this.height - 1; y >= 0; y--) {
+                            let hasColor = false;
+                            for (let x = 0; x < this.width; x++) {
+                                if (!isBlack(x, y)) {
+                                    hasColor = true;
+                                    break;
+                                }
+                            }
+                            if (hasColor) {
+                                bottomBound = y;
+                                break;
+                            }
+                        }
+
+                        // Scan from top to find last non-black row
+                        let topBound = 0;
+                        for (let y = 0; y < this.height; y++) {
+                            let hasColor = false;
+                            for (let x = 0; x < this.width; x++) {
+                                if (!isBlack(x, y)) {
+                                    hasColor = true;
+                                    break;
+                                }
+                            }
+                            if (hasColor) {
+                                topBound = y;
+                                break;
+                            }
+                        }
+
+                        // Calculate cropped dimensions
+                        const cropX = leftBound;
+                        const cropY = topBound;
+                        const cropWidth = rightBound - leftBound + 1;
+                        const cropHeight = bottomBound - topBound + 1;
+
+                        // Create final canvas with cropped dimensions
                         const canvas = document.createElement('canvas');
                         canvas.width = cropWidth;
                         canvas.height = cropHeight;
                         const ctx = canvas.getContext('2d');
 
-                        // Draw the bottom-left 600x180 portion
-                        const sourceX = 0;
-                        const sourceY = Math.max(0, this.height - cropHeight);
-                        const sourceWidth = Math.min(cropWidth, this.width);
-                        const sourceHeight = Math.min(cropHeight, this.height);
-
+                        // Draw the cropped portion
                         ctx.drawImage(
                             this,
-                            sourceX, sourceY, sourceWidth, sourceHeight,  // source rectangle
+                            cropX, cropY, cropWidth, cropHeight,  // source rectangle
                             0, 0, cropWidth, cropHeight  // destination rectangle
                         );
 
